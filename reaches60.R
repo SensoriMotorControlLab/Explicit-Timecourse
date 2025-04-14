@@ -114,31 +114,35 @@ getAligned60 <- function () {
   data_path <- "data/Instructed_summary/aiming60/"
   
   # Group 1 file paths
-  group1_files <- file.path(data_path, c("SUMMARY_aiming60_7eec53.csv", 
-                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv",
-                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a23b35.csv"))
+  group1_files <- file.path(data_path, c("SUMMARY_aiming60_1ad447.csv", "SUMMARY_aiming60_7eec53.csv", 
+                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv", 
+                                         "SUMMARY_aiming60_86f3b3.csv", "SUMMARY_aiming60_98e5cb.csv", 
+                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a02c67.csv", 
+                                         "SUMMARY_aiming60_a23b35.csv", "SUMMARY_aiming60_a23b35.csv"))
   
-  group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", 
-                                         "SUMMARY_aiming60_654648.csv", "SUMMARY_aiming60_f275ca.csv"))
-  
+group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", "SUMMARY_aiming60_3091de.csv", "SUMMARY_aiming60_654648.csv", 
+                                       "SUMMARY_aiming60_f275ca.csv"))
+
   group1_data <- list()
   group2_data <- list()
   
   for (file in group1_files) {
     df <- read.csv(file, stringsAsFactors = FALSE)
     df$cutrial_no <- as.integer(df$cutrial_no)
-     aligned <- df[df$cutrial_no >= 1 & df$cutrial_no <= 88, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
-    #print(nrow(aligned)) 
-    
-    group1_data[[length(group1_data) + 1]] <- aligned
+    aligned1 <- df[df$cutrial_no >= 1 & df$cutrial_no <= 88, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+    group1_data[[length(group1_data) + 1]] <- aligned1
   }
+  combined_g1_aligned60 <- do.call(rbind, group1_data)
   
   # Extract trials for Group 2 (Trial 113 to 232)
   for (file in group2_files) {
     df <- read.csv(file, stringsAsFactors = FALSE)
-    aligned <- df[df$cutrial_no %in% c(1:24, 41:56, 65:72, 81:88, 97:104), c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
-    group2_data[[length(group2_data) + 1]] <- aligned
+    aligned2 <- df[df$cutrial_no %in% c(1:24, 41:56, 65:72, 81:88, 97:112), c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+    group2_data[[length(group2_data) + 1]] <- aligned2
   }
+ 
+   combined_g2_aligned60 <- do.call(rbind, group2_data)
+  
   return(list(group1 = group1_data, group2 = group2_data))
   #print(nrow(group1_data[[1]]))
   #print(nrow(group2_data[[1]]))
@@ -155,12 +159,14 @@ getRotated60 <- function () {
   
   data_path <- "data/Instructed_summary/aiming60/"
   
-  group1_files <- file.path(data_path, c("SUMMARY_aiming60_7eec53.csv", 
-                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv",
-                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a23b35.csv"))
+  group1_files <- file.path(data_path, c("SUMMARY_aiming60_1ad447.csv", "SUMMARY_aiming60_7eec53.csv", 
+                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv", 
+                                         "SUMMARY_aiming60_86f3b3.csv", "SUMMARY_aiming60_98e5cb.csv", 
+                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a02c67.csv", 
+                                         "SUMMARY_aiming60_a23b35.csv"))
   
-  group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", 
-                                         "SUMMARY_aiming60_654648.csv", "SUMMARY_aiming60_f275ca.csv"))
+  group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", "SUMMARY_aiming60_3091de.csv", "SUMMARY_aiming60_654648.csv", 
+                                         "SUMMARY_aiming60_f275ca.csv"))
   
   group1_rotated <- list()
   group2_rotated <- list()
@@ -168,16 +174,20 @@ getRotated60 <- function () {
   # Group 1 (trial 89 to 208)
   for (file in group1_files) {
     df <- read.csv(file, stringsAsFactors = FALSE)
-    rotated <- df[df$cutrial_no >= 89 & df$cutrial_no <= 208,c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
-    group1_rotated[[length(group1_rotated) + 1]] <- rotated
+    rotated1 <- df[df$cutrial_no >= 89 & df$cutrial_no <= 208,c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+    group1_rotated[[length(group1_rotated) + 1]] <- rotated1
   }
+  
+  combined_g1_rotated60 <- do.call(rbind, group1_rotated)
   
   # Group 2 (trial 113 to 232)
   for (file in group2_files) {
     df <- read.csv(file, stringsAsFactors = FALSE)
-    rotated <- df[df$cutrial_no >= 113 & df$cutrial_no <= 232, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
-    group2_rotated[[length(group2_rotated) + 1]] <- rotated
+    rotated2 <- df[df$cutrial_no >= 113 & df$cutrial_no <= 232, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+    group2_rotated[[length(group2_rotated) + 1]] <- rotated2
   }
+  
+  combined_g2_rotated60 <- do.call(rbind, group2_rotated)
   
   return(list(group1 = group1_rotated, group2 = group2_rotated))
   #print(nrow(rotated_data$group1[[1]]))
