@@ -322,8 +322,8 @@ plotAll40 <- function() {
     
     if (length(lo_filtered40) == length(hi_filtered40) && length(hi_filtered40) == length(cutrial_no_filtered40)) {
       plot(-1000, 1000, type = "n",
-           main = "Aim Deviation Across All Trials", 
-           xlab = "Trial", ylab = "Aiming Strategy (degrees)",
+           main = "Aiming Strategies with a 40° Rotation", 
+           xlab = "Trial", ylab = "Mean Aim Deviation (°)",
            xlim = c(0, 256), ylim = c(-20, 70))
       
       #lines(all_data$Group.1, all_data$x, col = "hotpink", lwd = 2, pch = 16)  
@@ -346,4 +346,4 @@ plotAll40 <- function() {
     } else {
       stop("Lengths of lo_filtered, hi_filtered, and cutrial_no_filtered do not match!")
     }
-  }
+}
