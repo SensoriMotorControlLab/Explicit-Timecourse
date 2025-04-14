@@ -308,8 +308,8 @@ plotAllAim60 <- function () {
   
   if (length(lo_filtered60) == length(hi_filtered60) && length(hi_filtered60) == length(cutrial_no_filtered60)) {
     plot(-1000, 1000, type = "n",
-         main = "Aim Deviation Across All Trials", 
-         xlab = "Trial", ylab = "Aiming Strategy (degrees)",
+         main = "Aiming Strategies with a 60° Rotation", 
+         xlab = "Trial", ylab = "Mean Aim Deviation (°)",
          xlim = c(0, 256), ylim = c(-20, 70))
     
     #lines(all_data$Group.1, all_data$x, col = "hotpink", lwd = 2, pch = 16)  
