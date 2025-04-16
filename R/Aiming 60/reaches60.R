@@ -9,7 +9,10 @@ get60_Data <- function() {
   for (file_path in aim60files) {
     df <- read.csv(file_path)
     all_60data[[length(all_60data) + 1]] <- df
-  }
+
+    
+      }
+  
   
   return(all_60data)
 }
@@ -17,6 +20,14 @@ get60_Data <- function() {
 aim60_data <- get60_Data()
 print(length(aim60_data))
 
+
+for (i in 1:length(aim60_data)) {
+  df <- aim60_data[[i]]
+  print(head(df))
+}
+
+length(aim60_data)
+  
 #quick visualization 
 plot(df$reachdeviation_deg, main = "Reach Deviation Aiming 60 ", xlab = "Trial", ylab = "Reach Deviation (degrees)")
 
@@ -201,12 +212,14 @@ getAfter60 <- function() {
   
   data_path <- "data/Instructed_summary/aiming60/"
   
-  group1_files <- file.path(data_path, c("SUMMARY_aiming60_7eec53.csv", 
-                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv",
-                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a23b35.csv"))
+  group1_files <- file.path(data_path, c("SUMMARY_aiming60_1ad447.csv", "SUMMARY_aiming60_7eec53.csv", 
+                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv", 
+                                         "SUMMARY_aiming60_86f3b3.csv", "SUMMARY_aiming60_98e5cb.csv", 
+                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a02c67.csv", 
+                                         "SUMMARY_aiming60_a23b35.csv"))
   
-  group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", 
-                                         "SUMMARY_aiming60_654648.csv", "SUMMARY_aiming60_f275ca.csv"))
+  group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", "SUMMARY_aiming60_3091de.csv", "SUMMARY_aiming60_654648.csv", 
+                                         "SUMMARY_aiming60_f275ca.csv"))
   
   group1_after <- list()
   group2_after <- list()
@@ -214,16 +227,21 @@ getAfter60 <- function() {
   # Group 1 (trial 233 to 256) left hand trials
   for (file in group1_files) {
     df <- read.csv(file, stringsAsFactors = FALSE)
-    after <- df[df$cutrial_no >= 209 & df$cutrial_no <= 256,c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
-    group1_after[[length(group1_after) + 1]] <- after
+    after1 <- df[df$cutrial_no >= 209 & df$cutrial_no <= 256,c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+    group1_after[[length(group1_after) + 1]] <- after1
   }
+  
+  combined_g1_after60 <- do.call(rbind, group1_after)
   
   # Group 2 (trial 113 to 232) aftereffect trials
   for (file in group2_files) {
     df <- read.csv(file, stringsAsFactors = FALSE)
-    after <- df[df$cutrial_no >= 233 & df$cutrial_no <= 256, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
-    group2_after[[length(group2_after) + 1]] <- after
+    after2 <- df[df$cutrial_no >= 233 & df$cutrial_no <= 256, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+    group2_after[[length(group2_after) + 1]] <- after2
   }
+  
+  combined_g2_after60 <- do.call(rbind, group2_after)
+  
   return(list(group1 = group1_after, group2 = group2_after))
     #print(nrow(after_data$group1[[1]]))
     #print(nrow(after_data$group2[[1]])) 
@@ -258,4 +276,20 @@ after60_data <- getAfter60()
 
 #abline(h=0, col="black", lwd = 1, lty=3)
 
+
+#combine data so we can extract columns
+df_g1_60 <- rbind(combined_g1_aligned60, combined_g1_rotated60, combined_g1_after60)
+df_g2_60 <- rbind(combined_g2_aligned60, combined_g2_rotated60, combined_g2_after60)
+
+df_60 <- rbind(df_g1_60,df_g2_60)
+
+
+
+#Files with strategy:
+group1_files <- file.path(data_path, c("SUMMARY_aiming60_7eec53.csv", 
+                                         "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv",
+                                         "SUMMARY_aiming60_4093e8.csv", "SUMMARY_aiming60_a23b35.csv"))
+
+group2_files <- file.path(data_path, c("SUMMARY_aiming60_7cd1bd.csv", 
+                                       "SUMMARY_aiming60_654648.csv", "SUMMARY_aiming60_f275ca.csv"))
 
