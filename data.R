@@ -34,3 +34,12 @@ getData <- function() {
   
 }
   
+getParticipant <- function(participant) {
+  demo <- read.csv('data/demographics/Instructeddemographics.csv', stringsAsFactors = FALSE)
+  
+  colnames(demo)[which(colnames(demo) == "Do.not.change..experiment.ID.")] <- "ID"
+  
+  participants <- demo[which(demo$ID == participant), ]
+  
+  return(participants)
+}
