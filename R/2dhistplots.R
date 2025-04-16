@@ -123,7 +123,7 @@ img <- log(img_info$freq2D + 1)
 # Plot the image
 image(x=img_info$x.edges,
       y=img_info$y.edges,
-      col=colorRampPalette(c("white", "plum2", "darkorchid4", "black"))(100),
+     # col=colorRampPalette(c("white", "plum2", "darkorchid4", "black"))(100),
       z=img,
       add=TRUE)
 
@@ -223,12 +223,11 @@ plot50hist <- function() {
   # 2D histogram of the data (aimdeviation_deg vs cutrial_no)
   img_info <- hist2d(x=exp2, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,50,2.5)))
   img <- log(img_info$freq2D + 1)
-  blue_palette <- colorRampPalette(c("white", "maroon3"))
   
   # Plot the image
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        col=colorRampPalette(c("white", "pink", "deeppink", "maroon4"))(100),
+       # col=colorRampPalette(c("white", "pink", "deeppink", "maroon4"))(100),
         z=img,
         add=TRUE)
   
@@ -403,7 +402,7 @@ plot30hist <- function() {
   # Plot the image
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
+        #col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
         z=img,
         add=TRUE)
   
