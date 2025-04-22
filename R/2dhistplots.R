@@ -15,6 +15,25 @@ aim60_data <- get60_Data()
 print(length(aim60_data))
 
 
+#from reaches60 script
+for (file in group1_files) {
+  df <- read.csv(file, stringsAsFactors = FALSE)
+  df$cutrial_no <- as.integer(df$cutrial_no)
+  aligned1 <- df[df$cutrial_no >= 1 & df$cutrial_no <= 88, c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+  group1_data[[length(group1_data) + 1]] <- aligned1
+}
+combined_g1_aligned60 <- do.call(rbind, group1_data)
+
+# trials for Group 2 (Trial 113 to 232)
+for (file in group2_files) {
+  df <- read.csv(file, stringsAsFactors = FALSE)
+  aligned2 <- df[df$cutrial_no %in% c(1:24, 41:56, 65:72, 81:88, 97:112), c("cutrial_no", "reachdeviation_deg", "aimdeviation_deg"), drop = FALSE]
+  group2_data[[length(group2_data) + 1]] <- aligned2
+}
+
+combined_g2_aligned60 <- do.call(rbind, group2_data)
+######
+
 getCombinedAlignedRotated60 <- function(all_data60) {
   data_path <- "data/Instructed_summary/aiming60/"
   
@@ -139,7 +158,8 @@ lines(x=c(-8, 0, 0, 32),
       y=c(-0.5, -0.5, 59.5, 59.5), 
       col='navy', lty=3, lwd=2)
 
-
+avg_aim60 <- aggregate(aimdeviation_deg ~ x, data=combined60, FUN=mean)
+lines(avg_aim60$x, avg_aim60$aimdeviation_deg, col="blue", lwd=2)
 }
 
 
