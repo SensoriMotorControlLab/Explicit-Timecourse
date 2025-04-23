@@ -18,7 +18,7 @@ aim50_data_fixed <- lapply(aim50_data, function(df) {
     df$participant_id <- file_index  # assign participant ID
     
     
-    if (is.null(df50_reach)) {
+    if (is.null(df50_aim)) {
       df50_aim <- df
     } else {
       df50_aim <- rbind(df50_aim, df)
@@ -101,8 +101,8 @@ aim50_data_fixed <- lapply(aim50_data, function(df) {
       
       nonstrategies_rotated50 <- rbind(df50_aim[df50_aim$participant_id %in% c(1,4,5,7,11,14) &
                                                 df50_aim$cutrial_no %in% 201:208, ], 
-                                     df60_aim[df60_aim$participant_id %in% 10 &
-                                                df60_aim$cutrial_no %in% 225:232, ])
+                                     df50_aim[df50_aim$participant_id %in% 10 &
+                                                df50_aim$cutrial_no %in% 225:232, ])
       
       t.test(strategies_rotated$aimdeviation_deg,strategies_aligned$aimdeviation_deg, paired=TRUE)
       t.test(strategies_rotated$aimdeviation_deg,nonstrategies_rotated$aimdeviation_deg)
