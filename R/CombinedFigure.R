@@ -154,13 +154,17 @@ plotStrategies <- function () {
       "50" = "black",
       "60" = "cyan"
     )) +
-    labs(
+    scale_y_continuous(
+      breaks = c(0,10,20, 30, 40, 50, 60),  # Adjust the breaks on the y-axis
+      labels = c("0","10", "20", "30", "40", "50", "60"),
+      limits = c(0, 60)
+    ) + 
+      labs(
       title = "Aiming Deviation for Strategy-Users by Rotation Size",
       x = "Rotation Size (Degrees)",
       y = "Aiming Deviation (Degrees)",
       color = "Rotation Size"
     ) +
     theme_minimal() +
-    theme(legend.position = "top") +
-    ylim(0, 60)
+    theme(legend.position = "top") 
 }
