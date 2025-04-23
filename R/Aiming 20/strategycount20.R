@@ -87,8 +87,8 @@ nonstrategies_aligned20 <- rbind(df20_aim[df20_aim$participant_id %in% c(1,2,3) 
 strategies_rotated20 <- rbind(df20_aim[df20_aim$participant_id %in% 4 &
                                          df20_aim$cutrial_no %in% 225:232, ])
 
-nonstrategies_rotated20 <- rbind(df60_aim[df60_aim$participant_id %in% c(1,2,3) &
-                                            df60_aim$cutrial_no %in% 225:232, ])
+nonstrategies_rotated20 <- rbind(df20_aim[df20_aim$participant_id %in% c(1,2,3) &
+                                            df20_aim$cutrial_no %in% 225:232, ])
 
 t.test(strategies_rotated$aimdeviation_deg,strategies_aligned$aimdeviation_deg, paired=TRUE)
 t.test(strategies_rotated$aimdeviation_deg,nonstrategies_rotated$aimdeviation_deg)
