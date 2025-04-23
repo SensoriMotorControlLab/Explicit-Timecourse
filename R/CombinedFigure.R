@@ -114,3 +114,53 @@ plotExponentialAimOverlay <- function() {
 }
 
 
+plotStrategies <- function () {
+  plot_all_rotated <- rbind(
+    merge(last20_rotated, ci_compare20[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last50_rotated, ci_compare50[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last40_rotated, ci_compare40[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last30_rotated, ci_compare30[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last60_rotated, ci_compare[, c("participant_id", "aim_shift")], by = "participant_id")
+  )
+  
+#add col
+  last20_rotated$rotation_size <- 20
+  last30_rotated$rotation_size <- 30
+  last40_rotated$rotation_size <- 40
+  last50_rotated$rotation_size <- 50
+  last60_rotated$rotation_size <- 60
+  
+  plot_all_rotated <- rbind(
+    merge(last20_rotated, ci_compare20[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last30_rotated, ci_compare30[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last40_rotated, ci_compare40[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last50_rotated, ci_compare50[, c("participant_id", "aim_shift")], by = "participant_id"),
+    merge(last60_rotated, ci_compare[, c("participant_id", "aim_shift")], by = "participant_id")
+  )
+  
+  
+  yes_strategies <- subset(plot_all_rotated, aim_shift == "Yes")
+  
+  #make it categorical
+  yes_strategies$rotation_size <- factor(yes_strategies$rotation_size)
+  
+
+  ggplot(yes_strategies, aes(x = rotation_size, y = aimdeviation_deg, color = rotation_size)) +
+    geom_jitter(width = 0.1, size = 3, alpha = 0.7) +
+    scale_color_manual(values = c(
+      "20" = "deeppink",
+      "30" = "orange",
+      "40" = "blue",
+      "50" = "black",
+      "60" = "cyan"
+    )) +
+    labs(
+      title = "Aiming Deviation for Strategy-Users by Rotation Size",
+      x = "Rotation Size (Degrees)",
+      y = "Aiming Deviation (Degrees)",
+      color = "Rotation Size"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "top") +
+    ylim(0, 60)
+}
