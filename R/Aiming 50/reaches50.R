@@ -46,6 +46,7 @@ plot(df2$cutrial_no, df2$aimdeviation_deg,  type="l")
   
 
 #COMFIRM LEARNERS---------
+learners_50 <- function () {
 data_path <- "data/Instructed_summary/aiming50/"
 group1_files <- file.path(data_path, c("SUMMARY_aiming50_4eeaee.csv", "SUMMARY_aiming50_5f4177.csv", 
                   "SUMMARY_aiming50_051bcc.csv", "SUMMARY_aiming50_3824c0.csv", 
@@ -107,7 +108,7 @@ for (file in group2_files) {
 
 print(learners)
 #there are 4/4 learners
-
+}
 
 #Extract the Aligned Phase 
 
@@ -116,10 +117,10 @@ getAligned50 <- function () {
   
   # Group 1 file paths
   group1_files <- file.path(data_path, c("SUMMARY_aiming50_4eeaee.csv", "SUMMARY_aiming50_5f4177.csv", 
-                                         "SUMMARY_aiming50_051bcc.csv", "SUMMARY_aiming50_3824c0.csv", 
+                                         "SUMMARY_aiming50_051bcc.csv",  
                                          "SUMMARY_aiming50_54044d.csv", "SUMMARY_aiming50_94709f.csv", 
                                          "SUMMARY_aiming50_901482.csv", "SUMMARY_aiming50_c363b6.csv", 
-                                         "SUMMARY_aiming50_d9ff04.csv","SUMMARY_aiming50_fb333f.csv"))
+                                         "SUMMARY_aiming50_d9ff04.csv"))
   
   group2_files <- file.path(data_path, c("SUMMARY_aiming50_0f6fbf.csv", "SUMMARY_aiming50_194dab.csv", 
                                                         "SUMMARY_aiming50_b13e41.csv", "SUMMARY_aiming50_e066de.csv"))
@@ -165,10 +166,10 @@ getRotated50 <- function () {
   data_path <- "data/Instructed_summary/aiming50/"
   
   group1_files <- file.path(data_path, c("SUMMARY_aiming50_4eeaee.csv", "SUMMARY_aiming50_5f4177.csv", 
-                                         "SUMMARY_aiming50_051bcc.csv", "SUMMARY_aiming50_3824c0.csv", 
+                                         "SUMMARY_aiming50_051bcc.csv", 
                                          "SUMMARY_aiming50_54044d.csv", "SUMMARY_aiming50_94709f.csv", 
                                          "SUMMARY_aiming50_901482.csv", "SUMMARY_aiming50_c363b6.csv", 
-                                         "SUMMARY_aiming50_d9ff04.csv","SUMMARY_aiming50_fb333f.csv"))
+                                         "SUMMARY_aiming50_d9ff04.csv"))
   
   group2_files <- file.path(data_path, c("SUMMARY_aiming50_0f6fbf.csv", "SUMMARY_aiming50_194dab.csv", 
                                          "SUMMARY_aiming50_b13e41.csv", "SUMMARY_aiming50_e066de.csv"))
