@@ -22,7 +22,7 @@ plotAllAimOverlay <- function() {
 plotAllReachOverlay <- function() {
   
   plot(-1000, 1000, type = "n", xlim = c(1, 256), ylim = c(-5, 60),
-       xlab = "Trial", ylab = "Mean Aim Deviation (°)",
+       xlab = "Trial", ylab = "Mean Reach Deviation (°)",
        main = "Reach Deviation Across Rotation Sizes")
 
   lines(smoothreach40, col='magenta', lwd=2) 
@@ -42,9 +42,10 @@ plotAllReachOverlay <- function() {
   abline(v=233, col="black", lty=3)
   #text(x = 233, y = 0, labels = "Left hand Trials for Group 1", col = "black", pos = 2, cex = 1)
 
-  legend("topright", legend = c("20°", "30°", "40°", "50°", "60°"),
+  legend("topleft", legend = c("20°", "30°", "40°", "50°", "60°"),
          col = c( "mediumpurple", "seagreen3", "magenta", "orange", "cyan"), lty = 1, lwd = 2)
-}
+
+  }
 
 
 
