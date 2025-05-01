@@ -142,7 +142,7 @@ img <- log(img_info$freq2D + 1)
 # Plot the image
 image(x=img_info$x.edges,
       y=img_info$y.edges,
-     # col=colorRampPalette(c("white", "plum2", "darkorchid4", "black"))(100),
+      col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
       z=img,
       add=TRUE)
 
@@ -247,7 +247,7 @@ plot50hist <- function() {
   # Plot the image
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-       # col=colorRampPalette(c("white", "pink", "deeppink", "maroon4"))(100),
+       col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
         z=img,
         add=TRUE)
   
@@ -344,6 +344,7 @@ plot40hist <- function() {
   # Plot the image
   image(x=img_info$x.edges,
         y=img_info$y.edges,
+        col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
         z=img,
         add=TRUE)
   
@@ -351,7 +352,7 @@ plot40hist <- function() {
   axis(side=2, at=seq(-10,40,10))
   lines(x=c(-8, 0, 0, 32), 
         y=c(-0.5, -0.5, 39.5, 39.5), 
-        col='navy', lty=1, lwd=2)
+        col='navy', lty=3, lwd=2)
   
 }
 
@@ -422,7 +423,7 @@ plot30hist <- function() {
   # Plot the image
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        #col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
+        col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
         z=img,
         add=TRUE)
   
@@ -503,6 +504,7 @@ plot20hist <- function() {
   # Plot the image
   image(x=img_info$x.edges,
         y=img_info$y.edges,
+        col=colorRampPalette(c("white", "lavender", "slateblue", "navy"))(100),
         z=img,
         add=TRUE)
   
@@ -510,6 +512,6 @@ plot20hist <- function() {
   axis(side=2, at=seq(-10,20,10))
   lines(x=c(-8, 0, 0, 32), 
         y=c(-0.5, -0.5, 19.5, 19.5), 
-        col='navy', lty=1, lwd=2)
+        col='navy', lty=3, lwd=2)
   
 }
