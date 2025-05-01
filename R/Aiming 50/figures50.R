@@ -1,8 +1,8 @@
 plotAligned50 <- function() {
   aligned50_data <- getAligned50()
   
-  group1_c <- do.call(rbind, aligned_data$group1)
-  group2_c <- do.call(rbind, aligned_data$group2)
+  group1_c <- do.call(rbind, aligned50_data$group1)
+  group2_c <- do.call(rbind, aligned50_data$group2)
   
   group1avg <- aggregate(group1_c$reachdeviation_deg, by = list(group1_c$cutrial_no), FUN = mean)
   group2avg <- aggregate(group2_c$reachdeviation_deg, by = list(group2_c$cutrial_no), FUN = mean)
@@ -134,7 +134,7 @@ plotAll50 <- function() {
   valid_indices50 <- lo50 >= y_lower_limit & lo50 <= y_upper_limit & hi50 >= y_lower_limit & hi50 <= y_upper_limit
   lo_filtered50 <- lo50[valid_indices50]
   hi_filtered50 <- hi50[valid_indices50]
-  cutrial_no_filtered <- cutrial_no[valid_indices]
+  cutrial_no_filtered50 <- cutrial_no[valid_indices50]
   
   
   if (length(lo_filtered50) == length(hi_filtered50) && length(hi_filtered50) == length(cutrial_no_filtered50)) {
