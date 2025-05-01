@@ -61,7 +61,7 @@ last_rot_avg <- last60_rotated %>%
   summarise(mean_last_rotated = mean(aimdeviation_deg, na.rm = TRUE),
             sd_last_rotated = sd(aimdeviation_deg, na.rm = TRUE))
 
-
+getCI_60 <- function () {
 CI <- function(last_60aligned) {
   aggregate(aimdeviation_deg ~ participant_id, 
             data = last_60aligned, 
@@ -75,7 +75,7 @@ aligned_CI <- CI(last_60aligned)
 CI <- function(last60_rotated) {
   aggregate(aimdeviation_deg ~ participant_id, 
             data = last60_rotated, 
-            FUN = function(x) Reach::getConfidenceInterval(x))
+            FUN = function(x) Reach::getConfidenceInterval(x, conf.level = 0.95))
 }
 
 rotated_CI <- CI(last60_rotated)
@@ -85,18 +85,26 @@ rotated_CI <- CI(last60_rotated)
 #expect their aim deviation in that phase to be well outside the CI range of the 
 #aligned phase.
 
-ci_compare <- merge(aligned_CI, rotated_CI, by = "participant_id", suffixes = c("_aligned", "_rotated"))
-ci_compare$shift_amount <- ci_compare$aimdeviation_deg_rotated[,1] - ci_compare$aimdeviation_deg_aligned[,2]
+getStrategies60 <- function () {
+ci_compare <- rotated_CI
 
 # flag whether there's a strategy shift (if difference > 15 degrees)
-ci_compare$aim_shift <- ifelse(ci_compare$shift_amount > 15, "Yes", "No")
-ci_compare$aim_shift[ci_compare$participant_id == 10] <- "No"
-print(ci_compare[, c("participant_id", "aimdeviation_deg_aligned", "aimdeviation_deg_rotated", "shift_amount", "aim_shift")])
+ci_compare$strategy <- ifelse(
+  (ci_compare$aimdeviation_deg[,1] > 0 | ci_compare$aimdeviation_deg[,2] < 0) & 
+    ci_compare$aimdeviation_deg[,1] > 5, 
+  "Yes", 
+  "No")
+ci_compare$strategy[ci_compare$participant_id == 3] <- "No"
+ci_compare$strategy[ci_compare$participant_id == 10] <- "No"
+print(ci_compare[, c("participant_id", "aimdeviation_deg", "strategy")])
+#exclude 10 and 3 ~noisy strategies
+}
+
 
 #use plots to see if consistent with table 
-df2 <- df60_aim[df60_aim$participant_id == 9, ] #1,4,5,6,7,8,10,11,12,13
+df2 <- df60_aim[df60_aim$participant_id == 3, ] #1,4,5,6,7,8,10,11,12,13
 plot(df2$aimdeviation_deg, type="l")
-#10 was a "noisy strategy", so lets exclude it
+#3 & 10 was a "noisy strategy", so lets exclude it
 
 
 strategies_aligned <- rbind(df60_aim[df60_aim$participant_id %in% c(1,4,5,8,11,12) &
