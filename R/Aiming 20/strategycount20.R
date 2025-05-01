@@ -51,7 +51,7 @@ aligned_CI20 <- CI(last_20aligned)
 CI <- function(last20_rotated) {
   aggregate(aimdeviation_deg ~ participant_id, 
             data = last20_rotated, 
-            FUN = function(x) Reach::getConfidenceInterval(x))
+            FUN = function(x)  Reach::getConfidenceInterval(x, conf.level = 0.99))
 }
 
 rotated_CI20 <- CI(last20_rotated)
@@ -61,21 +61,24 @@ rotated_CI20 <- CI(last20_rotated)
 #expect their aim deviation in that phase to be well outside the CI range of the 
 #aligned phase.
 
-ci_compare20 <- merge(aligned_CI20, rotated_CI20, by = "participant_id", suffixes = c("_aligned", "_rotated"))
-ci_compare20$shift_amount <- ci_compare20$aimdeviation_deg_rotated[,1] - ci_compare20$aimdeviation_deg_aligned[,2]
-
-# flag whether there's a strategy shift (if difference > 15 degrees)
-ci_compare20$aim_shift <- ifelse(
-  (ci_compare20$aimdeviation_deg_rotated[,1] - ci_compare20$aimdeviation_deg_aligned[,2] > 15) |
-    (ci_compare20$aimdeviation_deg_rotated[,2] - ci_compare20$aimdeviation_deg_aligned[,1] > 15),
-  "Yes", "No")
-#ci_compare20$aim_shift[ci_compare20$participant_id == 5] <- "No" #participant 5 has a noisy strategy
-
-print(ci_compare20[, c("participant_id", "aimdeviation_deg_aligned", "aimdeviation_deg_rotated", "shift_amount", "aim_shift")])
+getStrategies20 <- function () {
+  ci_compare20 <- rotated_CI20
+  
+  # Flag whether there's a strategy shift (if the lower bound of the CI is greater than 5 or a shift condition)
+  ci_compare20$strategy <- ifelse(
+    (ci_compare20$aimdeviation_deg[,1] > 0 | ci_compare20$aimdeviation_deg[,2] < 0) & 
+      ci_compare20$aimdeviation_deg[,1] > 5, 
+    "Yes", 
+    "No")
+  
+  # Print the relevant columns to check the result
+  print(ci_compare20[, c("participant_id", "aimdeviation_deg", "strategy")])
+}
 
 #see individual plots
-df4 <- df20_aim[df20_aim$participant_id == 4, ] 
+df4 <- df20_aim[df20_aim$participant_id == 3, ] 
 plot(df4$aimdeviation_deg, type="l")    
+#exclude 3
 
 
 strategies_aligned20 <- rbind(df20_aim[df20_aim$participant_id %in% 4 &
