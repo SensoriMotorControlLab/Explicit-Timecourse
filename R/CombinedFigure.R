@@ -116,11 +116,11 @@ plotExponentialAimOverlay <- function() {
 
 plotStrategies <- function () {
   plot_all_rotated <- rbind(
-    merge(last20_rotated, ci_compare20[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last50_rotated, ci_compare50[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last40_rotated, ci_compare40[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last30_rotated, ci_compare30[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last60_rotated, ci_compare[, c("participant_id", "aim_shift")], by = "participant_id")
+    merge(last20_rotated, ci_compare20[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last50_rotated, ci_compare50[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last40_rotated, ci_compare40[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last30_rotated, ci_compare30[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last60_rotated, ci_compare[, c("participant_id","strategy")], by = "participant_id")
   )
   
 #add col
@@ -131,21 +131,21 @@ plotStrategies <- function () {
   last60_rotated$rotation_size <- 60
   
   plot_all_rotated <- rbind(
-    merge(last20_rotated, ci_compare20[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last30_rotated, ci_compare30[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last40_rotated, ci_compare40[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last50_rotated, ci_compare50[, c("participant_id", "aim_shift")], by = "participant_id"),
-    merge(last60_rotated, ci_compare[, c("participant_id", "aim_shift")], by = "participant_id")
+    merge(last20_rotated, ci_compare20[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last30_rotated, ci_compare30[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last40_rotated, ci_compare40[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last50_rotated, ci_compare50[, c("participant_id", "strategy")], by = "participant_id"),
+    merge(last60_rotated, ci_compare[, c("participant_id", "strategy")], by = "participant_id")
   )
+  plot_all_rotated <- plot_all_rotated %>%
+    mutate(
+      participant_id = paste0(participant_id, "_", rotation_size),  # Create a unique participant_id with the rotation size
+      rotation = rotation_size  # Add the rotation size as a separate column
+    )
+ 
+  plot_all_rotated_yes <- which(plot_all_rotated$strategy == "Yes")
   
-  
-  yes_strategies <- subset(plot_all_rotated, aim_shift == "Yes")
-  
-  #make it categorical
-  yes_strategies$rotation_size <- factor(yes_strategies$rotation_size)
-  
-
-  ggplot(yes_strategies, aes(x = rotation_size, y = aimdeviation_deg, color = rotation_size)) +
+   ggplot(plot_all_rotated_yes , aes(x = rotation, y = strategy, color = factor(rotation))) +  # Convert rotation to a factor
     geom_jitter(width = 0.1, size = 3, alpha = 0.7) +
     scale_color_manual(values = c(
       "20" = "deeppink",
@@ -159,12 +159,120 @@ plotStrategies <- function () {
       labels = c("0","10", "20", "30", "40", "50", "60"),
       limits = c(0, 60)
     ) + 
-      labs(
-      title = "Aiming Deviation for Strategy-Users by Rotation Size",
+    labs(
+      title = "Mean Aiming Deviation for Strategy-Users by Rotation Size",
       x = "Rotation Size (Degrees)",
       y = "Aiming Deviation (Degrees)",
       color = "Rotation Size"
     ) +
     theme_minimal() +
-    theme(legend.position = "top") 
+    theme(legend.position = "top")
 }
+
+  
+  
+  
+getMeans <- function () {
+  mean20 <- last20_rotated %>%
+    group_by(participant_id) %>%
+    summarise(aim_shift = mean(aimdeviation_deg, na.rm = TRUE)) %>%
+    mutate(participant_id = paste0(participant_id, "_20"), rotation = 20)
+  
+  mean30 <- last30_rotated %>%
+    group_by(participant_id) %>%
+    summarise(aim_shift = mean(aimdeviation_deg, na.rm = TRUE)) %>%
+    mutate(participant_id = paste0(participant_id, "_30"), rotation = 30)
+  
+  mean40 <- last40_rotated %>%
+    group_by(participant_id) %>%
+    summarise(aim_shift = mean(aimdeviation_deg, na.rm = TRUE)) %>%
+    mutate(participant_id = paste0(participant_id, "_40"), rotation = 40)
+  
+  mean50 <- last50_rotated %>%
+    group_by(participant_id) %>%
+    summarise(aim_shift = mean(aimdeviation_deg, na.rm = TRUE)) %>%
+    mutate(participant_id = paste0(participant_id, "_50"), rotation = 50)
+  
+  mean60 <- last60_rotated %>%
+    group_by(participant_id) %>%
+    summarise(aim_shift = mean(aimdeviation_deg, na.rm = TRUE)) %>%
+    mutate(participant_id = paste0(participant_id, "_60"), rotation = 60)
+  
+  # Combine
+  all_mean_aims <- bind_rows(mean20, mean30, mean40, mean50, mean60)
+print(all_mean_aims)
+}
+
+
+  plotStrategyAim <- function() {
+  
+     categorizeStrategies <- function () {
+     yes_strategies <- all_mean_aims %>%
+     filter(participant_id %in% plot_all_rotated$participant_id[plot_all_rotated$strategy == "Yes"]) %>%
+     mutate(strategy = "Yes") #26 strategies
+    
+     no_strategies <- all_mean_aims %>%
+     filter(participant_id %in% plot_all_rotated$participant_id[plot_all_rotated$strategy == "No"]) %>%
+     mutate(strategy = "No") #23 no strategies
+
+    
+     all_mean_aims$strategy <- ifelse(all_mean_aims$participant_id %in% yes_strategies$participant_id, "Yes", 
+                                   ifelse(all_mean_aims$participant_id %in% no_strategies$participant_id, "No", NA))
+  
+     all_mean_aims$strategy <- factor(all_mean_aims$strategy, levels = c("Yes", "No"))
+  
+    
+    }
+     p <- ggplot(all_mean_aims, aes(x = rotation, y = aim_shift, 
+                                    color = rotation, shape = strategy)) +
+       geom_jitter(width = 0.1, size = 3, alpha = 0.8, stroke = 1.2) +
+       scale_color_gradient(low = "orange", high = "purple4",guide = "none") +  
+       scale_shape_manual(values = c("Yes" = 19, "No" = 1)) +
+       scale_x_continuous(
+         limits = c(0, 60),  # Keep full range for the main plot
+         breaks = seq(20, 60, 10),  # Only show labels from 20 to 60
+         labels = seq(20, 60, 10)) +  
+        scale_y_continuous(
+         breaks = seq(0, 60, 10),
+         limits = c(-5, 60)
+       ) + 
+       labs(
+         title = "Aiming Deviation in Participants with and without an Explicit Aiming Strategy",
+         x = "Rotation Size (°)",
+         y = "Aiming Deviation (°)",
+         color = "Rotation Size",
+         shape = "Strategy"
+       ) +
+       theme_minimal() +
+       theme(legend.position = "top") +
+     theme_minimal() +
+       theme(
+         legend.position = "top",
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank()
+       ) 
+     
+     
+     density_data <- plot_all_rotated %>%
+       filter(!is.na(strategy)) %>%
+       group_by(strategy) %>%
+       do({
+         dens <- density(.$aimdeviation_deg, na.rm = TRUE)
+         data.frame(x = dens$x, y = dens$y, strategy = unique(.$strategy))
+       })
+     
+     p + geom_polygon(
+       data = density_data,
+       aes(x = 5 + y * 50, y = x, fill = strategy, group = strategy),
+       alpha = 0.6,            
+       color = "cornflowerblue",       
+       linewidth = 0.3,
+       show.legend = FALSE
+     ) +
+       scale_fill_manual(values = c("Yes" = "#1f77b4", "No" = "cornflowerblue"))
+     
+  }
+  
+  
+  
