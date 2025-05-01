@@ -59,7 +59,7 @@ for (i in 1:length(aim20_data)) {
 }
 
 #COMFIRM LEARNERS---------
-
+learners_20 <- function () {
 data_path <- "data/Instructed_summary/aiming20/"
 group2_files <- file.path(data_path, c("SUMMARY_aiming20_0bac45.csv", "SUMMARY_aiming20_d45fca.csv", "SUMMARY_aiming20_ee29d6.csv", 
                                        "SUMMARY_aiming20_4fb1e1.csv"))
@@ -71,7 +71,7 @@ learners <- 0
 for (file in group2_files) {
   df <- read.csv(file, stringsAsFactors = FALSE)
   rotated <- df[df$task_idx == 12, , drop = FALSE]
-  close_to_20 <- sum(rotated$reachdeviation_deg >= 15 & rotated$reachdeviation_deg <= 60, na.rm = TRUE)
+  close_to_20 <- sum(rotated$reachdeviation_deg >= 10 & rotated$reachdeviation_deg <= 60, na.rm = TRUE)
   proportion_close_to_20 <- close_to_20 / nrow(rotated)
   
   if (proportion_close_to_20 >= 0.5) {
@@ -83,7 +83,7 @@ for (file in group2_files) {
 
 print(learners)
 #there are 4/4 learners
-
+}
 
 #Extract the Aligned Phase 
 
