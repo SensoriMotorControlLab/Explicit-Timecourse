@@ -47,27 +47,77 @@ source('R/')
 
 
 ### Learning
-Did all participants learn to counter the pertuburtation at least 50% of the time?
+Did all participants learn to counter the perturbation at least 50% of the time?
+```{r}
+allLeaners()
+```
+#47/49 ~ 96% learners!
 
 
 ### Aiming Strategy Proportion
 Did all learners have a strategy (ie, deviate their aim)? 
+```{r}
+allStrategies()
+```
+
+
 <br>Did the number of strategies vary as a function of rotation size.
+```{r}
+strategy_counts
+```
 
 
 ### Aiming Strategy Onset
-At what trial did participants begin deviating their hand reach (in the opposite direction of the rotation)?
+Did participants deviate their hand reach (in the opposite 
+direction of the rotation) and did the reach deviations differ as a function of rotation size??
+![My Plot](reachdev.png)
+
+
+
+
 <br>At what trial did participants begin deviating their explicit aim?
+![My Plot](60hist.png)
+![My Plot](50hist.png)
+![My Plot](40hist.png)
+![My Plot](30hist.png)
+![My Plot](20hist.png)
+
 <br>Did the magnitude in aim change increase with larger rotation sizes?
+![My Plot](meanstrat.png)
+
 
 <br>
 
 ## Analysis Steps - Statistics
 
 ### Oneway ANOVA
-Does the proportion of participants who make a step differ across rotation sizes?
-<br>Does the average step size differ between rotation sizes?
+Does the proportion of participants who make a step differ across rotation sizes? 
+```{r}
+countANOVA ()
+```
+```{r}
+logistic_reg_output ()
+```
+
+
+<br>Does the average step size differ between rotation sizes? 
+```{r}
+aimANOVA ()
+```
+
 <br>Does the average trial at which the step occurs differ across rotation sizes?
 
 ### Bayesian ANOVA
 A large Bayesian Factor (>10) suggests strong evidence for a difference.
+
+<br>Does the average step size differ between rotation sizes? 
+```{r}
+aimBAYES()
+```
+
+Does the proportion of participants who make a step differ across rotation sizes? 
+```{r}
+countBAYES()
+```
+
+
