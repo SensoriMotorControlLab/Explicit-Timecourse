@@ -61,33 +61,37 @@ rotated_CI30 <- CI(last30_rotated)
 #expect their aim deviation in that phase to be well outside the CI range of the 
 #aligned phase.
 
-ci_compare30 <- merge(aligned_CI30, rotated_CI30, by = "participant_id", suffixes = c("_aligned", "_rotated"))
-ci_compare30$shift_amount <- ci_compare30$aimdeviation_deg_rotated[,1] - ci_compare30$aimdeviation_deg_aligned[,2]
+getStrategies30 <- function () {
+  ci_compare30 <- rotated_CI30
+  
+  # Flag whether there's a strategy shift (if the lower bound of the CI is greater than 5 or a shift condition)
+  ci_compare30$strategy <- ifelse(
+    (ci_compare30$aimdeviation_deg[,1] > 0 | ci_compare30$aimdeviation_deg[,2] < 0) & 
+      ci_compare30$aimdeviation_deg[,1] > 5, 
+    "Yes", 
+    "No")
+  
+  # Print the relevant columns to check the result
+  print(ci_compare30[, c("participant_id", "aimdeviation_deg", "strategy")])
+}
 
-# flag whether there's a strategy shift (if difference > 15 degrees)
-ci_compare30$aim_shift <- ifelse(
-  (ci_compare30$aimdeviation_deg_rotated[,1] - ci_compare30$aimdeviation_deg_aligned[,2] > 10) |
-    (ci_compare30$aimdeviation_deg_rotated[,2] - ci_compare30$aimdeviation_deg_aligned[,1] > 10),
-  "Yes", "No")
-#ci_compare30$aim_shift[ci_compare30$participant_id == 5] <- "No" #participant 5 has a noisy strategy
-
-print(ci_compare30[, c("participant_id", "aimdeviation_deg_aligned", "aimdeviation_deg_rotated", "shift_amount", "aim_shift")])
 
 #see individual plots
 df5 <- df30_aim[df30_aim$participant_id == 3, ] 
-plot(df5$aimdeviation_deg, type="l")    
+plot(df5$aimdeviation_deg, type="l")   
+#4 is noisy
 
 
 strategies_aligned30 <- rbind(df30_aim[df30_aim$participant_id %in% c(1,2) &
                                          df30_aim$cutrial_no %in% 105:112, ])
 
-nonstrategies_aligned30 <- rbind(df30_aim[df30_aim$participant_id %in% c(3,4) &
+nonstrategies_aligned30 <- rbind(df30_aim[df30_aim$participant_id %in% 4 &
                                             df30_aim$cutrial_no %in% 105:112, ])
 
 strategies_rotated30 <- rbind(df30_aim[df30_aim$participant_id %in% c(1,2) &
                                          df30_aim$cutrial_no %in% 225:232, ])
 
-nonstrategies_rotated30 <- rbind(df30_aim[df30_aim$participant_id %in% c(3,4) &
+nonstrategies_rotated30 <- rbind(df30_aim[df30_aim$participant_id %in% 4 &
                                             df30_aim$cutrial_no %in% 225:232, ])
 
 t.test(strategies_rotated30$aimdeviation_deg,strategies_aligned$aimdeviation_deg, paired=TRUE)
