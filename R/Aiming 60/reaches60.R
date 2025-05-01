@@ -70,6 +70,8 @@ for (i in 1:length(aim60_data)) {
 }
 
 #COMFIRM LEARNERS---------
+
+learners_60 <- function () {
 data_path <- "data/Instructed_summary/aiming60/"
 group1_files <- file.path(data_path, c("SUMMARY_aiming60_1ad447.csv", "SUMMARY_aiming60_7eec53.csv", 
                                        "SUMMARY_aiming60_13d986.csv", "SUMMARY_aiming60_33e532.csv", 
@@ -117,7 +119,7 @@ for (file in group2_files) {
 
 print(learners)
 #there are 4/4 learners
-
+}
 
 #Extract the Aligned Phase 
 
