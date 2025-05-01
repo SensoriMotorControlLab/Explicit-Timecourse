@@ -1,78 +1,120 @@
-#mixed anova on all strategy groups
+allStrategies <- function () {
+  yes_count <- nrow(yes_strategies)
+  total_count <- nrow(all_mean_aims)
+  percentage_yes <- (yes_count / total_count) * 100
+  print(paste("Percentage of participants with 'Yes' strategy:", round(percentage_yes, 2), "%"))
+  
+}
 
-#add columns
-strategies_aligned$rotation_size <- 60
-strategies_aligned$phase <- "aligned"
-strategies_rotated$rotation_size <- 60
-strategies_rotated$phase <- "rotated"
 
-strategies_aligned50$rotation_size <- 50
-strategies_aligned50$phase <- "aligned"
-strategies_rotated50$rotation_size <- 50
-strategies_rotated50$phase <- "rotated"
+#DOES MEAN AIMING DEV DIFFER ACROSS ROTATION GROUPS??
 
-strategies_aligned40$rotation_size <- 40
-strategies_aligned40$phase <- "aligned"
-strategies_rotated40$rotation_size <- 40
-strategies_rotated40$phase <- "rotated"
+getANOVAStrategies <- function () {
+  yes_strategies <- all_mean_aims %>%
+    filter(participant_id %in% plot_all_rotated$participant_id[plot_all_rotated$strategy == "Yes"]) %>%
+    mutate(strategy = "Yes") #26 strategies
+  
+  yes_strategies_aov <- yes_strategies %>%
+    filter(rotation != 20)
+  print(yes_strategies)
+}
 
-strategies_aligned30$rotation_size <- 30
-strategies_aligned30$phase <- "aligned"
-strategies_rotated30$rotation_size <- 30
-strategies_rotated30$phase <- "rotated"
-
-strategies_aligned20$rotation_size <- 20
-strategies_aligned20$phase <- "aligned"
-strategies_rotated20$rotation_size <- 20
-strategies_rotated20$phase <- "rotated"
-
-#sample size in each group (60~9, 50~7, 40~6, 30~2, 20~1)
-
-all_strategies <- rbind(
-  strategies_aligned, strategies_rotated,
-  strategies_aligned50, strategies_rotated50,
-  strategies_aligned40, strategies_rotated40,
-  strategies_aligned30, strategies_rotated30,
-  strategies_aligned20, strategies_rotated20
-)
-
-all_strategies$unique_id <- paste0("P", all_strategies$participant_id, "_", all_strategies$rotation_size)
-
-library(afex)
-
-anova_result <- aov_ez(
-  id = "unique_id",
-  dv = "aimdeviation_deg", 
-  data = all_strategies,
-  within = "phase",
-  between = "rotation_size",
-  type = 3
-)
+aimANOVA <- function () {
+yes_strategies_aov$rotation <- as.factor(yes_strategies_aov$rotation)
+    
+anova_result <- aov(aim_shift ~ rotation, data = yes_strategies_aov)
 summary(anova_result)
 
-#Results:
-Univariate Type III Repeated-Measures ANOVA Assuming Sphericity
+emm_result <- emmeans(anova_result, ~ rotation)
+pairs(emm_result)
 
-Sum Sq num Df Error SS den Df F value    Pr(>F)    
-(Intercept)         3400.8      1   862.76     20 78.8351 2.246e-08 ***
-  rotation_size        621.5      4   862.76     20  3.6017   0.02284 *  
-  phase               3938.4      1   878.93     20 89.6191 7.886e-09 ***
-  rotation_size:phase  687.3      4   878.93     20  3.9099   0.01669 *  
-  ---
-  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+}
+
+#conduct post hoc test
+TukeyHSD(anova_result)
+
+emm_result <- emmeans(anova_result, ~ rotation)
+pairs(emm_result) #60 and 30 and 60 and 40 are sig!
 
 
-#Rotation: There are differences between rotation sizes
-#Phase: There is a highly significant different between rotation sizes (aligned vs rotated)
-#Interaction between rotation and phase: the strategy shift from aligned to rotated differs across rotation sizes.
-                                        
-                                        
-#Post hoc tests needed!
-#Tukey test for rotation size: which aim deviations signifcantly differ per rotation group?                                        
+#DOES NUMBER OF STRATEGY-USERS DIFFER ACROSS ROTATION GROUPS?
 
-emm_rotation_size <- emmeans(anova_result, pairwise ~ rotation_size)
-summary(emm_rotation_size)
-#Only 60 and 30 rotation groups (P=0.0442)
+
+    #we are working with binary data here: did a participant have a strategy, and 
+    #does the probability of having a strategy differ across rotation groups?? so lets use a 
+    #logistic regression model!
+
+logistic_reg_output <- function () {
+  all_mean_aims <- all_mean_aims %>%
+    mutate(strategy_binary = ifelse(strategy == "Yes", 1, 0))
+  reg_model <- glm(strategy_binary ~ rotation, data = all_mean_aims, family = binomial)
+  summary(reg_model)
+}
+
+    #no strong statistical evidence that rotation affects strategy use — 
+    #but the positive trend suggests that with more data, a real effect might emerge.
+
+
+
+
+#one-way anova  
+strategy_counts <- all_mean_aims %>%
+group_by(rotation) %>%
+summarise(num_strategies = sum(strategy == "Yes"))
+
+strategy_counts
+# A tibble: 5 × 2
+rotation num_strategies
+<dbl>          <int>
+  1       20              1
+2       30              2
+3       40              7
+4       50              7
+5       60              9
+
+countANOVA <- function () {anova_strategy <- aov(num_strategies ~ rotation, data = strategy_counts)
+summary(anova_strategy)
+}
+
+
+
+#####BAYESIAN TESTING
+
+
+library(brms)
+
+aimBAYES <- function () {
+  bf_anova <- anovaBF(aim_shift ~ rotation, data = yes_strategies_aov)
+  print(bf_anova)
+}
+
+countBAYES <- function () {
+  bf_regression <- regressionBF(num_strategies ~ rotation, data = strategy_counts)
+  
+  print(bf_regression)
+}
+
+
+
+
+model_full <- brm(
+  aim_shift ~ rotation,
+  data = yes_strategies_aov,
+  family = gaussian(),
+  seed = 123
+)
+
+# Fit null model (intercept only)
+model_null <- brm(
+  aim_shift ~ 1,
+  data = yes_strategies_aov,
+  family = gaussian(),
+  seed = 123
+)
+
+bf_result <- bayes_factor(model_full, model_null)
+print(bf_result)
+
 
 
 
