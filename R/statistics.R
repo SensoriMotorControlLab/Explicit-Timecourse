@@ -1,3 +1,14 @@
+allLeaners <- function () {
+  learners_60_count <- learners_60()  
+  learners_50_count <- learners_50()  
+  learners_40_count <- learners_40() 
+  learners_30_count <- learners_30()  
+  learners_20_count <- learners_20()  
+  
+} 
+
+
+
 allStrategies <- function () {
   yes_count <- nrow(yes_strategies)
   total_count <- nrow(all_mean_aims)
