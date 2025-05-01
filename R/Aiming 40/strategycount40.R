@@ -67,22 +67,23 @@ rotated_CI40 <- CI(last40_rotated)
 #expect their aim deviation in that phase to be well outside the CI range of the 
 #aligned phase.
 
-ci_compare40 <- merge(aligned_CI40, rotated_CI40, by = "participant_id", suffixes = c("_aligned", "_rotated"))
-ci_compare40$shift_amount <- ci_compare40$aimdeviation_deg_rotated[,1] - ci_compare40$aimdeviation_deg_aligned[,2]
+getStrategies40 <- function () {
+ci_compare40 <- rotated_CI40
 
-# flag whether there's a strategy shift (if difference > 15 degrees)
-ci_compare40$aim_shift <- ifelse(
-  (ci_compare40$aimdeviation_deg_rotated[,1] - ci_compare40$aimdeviation_deg_aligned[,2] > 15) |
-    (ci_compare40$aimdeviation_deg_rotated[,2] - ci_compare40$aimdeviation_deg_aligned[,1] > 15),
-  "Yes", "No")
-#ci_compare40$aim_shift[ci_compare40$participant_id == 5] <- "No" #participant 5 has a noisy strategy
+ci_compare40$strategy <- ifelse(
+  (ci_compare40$aimdeviation_deg[,1] > 0 | ci_compare40$aimdeviation_deg[,2] < 0) & 
+    ci_compare40$aimdeviation_deg[,1] > 5, 
+  "Yes", 
+  "No")
 
-print(ci_compare40[, c("participant_id", "aimdeviation_deg_aligned", "aimdeviation_deg_rotated", "shift_amount", "aim_shift")])
+print(ci_compare40[, c("participant_id", "aimdeviation_deg", "strategy")])
+}
+
 
 #see individual plots
-df4 <- df40_aim[df40_aim$participant_id == 11, ] #3,6,7,8,12,10, 11?
+df4 <- df40_aim[df40_aim$participant_id ==2, ] #3,6,7,8,12,10, 11? 3,5,6,7,8,9,10,11,12,13
 plot(df4$aimdeviation_deg, type="l")    
-
+#5, 9, 13
 
 strategies_aligned40 <- rbind(df40_aim[df40_aim$participant_id %in% c(3,6,7,8,12) &
                                          df40_aim$cutrial_no %in% 81:88, ], 
