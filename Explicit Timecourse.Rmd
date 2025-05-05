@@ -70,6 +70,13 @@ strategy_counts
 ### Aiming Strategy Onset
 Did participants deviate their hand reach (in the opposite 
 direction of the rotation) and did the reach deviations differ as a function of rotation size??
+![My Plot](60histREACH.png)
+![My Plot](50histREACH.png)
+![My Plot](40histREACH.png)
+![My Plot](30histREACH.png)
+![My Plot](20histREACH.png)
+
+
 ![My Plot](reachdev.png)
 
 
@@ -106,6 +113,10 @@ aimANOVA ()
 ```
 
 <br>Does the average trial at which the step occurs differ across rotation sizes?
+```{r}
+StepAOV()
+```
+
 
 ### Bayesian ANOVA
 A large Bayesian Factor (>10) suggests strong evidence for a difference.
@@ -120,4 +131,8 @@ Does the proportion of participants who make a step differ across rotation sizes
 countBAYES()
 ```
 
+Does the average trial per rotation group at which the step occurs differ across rotation sizes?
+```{r}
+stepBAYES()
+```
 
