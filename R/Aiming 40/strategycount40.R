@@ -85,7 +85,7 @@ df4 <- df40_aim[df40_aim$participant_id ==2, ] #3,6,7,8,12,10, 11? 3,5,6,7,8,9,1
 plot(df4$aimdeviation_deg, type="l")    
 #5, 9, 13
 
-strategies_aligned40 <- rbind(df40_aim[df40_aim$participant_id %in% c(3,6,7,8,12) &
+strategies_aligned40 <- rbind(df40_aim[df40_aim$participant_id %in% c(2,3,6,7,8,12) &
                                          df40_aim$cutrial_no %in% 81:88, ], 
                               df40_aim[df40_aim$participant_id %in% 10 &
                                          df40_aim$cutrial_no %in% 105:112, ])
