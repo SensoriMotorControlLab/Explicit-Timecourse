@@ -88,10 +88,95 @@ summary(anova_strategy)
 }
 
 
+#Does the average trial at which the step occurs differ across rotation sizes?
+
+first_60rotated_aov <- rbind(
+  df60_aim[df60_aim$participant_id %in% c(1,4,5,8,11,12) & df60_aim$cutrial_no %in% 89:138, ],
+  df60_aim[df60_aim$participant_id %in% c(6,7,13) & df60_aim$cutrial_no %in% 113:162, ]
+)
+
+first_60rotated_aov$cutrial_no <- ifelse(first_60rotated_aov$cutrial_no >= 113,
+                                         first_60rotated_aov$cutrial_no - 112,
+                                         first_60rotated_aov$cutrial_no - 88)
+
+
+first_50rotated_aov <- rbind(
+  df50_aim[df50_aim$participant_id %in% c(6,8,9,12) & df50_aim$cutrial_no %in% 89:138, ],
+  df50_aim[df50_aim$participant_id %in% c(2,3,13) & df50_aim$cutrial_no %in% 113:162, ]
+)
+first_50rotated_aov$cutrial_no <- ifelse(first_50rotated_aov$cutrial_no >= 113,
+                                         first_50rotated_aov$cutrial_no - 112,
+                                         first_50rotated_aov$cutrial_no - 88)
+
+
+first_40rotated_aov <- rbind(
+  df40_aim[df40_aim$participant_id %in% c(2,3,6,7,8,12) & df40_aim$cutrial_no %in% 89:138, ],
+  df40_aim[df40_aim$participant_id %in% 10 & df40_aim$cutrial_no %in% 113:162, ]
+)
+first_40rotated_aov$cutrial_no <- ifelse(first_40rotated_aov$cutrial_no >= 113,
+                                         first_40rotated_aov$cutrial_no - 112,
+                                         first_40rotated_aov$cutrial_no - 88)
+
+
+# 30° Rotation Group — only has cutrial_no 113–130
+first_30rotated_aov <- df30_aim[df30_aim$participant_id %in% c(1,2) & df30_aim$cutrial_no %in% 113:162, ]
+first_30rotated_aov$cutrial_no <- first_30rotated_aov$cutrial_no - 112
+
+AllTrials <- rbind(first_60rotated_aov, first_50rotated_aov, first_40rotated_aov,first_30rotated_aov)
+
+getStepTrial <- function(AllTrials, threshold = 10) {
+  participants <- unique(AllTrials$participant_id)
+  step_trials <- data.frame(participant_id = integer(0), rotation_deg = numeric(0), step_trial = integer(0))
+  
+  for (p in participants) {
+    # Subset data for the current participant
+    df_p <- AllTrials[AllTrials$participant_id == p, ]
+    rotation <- unique(df_p$rotation_deg)
+    
+    # Check which trials exceed the threshold
+    step_idx <- which(abs(df_p$aimdeviation_deg) > threshold)
+    
+    # If there are trials exceeding the threshold, capture the first one
+    if (length(step_idx) > 0) {
+      step_trial <- df_p$cutrial_no[step_idx[1]]
+    } else {
+      step_trial <- NA  # No trials exceed the threshold
+    }
+    
+    # Append results directly to the data frame
+    step_trials <- rbind(step_trials, data.frame(
+      participant_id = p,
+      rotation_deg = rotation,
+      step_trial = step_trial
+    ))
+  }
+  
+  return(step_trials)
+}
+
+s60 <- getStepTrial(first_60rotated_aov, threshold = 10)
+s50 <- getStepTrial(first_50rotated_aov, threshold = 10)
+s40 <- getStepTrial(first_40rotated_aov, threshold = 10)
+s30 <- getStepTrial(first_30rotated_aov, threshold = 10)
+
+
+StepAOV <- function () {
+  combinedSteps <- rbind (s60,s50,s40,s30)
+  avgSteps <- aggregate(step_trial ~ rotation_deg, data = combinedSteps, FUN = mean)
+  stepaov <- aov(step_trial ~ factor(rotation_deg), data = combinedSteps)
+  emms <- emmeans(stepaov, ~ rotation_deg)
+  pairs(emms, adjust = "tukey", infer = TRUE, effect.size = "d")
+}
+
+
+
+
+
 
 #####BAYESIAN TESTING
 
-
+install.packages("BayesFactor")  
+library(BayesFactor)
 library(brms)
 
 aimBAYES <- function () {
@@ -105,7 +190,11 @@ countBAYES <- function () {
   print(bf_regression)
 }
 
-
+stepBAYES <- function () {
+  combinedSteps$rotation_deg <- as.factor(combinedSteps$rotation_deg)
+  bf_anova <- anovaBF(step_trial ~ rotation_deg, data = combinedSteps)
+  print(bf_anova)
+}
 
 
 model_full <- brm(
@@ -125,6 +214,12 @@ model_null <- brm(
 
 bf_result <- bayes_factor(model_full, model_null)
 print(bf_result)
+
+
+
+
+
+
 
 
 
