@@ -49,21 +49,21 @@ source('R/')
 ### Learning
 Did all participants learn to counter the perturbation at least 50% of the time?
 ```{r}
-allLeaners()
+printLearners()
 ```
-#47/49 ~ 96% learners!
+#48/49 ~ 98% learners!
 
 
 ### Aiming Strategy Proportion
 Did all learners have a strategy (ie, deviate their aim)? 
 ```{r}
-allStrategies()
+countStrategies()
 ```
-
+# there are 2 'noisy' strategy users. We classify a noisy strategy to have more erratic exploration (defined from Tsay's NCM poster), where aiming deviation occurs in opposing directions
 
 <br>Did the number of strategies vary as a function of rotation size.
 ```{r}
-strategy_counts
+strategy_summary
 ```
 
 
@@ -83,14 +83,12 @@ direction of the rotation) and did the reach deviations differ as a function of 
 
 
 <br>At what trial did participants begin deviating their explicit aim?
-![My Plot](60hist.png)
-![My Plot](50hist.png)
-![My Plot](40hist.png)
-![My Plot](30hist.png)
-![My Plot](20hist.png)
+![My Plot](new60hist.png)
+![My Plot](new50hist.png)
+![My Plot](new40hist.png)
 
 <br>Did the magnitude in aim change increase with larger rotation sizes?
-![My Plot](meanstrat.png)
+![My Plot](meanaimnew.png)
 
 
 <br>
