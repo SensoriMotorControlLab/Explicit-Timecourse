@@ -100,6 +100,22 @@ plotStep () {
     )
   
   
+  #log reg
+  logit_data <- grouped_strategy_data %>%
+    distinct(participant_id, rotation, group) %>%
+    mutate(group = factor(group, levels = c("No", "Yes")),
+           rotation = factor(rotation))
   
+  model <- glm(group ~ rotation, data = logit_data, family = binomial)
+  summary(model)
+  
+  
+  #aov for mean 
+  plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
+  
+  # Run one-way ANOVA
+  anova_result <- aov(mean_aim ~ rotation, data = plot_mean_aim_data)
+  summary(anova_result)
+  TukeyHSD(anova_result)
   
  
