@@ -171,13 +171,17 @@ meanaim <- function () {
   grouped_strategy_data <- total_group_data %>%
     mutate(group = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
 
-  plot_mean_aim_data <- grouped_data %>%
+  grouped_strategy_data <- grouped_strategy_data %>%
+    mutate(group = ifelse(participant_id == "4eeaee", "Yes", group))
+  
+  plot_mean_aim_data <- grouped_strategy_data %>%
    filter(cutrial_no %in% c(201:208, 225:232)) %>%
    group_by(rotation, participant_id, group) %>%
    summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
   
   plot_mean_aim_data <- plot_mean_aim_data %>%
     mutate(fill_color = ifelse(group == "Yes", as.character(rotation), "white"))
+  max_y <- max(plot_mean_aim_data$mean_aim, na.rm = TRUE)
   
  p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, fill = fill_color, color = factor(rotation))) +
     geom_point(aes(shape = group), size = 3, stroke = 1.2) +
@@ -222,7 +226,9 @@ meanaim <- function () {
    labs(
      x = "Rotation Group",
      y = expression("Aim Deviation ("*degree*")")
-   ) 
+   ) +geom_segment(aes(x = 3, xend = 5, y = max_y + 2, yend = max_y + 2),
+                       color = "black", size = 0.3) +
+   annotate("text", x = 4, y = max_y + 3.5, label = "*", size = 6)
  
  
 }
@@ -235,7 +241,7 @@ density_plot <- ggplot(plot_mean_aim_data, aes(x = mean_aim, fill = group)) +
   scale_fill_manual(values = c("Yes" = "darkblue", "No" = "lightblue")) +
   coord_flip() + 
   xlim(-5, 60) +
-  theme_void() +  # Clean plot
+  theme_void() +  
   theme(legend.position = "none")
   
   
@@ -243,6 +249,6 @@ density_plot <- ggplot(plot_mean_aim_data, aes(x = mean_aim, fill = group)) +
 final_plot <- density_plot + p + plot_layout(widths = c(1, 4))
 print(final_plot)
   
-  
-  
+
+
 
