@@ -74,7 +74,8 @@ all_hist_data <- rbind(dfAligned, dfRotated)
 
 
 #60 aiming histogram
-aim_60_hist <- all_hist_data %>%
+plot60aim <- function () {
+  aim_60_hist <- all_hist_data %>%
   filter(rotation_group == '60')
 
   plot(NA,
@@ -101,9 +102,11 @@ aim_60_hist <- all_hist_data %>%
 avg_aim60 <- aggregate(y ~ x, data=aim_60_hist, FUN=mean)
 lines(avg_aim60$x, avg_aim60$y, col="hotpink", lwd=2)
 text(x = -8, y = 63, labels = "n = 13", adj = c(0,2), col = "black", cex = 1)
+}
 
 #50 aiming histogram
-aim_50_hist <- all_hist_data %>%
+plot50aim <- function () {
+  aim_50_hist <- all_hist_data %>%
   filter(rotation_group == '50')
 
 # Plotting
@@ -132,10 +135,12 @@ lines(x=c(-8, 0, 0, 32),
 avg_aim50 <- aggregate(y ~ x, data=aim_50_hist, FUN=mean)
 lines(avg_aim60$x, avg_aim50$y, col="hotpink", lwd=2)
 text(x = -8, y = 53, labels = "n = 13", adj = c(0,2), col = "black", cex = 1)
+}
 
 #40 aiming histogram
 
-aim_40_hist <- all_hist_data %>%
+plot40aim <- function () {
+  aim_40_hist <- all_hist_data %>%
   filter(rotation_group == '40')
 
 # Plotting
@@ -164,6 +169,7 @@ lines(x=c(-8, 0, 0, 32),
 avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
 lines(avg_aim40$x, avg_aim40$y, col="hotpink", lwd=2)
 text(x = -8, y = 43, labels = "n = 14", adj = c(0,2), col = "black", cex = 1)
+}
 
 
 
@@ -171,8 +177,7 @@ text(x = -8, y = 43, labels = "n = 14", adj = c(0,2), col = "black", cex = 1)
 
 
 
-
-#just strategy users.
+######JUST STRATEGY USERS ######
 
 
 last_8_aligned_strategy <- strategy_only_participants[
@@ -208,7 +213,8 @@ dfRotated_strategy <- data.frame(
 
 all_hist_strategy_data <- rbind(dfAligned_strategy, dfRotated_strategy)
 
-#aiming 60 hist strategy users 
+
+#aiming 60 
 aim_60_strategy_hist <- all_hist_strategy_data %>%
   filter(rotation_group == '60' & participant_id != '98e5cb')
 
@@ -318,6 +324,124 @@ legend("topright", legend = c("60°", "50°", "40°"),
        col = c("orange", "cyan", "hotpink"), lwd = 2, bty = "n")
 
 text(x = 0, y = -12, labels = "Rotation Starts", pos = (3), cex = 0.8)
+
+
+
+
+#########REACH DEVIATION#######
+
+dfAlignedReach <- data.frame(
+  x = last_8_aligned$time,
+  y = last_8_aligned$reachdeviation_deg,
+  rotation_group = last_8_aligned$rotation
+)
+
+dfRotatedReach <- data.frame(
+  x = first_32_rotated$time,
+  y= first_32_rotated$reachdeviation_deg ,
+  rotation_group = first_32_rotated$rotation
+)
+
+all_hist_data_reach <- rbind(dfAlignedReach, dfRotatedReach)
+
+
+#60 reach histogram
+plot60reach <- function () {
+  aim_60_hist_reach <- all_hist_data_reach %>%
+  filter(rotation_group == '60')
+
+plot(NA,
+     main='Reach Deviation With a 60° Rotation',
+     xlab='Trial', ylab='Aim Deviation (°)',
+     xlim=c(-8,32), ylim=c(-15,60), 
+     ax=F, bty='n')
+
+
+img_info <- hist2d(x=aim_60_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,60,2.5)))
+img <- log(img_info$freq2D + 1)
+
+image(x=img_info$x.edges,
+      y=img_info$y.edges,
+      col=colorRampPalette(c("white", "#d5d5d5", "#858f94", "#49525e"))(100),
+      z=img,
+      add=TRUE)
+
+axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+axis(side=2, at=seq(-10,60,10))
+lines(x=c(-8, 0, 0, 32), 
+      y=c(-0.5, -0.5, 59.5, 59.5), 
+      col='navy', lty=3, lwd=2)
+avg_aim60r <- aggregate(y ~ x, data=aim_60_hist_reach, FUN=mean)
+lines(avg_aim60r$x, avg_aim60r$y, col="#a93154", lwd=2)
+text(x = -8, y = 63, labels = "n = 13", adj = c(0,2), col = "black", cex = 1)
+}
+
+#reach 50
+plot50reach <- function () {
+  aim_50_hist_reach <- all_hist_data_reach %>%
+  filter(rotation_group == '50')
+
+plot(NA,
+     main='Reach Deviation With a 50° Rotation',
+     xlab='Trial', ylab='Aim Deviation (°)',
+     xlim=c(-8,32), ylim=c(-15,50), 
+     ax=F, bty='n')
+
+
+img_info <- hist2d(x=aim_50_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,50,2.5)))
+img <- log(img_info$freq2D + 1)
+
+image(x=img_info$x.edges,
+      y=img_info$y.edges,
+      col=colorRampPalette(c("white", "#d5d5d5", "#858f94", "#49525e"))(100),
+      z=img,
+      add=TRUE)
+
+axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+axis(side=2, at=seq(-10,50,10))
+lines(x=c(-8, 0, 0, 32), 
+      y=c(-0.5, -0.5, 49.5, 49.5), 
+      col='navy', lty=3, lwd=2)
+avg_aim50r <- aggregate(y ~ x, data=aim_50_hist_reach, FUN=mean)
+lines(avg_aim50r$x, avg_aim50r$y, col="#a93154", lwd=2)
+text(x = -8, y = 63, labels = "n = 13", adj = c(0,2), col = "black", cex = 1)
+}
+
+#reach 40
+
+plot40reach <- function() {
+  aim_40_hist_reach <- all_hist_data_reach %>%
+  filter(rotation_group == '40')
+
+plot(NA,
+     main='Reach Deviation With a 40° Rotation',
+     xlab='Trial', ylab='Aim Deviation (°)',
+     xlim=c(-8,32), ylim=c(-15,40), 
+     ax=F, bty='n')
+
+
+img_info <- hist2d(x=aim_50_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,40,2.5)))
+img <- log(img_info$freq2D + 1)
+
+image(x=img_info$x.edges,
+      y=img_info$y.edges,
+      col=colorRampPalette(c("#ffffff", "#d5d5d5", "#858f94", "#49525e"))(100),
+      z=img,
+      add=TRUE)
+
+axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+axis(side=2, at=seq(-10,40,10))
+lines(x=c(-8, 0, 0, 32), 
+      y=c(-0.5, -0.5, 39.5, 39.5), 
+      col='navy', lty=3, lwd=2)
+avg_aim40r <- aggregate(y ~ x, data=aim_40_hist_reach, FUN=mean)
+lines(avg_aim40r$x, avg_aim40r$y, col="#a93154", lwd=2)
+text(x = -8, y = 63, labels = "n = 13", adj = c(0,2), col = "black", cex = 1)
+}
+
+
+
+
 
 
 
