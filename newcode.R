@@ -56,7 +56,7 @@ getLearners <- function(total_group_data) {
   
   learners_only <- learner_df %>% 
     filter(is_learner) %>%
-    select(participant_id, rotation)
+    dplyr::select(participant_id, rotation)
   
   learners_summary <- learner_df %>%
     group_by(rotation) %>%
@@ -111,28 +111,38 @@ getStrategies <- function () {
   
   ci_compare$strategy <- ifelse(
     (ci_compare$aimdeviation_deg[,1] > 0 | ci_compare$aimdeviation_deg[,2] < 0) & 
-      ci_compare$aimdeviation_deg[,1] > 5, 
+      ci_compare$aimdeviation_deg[,1] > 4.9, 
     "Yes", 
     "No")
-  ci_compare$strategy[ci_compare$participant_id =='98e5cb'] <- "Noisy"
-  ci_compare$strategy[ci_compare$participant_id == '6ebd75'] <- "Noisy"
+  ci_compare$strategy[ci_compare$participant_id == '98e5cb'] <- 'No' 
   print(ci_compare[, c("participant_id", "rotation", "aimdeviation_deg", "strategy")])
 }
 
 countStrategies <- function () {
-  strategy_users <- sum(ci_compare$strategy %in% c('Yes', 'Noisy'))
+  strategy_users <- sum(ci_compare$strategy %in% c('Yes'))
   percent_strategy_users <- round(100 * strategy_users / nrow(ci_compare), 1)
   print(percent_strategy_users)
 }
 
 # 60 aiming: 98e5cb noisy and non consistent strategy 
-#40 aiming: 6ebd75 ??? maybe
+#40 aiming: 6ebd75 ??? & 3091de
+
+#so in Tsay (2024), He acknowledges that some strategies are more "exploratory" rather than fast or slow insight.
+#perhaps we include these "noisy strategies" because participants are giving feedback that they feel their hand moving
+#in a pattern of back and forth.. (n=3 have said this already)
+
+#"Rule-based strategy"
+        #Participants adopt a consistent internal rule 
+        #(e.g., “the correct answer alternates”) and stick with it, regardless
+        # of actual task contingencies.
+
+
 
 strategy_summary <- ci_compare %>% 
-  group_by(rotation) %>%
+   group_by(rotation) %>%
   summarise(
     total_n = n(),
-    strategy_users = sum(strategy %in% c('Yes', 'Noisy')),
+    strategy_users = sum(strategy %in% c('Yes')),
     percent_strategy_users = round(100 * strategy_users / total_n, 1),
     .groups = "drop"
   )
@@ -141,7 +151,7 @@ strategy_summary <- ci_compare %>%
 #make new strategy file
 
 Strategyfile <- function () {
-  strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes", "Noisy")]
+  strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
 
   
 strategy_data <- total_group_data %>%
@@ -183,72 +193,92 @@ meanaim <- function () {
     mutate(fill_color = ifelse(group == "Yes", as.character(rotation), "white"))
   max_y <- max(plot_mean_aim_data$mean_aim, na.rm = TRUE)
   
- p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, fill = fill_color, color = factor(rotation))) +
-    geom_point(aes(shape = group), size = 3, stroke = 1.2) +
-    scale_shape_manual(
-      values = c("Yes" = 21, "No" = 21),
-      name = "Aiming Strategy?"
-    ) +
-    scale_fill_manual(
-      values = c(
-        "20" = "deeppink",
-        "30" = "orange",
-        "40" = "blue",
-        "50" = "black",
-        "60" = "cyan",
-        "white" = "white"
-      ),
-      name = "Aiming Strategy?"
-    ) +
-    scale_color_manual(
-      values = c(
-        "20" = "deeppink",
-        "30" = "orange",
-        "40" = "blue",
-        "50" = "black",
-        "60" = "cyan"
-      ),
-      name = "Rotation (degrees)"
-    ) +
+ p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, color = factor(rotation))) +
+   geom_point(aes(shape = group, fill = factor(rotation)), size = 3, stroke = 1.2) +
    
-    guides(color = "none") +    
-    guides(
-      fill = "none",  
-      shape = guide_legend(override.aes = list(fill = c("white", "black")))
-    ) +
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(), 
-      panel.grid.minor = element_blank(),  # remove minor grids
-      axis.line = element_line(color = "black")  
-    )+
-    theme(legend.position = "top") +
+   scale_shape_manual(
+     values = c("Yes" = 21, "No" = 4),
+     name = "Correct aiming strategy"
+   ) +
+   
+   scale_color_manual(
+     values = c(
+       "20" = "#b9d6e5",
+       "30" = "#9fbdd8",
+       "40" = "#848fbe",
+       "50" = "#74599c",
+       "60" = "#6b0077"
+     ),
+     name = "Rotation (degrees)"
+   ) +
+   
+   scale_fill_manual(
+     values = c(
+       "20" = "#b9d6e5",
+       "30" = "#9fbdd8",
+       "40" = "#848fbe",
+       "50" = "#74599c",
+       "60" = "#6b0077"
+     ),
+     guide = "none"
+   ) +
+   
+   guides(
+     color = "none",
+     fill = "none",
+     shape = guide_legend(
+       override.aes = list(
+         shape = c(4, 21),                     # Yes = filled circle (21), No = x (4)
+         color = c("#C7E5Be", "#165660"),      # outline color for both
+         fill = c(NA, "#165660")))
+     ) +
+  
+   theme_minimal() +
+   theme(
+     panel.grid.major = element_blank(),
+     panel.grid.minor = element_blank(),
+     axis.line = element_line(color = "black"),
+     legend.position = "right"
+   ) +
+   
    labs(
      x = "Rotation Group",
      y = expression("Aim Deviation ("*degree*")")
-   ) +geom_segment(aes(x = 3, xend = 5, y = max_y + 2, yend = max_y + 2),
-                       color = "black", size = 0.3) +
-   annotate("text", x = 4, y = max_y + 3.5, label = "*", size = 6)
- 
- 
+   )
+   
 }
     
 
-
+library(patchwork)
   
 density_plot <- ggplot(plot_mean_aim_data, aes(x = mean_aim, fill = group)) +
   geom_density(alpha = 0.6, color = NA, adjust = 2.5) +
-  scale_fill_manual(values = c("Yes" = "darkblue", "No" = "lightblue")) +
+  scale_fill_manual(values = c("Yes" = "#165660", "No" = "#C7E5BE")) +
   coord_flip() + 
   xlim(-5, 60) +
   theme_void() +  
-  theme(legend.position = "none")
+  theme(legend.position = "none") 
   
   
   
 final_plot <- density_plot + p + plot_layout(widths = c(1, 4))
 print(final_plot)
+
   
 
 
 
+
+
+df <- total_group_data[total_group_data$participant_id == "f96e89", ] 
+plot(df$aimdeviation_deg, type = "l", main = "19187c ~50", ylim = c(-10, 60))
+abline(h = 0, col = "red", lty = 2)
+abline(h = 5, col = "red", lty = 2)
+
+
+
+#60 aiming: 98e5cb noisy and non consistent strategy & 3091de
+#40 aiming: 6ebd75 ??? i think they get the startegy bc all left hand trials have a good strategy too 
+#40 aa25ec is also back and forth
+
+#let me check if they aimed above 10 for half of the trials which might determine if motivation factors are at play!
