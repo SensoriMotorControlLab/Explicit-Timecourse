@@ -31,8 +31,8 @@ print(result_table)
 }
 
 
-plotStep () {
-
+plotStep <- function () {
+  library(tidyr)
   result_table$aligned <- 0
   
   df_steps <- result_table %>%
@@ -51,7 +51,7 @@ plotStep () {
       x = "Trial",
       y = "Aim Deviation (deg)",
       color = "Rotation",
-      title = "Strategy Onset of each Participant"
+      title = "Strategy Onset of Each Participant"
     ) +
     geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
     theme_minimal() +
@@ -61,7 +61,7 @@ plotStep () {
       panel.background = element_blank(),
       axis.line = element_line(),
     ) 
-  
+} 
   
   
   
@@ -108,14 +108,26 @@ plotStep () {
   
   model <- glm(group ~ rotation, data = logit_data, family = binomial)
   summary(model)
+
+  
+  #aov for mean of last 8 rotated trials
+  plot_mean_aim_data <- grouped_strategy_data %>%
+    filter(cutrial_no %in% c(201:208, 225:232)) %>%
+    group_by(rotation, participant_id, group) %>%
+    summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
   
   
-  #aov for mean 
-  plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
+   plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
   
-  # Run one-way ANOVA
   anova_result <- aov(mean_aim ~ rotation, data = plot_mean_aim_data)
   summary(anova_result)
   TukeyHSD(anova_result)
+  
+
+  
+#Is the average trial number where participants start using a strategy different across the rotation groups?
+  summary(aov(cutrial_no ~ factor(rotation), data = result_table))
+  
+  
   
  
