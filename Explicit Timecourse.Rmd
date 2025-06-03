@@ -93,7 +93,7 @@ direction of the rotation) and did the reach deviations differ as a function of 
 
 
 <br>Did the magnitude in aim change increase with larger rotation sizes?
-![My Plot](meanaimnew(withstats).png)
+![My Plot](meanaimnew.png)
 
 
 <br>
