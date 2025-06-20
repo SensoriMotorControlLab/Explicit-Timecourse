@@ -49,4 +49,4 @@ po/*~
 rsconnect/
 
 
-moved to old code folder
+*.DS_Store
