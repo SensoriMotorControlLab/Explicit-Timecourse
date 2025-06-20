@@ -49,7 +49,7 @@ fit_participant_models <- function(df) {
     -sum(dnorm(aimdev, mean = pred, sd = noise_sd, log = TRUE))
   }
   
-  # 2-step model
+  # two-step model
   two_step_model <- function(par, trial, aimdev) {
     t_step1 <- par[1]
     t_step2 <- par[2]
@@ -66,7 +66,7 @@ fit_participant_models <- function(df) {
     -sum(dnorm(aimdev, mean = pred, sd = noise_sd, log = TRUE))
   }
   
-  # Fit 1-step model
+  # fit one-step model
   step_fit <- tryCatch({
     optim(par = c(max(first_step_trial, 0), 20, 5),
           fn = step_model,
@@ -77,7 +77,7 @@ fit_participant_models <- function(df) {
           upper = c(max(df$trial_relative), 180, 50))
   }, error = function(e) NULL)
   
-  # Fit exponential model
+  # fit exponential model
   exp_fit <- tryCatch({
     optim(par = c(20, 0.1, 5),
           fn = exp_model,
@@ -88,7 +88,7 @@ fit_participant_models <- function(df) {
           upper = c(180, 2, 50))
   }, error = function(e) NULL)
   
-  # Fit 2-step model
+  # fit two-step model
   two_step_fit <- tryCatch({
     optim(par = c(max(first_step_trial, 0), max(first_step_trial, 0) + 5, 15, 30, 5), 
           fn = two_step_model,
@@ -99,7 +99,6 @@ fit_participant_models <- function(df) {
           upper = c(max(df$trial_relative), max(df$trial_relative), 180, 180, 50))
   }, error = function(e) NULL)
   
-  # Handle cases where fits fail
   if (is.null(step_fit) || is.null(exp_fit) || is.null(two_step_fit)) {
     return(tibble(
       participant_id = pid,
@@ -111,12 +110,12 @@ fit_participant_models <- function(df) {
     ))
   }
   
-  # Calculate AIC for all models
+  # aic analysis
   step_aic <- 2 * length(step_fit$par) + 2 * step_fit$value
   exp_aic <- 2 * length(exp_fit$par) + 2 * exp_fit$value
   two_step_aic <- 2 * length(two_step_fit$par) + 2 * two_step_fit$value
   
-  # Determine best model by lowest AIC
+# lower aic = best model
   aic_values <- c(step = step_aic, exp = exp_aic, two_step = two_step_aic)
   best_model <- names(which.min(aic_values))
   
