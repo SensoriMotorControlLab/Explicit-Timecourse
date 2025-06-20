@@ -1,1 +1,0 @@
-"task_idx","trial_idx","cutrial_no","targetangle_deg","targetx_cm","targety_cm","cursortype","rotation_deg","doaiming_bool","aimstart_deg","aim_deg","aimdeviation_deg","aimtime_ms","phase","cutime_ms","time_ms","mousex_cm","mousey_cm","cursorx_cm","cursory_cm","deviation_bool","reachdeviation_deg","participant_id","group","rotation","zeroclamped_bool"
