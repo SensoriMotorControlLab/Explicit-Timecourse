@@ -49,4 +49,11 @@ po/*~
 rsconnect/
 
 
+# Ignore macOS system files
 *.DS_Store
+
+# Ignore everything inside the data directory
+data/*
+
+# Ignore all CSV files anywhere in the repo
+*.csv
