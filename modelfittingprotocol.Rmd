@@ -4,6 +4,9 @@ output: html_notebook
 ---
 
 Using strat_data, which contains only strategy users determined from the 95% CI criteria, we can fit an exponential, single-step, two-step model to their aiming data and see which model fits best via AIC. 
+```{r}
+  strat_data <- read.csv("data/strategy_only_participants.csv")
+```
 
 # ONE STEP
  mean2 <- par["mean2"] – mean of step size 
