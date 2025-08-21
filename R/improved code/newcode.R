@@ -44,6 +44,37 @@ for (rot in rotations) {
 total_group_data <- bind_rows(all_data)
 write_csv(total_group_data, "data/total_group_data.csv")
 
+
+total_group_data <- total_group_data %>%
+  mutate(trial_type= case_when(
+    group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+    group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
+    group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
+    group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
+    group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
+    group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
+    group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
+    group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamprotated",
+    group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthandrotated",
+    
+    group == "Group 2" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+    group == "Group 2" & cutrial_no >= 25  & cutrial_no <= 40   ~ "nocursor",
+    group == "Group 2" & cutrial_no >= 41  & cutrial_no <= 56   ~ "aligned",
+    group == "Group 2" & cutrial_no >= 57  & cutrial_no <= 64   ~ "errorclamp",
+    group == "Group 2" & cutrial_no >= 65  & cutrial_no <= 72   ~ "aligned",
+    group == "Group 2" & cutrial_no >= 73  & cutrial_no <= 80   ~ "nocursor",
+    group == "Group 2" & cutrial_no >= 81  & cutrial_no <= 88   ~ "aligned",
+    group == "Group 2" & cutrial_no >= 89  & cutrial_no <= 96   ~ "nocursor",
+    group == "Group 2" & cutrial_no >= 97  & cutrial_no <= 112  ~ "aligned",
+    group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 232  ~ "rotated",
+    group == "Group 2" & cutrial_no >= 233 & cutrial_no <= 256  ~ "nocursor",
+    
+    TRUE ~ NA_character_  # Default if no condition matches
+  ))
+
+
+
+
 ####LEARNERS
 
 getLearners <- function(total_group_data) {
@@ -77,36 +108,37 @@ getLearners <- function(total_group_data) {
   print(learner_summary)
 }
 
-
+#filter out non learners
+LearnerCSV <- function () {
+  total_learners_data <- total_group_data %>%
+  semi_join(learner_id, by = c("rotation", "participant_id")) %>%
+  select(participant_id, cutrial_no, aimdeviation_deg, reachdeviation_deg, rotation, trial_type, group)
+write_csv(total_learners_data, "data/total_learners_data.csv")
+}
 
 ####STRATEGY
 
-#use last 8 rotated trials which represents where strategies are most consistent
+#use last 16 rotated trials which represents where strategies are most consistent
 
-last_16_rotated <- total_group_data[
-  (total_group_data$cutrial_no %in% 193:208 & total_group_data$group == 'Group 1') |
-    (total_group_data$cutrial_no %in% 217:232 & total_group_data$group == 'Group 2'),
+getCI <- function () {
+  
+  last_16_rotated <- total_learners_data[
+  (total_learners_data$cutrial_no %in% 193:208 & total_learners_data$group == 'Group 1') |
+    (total_learners_data$cutrial_no %in% 217:232 & total_learners_data$group == 'Group 2'),
 ]
 
-
-
-last_16_rotated_learners <- last_16_rotated %>%
-  semi_join(  learner_id , by = c("rotation", "participant_id"))
-
-CI <- function(last_16_rotated_learners) {
-  aggregate(
+CI <- aggregate(
     aimdeviation_deg ~ participant_id + rotation,
-    data = last_16_rotated_learners,
+    data = last_16_rotated,
     FUN = function(x) 
     Reach::getConfidenceInterval(x)
-    
   )
+return(CI)
 }
 
-rotated_CI <- CI(last_16_rotated_learners)
-
-
+#using CI function, we can now use a 95% interval approach to figure out strategy-users
 getStrategies <- function () {
+  rotated_CI <- CI(last_16_rotated_learners)
   ci_compare <- rotated_CI
   
   ci_compare$strategy <- ifelse(
@@ -123,21 +155,8 @@ countStrategies <- function () {
   print(percent_strategy_users)
 }
 
-# 60 aiming: 98e5cb noisy and non consistent strategy 
-#40 aiming: 6ebd75 ??? & 3091de
-
-#so in Tsay (2024), He acknowledges that some strategies are more "exploratory" rather than fast or slow insight.
-#perhaps we include these "noisy strategies" because participants are giving feedback that they feel their hand moving
-#in a pattern of back and forth.. (n=3 have said this already)
-
-#"Rule-based strategy"
-        #Participants adopt a consistent internal rule 
-        #(e.g., “the correct answer alternates”) and stick with it, regardless
-        # of actual task contingencies.
-
-
-
-strategy_summary <- ci_compare %>% 
+strategySummary <- function () {
+  ci_compare %>% 
    group_by(rotation) %>%
   summarise(
     total_n = n(),
@@ -145,7 +164,7 @@ strategy_summary <- ci_compare %>%
     percent_strategy_users = round(100 * strategy_users / total_n, 1),
     .groups = "drop"
   )
-
+}
 
 #make new strategy file
 
@@ -153,139 +172,76 @@ Strategyfile <- function () {
   strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
 
   
-strategy_data <- total_group_data %>%
+strategy_data <- total_learners_data %>%
   filter(participant_id %in% strategy_ids)
 
+strategy_data <- strategy_data %>%
+  left_join(
+    total_learners_data %>% select(participant_id, cutrial_no, trial_type),
+    by = c("participant_id", "cutrial_no")
+  ) 
 
 write.csv(strategy_data, "data/strategy_only_participants.csv", row.names = FALSE)
 }
 
-strat <- strat_data[
-  ((strat_data$cutrial_no %in% 199:208 & strat_data$group == 'Group 1') |
-     (strat_data$cutrial_no %in% 225:232 & strat_data$group == 'Group 2')) &
-    strat_data$rotation == 40,
-]
+total_learners_data <- total_learners_data %>%
+  mutate(strategy = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
 
-strat2 <- strat_data[
-  (strat_data$cutrial_no %in% 81:88 & strat_data$group == 'Group 1') |
-    (strat_data$cutrial_no %in% 97:104 & strat_data$group == 'Group 2')
-  &
-    strat_data$rotation == 40,
-]
+total_learners_data$strategy <- ifelse(total_learners_data$strategy == "yes", 1,
+                    ifelse(total_learners_data$strategy == "no", 0, NA))
 
 
-alignedphase <- total_group_data[
-  (total_group_data$cutrial_no %in% 1:88 & total_group_data$group == 'Group 1') |
-    (total_group_data$cutrial_no %in% 1:112 & total_group_data$group == 'Group 2'),
-]
-
-
-rotatedphase <- total_group_data[
-  (total_group_data$cutrial_no %in% 89:208 & total_group_data$group == 'Group 1') |
-    (total_group_data$cutrial_no %in% 105:232 & total_group_data$group == 'Group 2'),
-]
-
-
-meanaim <- function () {
-  
-  grouped_strategy_data <- total_group_data %>%
-    mutate(group = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
-
-  grouped_strategy_data <- grouped_strategy_data %>%
-    mutate(group = ifelse(participant_id == "4eeaee", "Yes", group))
-  
-  plot_mean_aim_data <- grouped_strategy_data %>%
-   filter(cutrial_no %in% c(201:208, 225:232)) %>%
-   group_by(rotation, participant_id, group) %>%
-   summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
-  
-  plot_mean_aim_data <- plot_mean_aim_data %>%
-    mutate(fill_color = ifelse(group == "Yes", as.character(rotation), "white"))
-  max_y <- max(plot_mean_aim_data$mean_aim, na.rm = TRUE)
-  
- p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, color = factor(rotation))) +
-   geom_point(aes(shape = group, fill = factor(rotation)), size = 3, stroke = 1.2) +
-   
-   scale_shape_manual(
-     values = c("Yes" = 21, "No" = 4),
-     name = "Correct aiming strategy"
-   ) +
-   
-   scale_color_manual(
-     values = c(
-       "20" = "#b9d6e5",
-       "30" = "#9fbdd8",
-       "40" = "#848fbe",
-       "50" = "#74599c",
-       "60" = "#6b0077"
-     ),
-     name = "Rotation (degrees)"
-   ) +
-   
-   scale_fill_manual(
-     values = c(
-       "20" = "#b9d6e5",
-       "30" = "#9fbdd8",
-       "40" = "#848fbe",
-       "50" = "#74599c",
-       "60" = "#6b0077"
-     ),
-     guide = "none"
-   ) +
-   
-   guides(
-     color = "none",
-     fill = "none",
-     shape = guide_legend(
-       override.aes = list(
-         shape = c(4, 21),                     # Yes = filled circle (21), No = x (4)
-         color = c("#C7E5Be", "#165660"),      # outline color for both
-         fill = c(NA, "#165660")))
-     ) +
-  
-   theme_minimal() +
-   theme(
-     panel.grid.major = element_blank(),
-     panel.grid.minor = element_blank(),
-     axis.line = element_line(color = "black"),
-     legend.position = "right"
-   ) +
-   
-   labs(
-     x = "Rotation Group",
-     y = expression("Aim Deviation ("*degree*")")
-   )
-   
-}
-    
-
-library(patchwork)
-  
-density_plot <- ggplot(plot_mean_aim_data, aes(x = mean_aim, fill = group)) +
-  geom_density(alpha = 0.6, color = NA, adjust = 2.5) +
-  scale_fill_manual(values = c("Yes" = "#165660", "No" = "#C7E5BE")) +
-  coord_flip() + 
-  xlim(-5, 60) +
-  theme_void() +  
-  theme(legend.position = "none") 
-  
-  
-  
-final_plot <- density_plot + p + plot_layout(widths = c(1, 4))
-print(final_plot)
 
   
 
 
+###not a part of my data analysis###
 
-
-
-df <- total_group_data[total_group_data$participant_id == "98e5cb", ] 
-plot(df$aimdeviation_deg, type = "l", main = "19187c ~50", ylim = c(-10, 60))
+#exploratory
+df <- total_group_data[total_group_data$participant_id == "f275ca", ] 
+plot(df$aimdeviation_deg, type = "l", main = "aiming 60", ylim = c(-10, 60),
+     col= "#DAA520", lwd = 1)
 abline(h = 0, col = "red", lty = 2)
-abline(h = 5, col = "red", lty = 2)
+abline(h = 60, col = "red", lty = 2)
 
 
+#slow insight
+df <- total_group_data[total_group_data$participant_id == "54044d", ] 
+plot(df$aimdeviation_deg, type = "l", main = "50", ylim = c(-10, 60))
+abline(h = 0, col = "red", lty = 2)
+abline(h = 50, col = "red", lty = 2)
+
+#fast insight - two step
+df <- total_group_data[total_group_data$participant_id == "31b753", ] 
+plot(df$aimdeviation_deg, type = "l", main = "60", ylim = c(-10, 60))
+abline(h = 0, col = "red", lty = 2)
+abline(h = 60, col = "red", lty = 2)
+
+#slow insight
+df <- total_group_data[total_group_data$participant_id == "9fb9fe", ] 
+plot(df$aimdeviation_deg, type = "l", main = "aiming 30", ylim = c(-10, 60),
+     col= "darkred", lwd = 1)
+abline(h = 0, col = "red", lty = 2)
+abline(h = 30, col = "red", lty = 2)
+
+#fast insight
+df <- total_group_data[total_group_data$participant_id == "4093e8", ] 
+plot(df$aimdeviation_deg, type = "l", main = "aiming 60", ylim = c(-10, 60),
+     col= "purple", lwd = 1)
+abline(h = 0, col = "red", lty = 2)
+abline(h = 60, col = "red", lty = 2)
+
+df <- total_group_data[total_group_data$participant_id == "94709f", ] 
+plot(df$aimdeviation_deg, type = "l", main = "50", ylim = c(-10, 60))
+abline(h = 0, col = "red", lty = 2)
+abline(h = 60, col = "red", lty = 2)
+
+#systemic exploration 
+df <- total_group_data[total_group_data$participant_id == "901482", ] 
+plot(df$aimdeviation_deg, type = "l", main = "aiming 50", ylim = c(-10, 60),
+     col= "forestgreen", lwd = 1)
+abline(h = 0, col = "red", lty = 2)
+abline(h = 50, col = "red", lty = 2)
 
 #60 aiming: 98e5cb noisy and non consistent strategy & 3091de
 #40 aiming: 6ebd75 ??? i think they get the startegy bc all left hand trials have a good strategy too 
