@@ -1,26 +1,30 @@
+strat_data <- read.csv("data/strategy_only_participants.csv")
+
+results <- data.frame(
+  participant = character(),
+  group = character(),
+  exp_aic = numeric(),
+  step1_aic = numeric(),
+  step2_aic = numeric(),
+  best_model = character(),
+  stringsAsFactors = FALSE
+)
+
 participants <- unique(strat_data$participant_id)
-results <- data.frame()
+
 
 for (pid in participants) {
   dat <- strat_data %>% filter(participant_id == pid)
   group <- unique(dat$group)
-
-  if (group == "Group 1") {
-    baseline_trials <- dat %>% filter(cutrial_no %in% 81:88)
-    rotated_trials <- dat %>% filter(cutrial_no %in% 89:138) %>% head(50)
-  } else if (group == "Group 2") {
-    baseline_trials <- dat %>% filter(cutrial_no %in% 105:112)
-    rotated_trials <- dat %>% filter(cutrial_no %in% 113:162) %>% head(50)
-  } else {
-    next  # skip unknown group
-  }
   
-  all_trials <- rbind(baseline_trials, rotated_trials)
-  all_trials <- all_trials %>% arrange(cutrial_no)
-  trials <- 0:(nrow(all_trials) - 1)  # Re-indexing so trial 0 = rotation onset
+  baseline_trials <- dat %>% filter(trial_type.x == 'aligned') %>% tail(8)
+  rotated_trials  <- dat %>% filter(trial_type.x == 'rotated') %>% head(50)
+  
+  all_trials <- rbind(baseline_trials, rotated_trials) %>% arrange(cutrial_no)
+  
+  trials <- 0:(nrow(all_trials) - 1)  # re-index so trial 0 = rotation onset
   aim <- all_trials$aimdeviation_deg
   n_trials <- length(aim)
-  
   
   
   step_model <- function(params, trials, data) {
@@ -64,7 +68,7 @@ for (pid in participants) {
   }
   
   
-  ##################
+  ################## two step model functions
   
   
   fit_twostep_model <- function(trials, aim) {
@@ -100,9 +104,10 @@ for (pid in participants) {
   
   
   
-  #############
+  ############# exponenetial model functions
   signal <- aim
   timepoints <- trials
+  
   fit_exponential_model <- function(trials, aim) {
     fit_values <- Reach::exponentialFit(
       signal = aim,
@@ -142,20 +147,20 @@ for (pid in participants) {
     step2_aic = step2_aic,
     best_model = best_model
   ))
+
 }
 
 
 #lets plot 
-results$step_aic <- pmin(results$step1_aic, results$step2_aic)
+plot_AIC <- function () {
+results$step_aic <- pmin(results$step1_aic, results$step2_aic) #
 
-# Select participant and AICs for exponential and step models
 aic_long <- results %>%
   select(participant, exp_aic, step_aic) %>%
   pivot_longer(cols = c(exp_aic, step_aic),
                names_to = "model",
                values_to = "AIC")
 
-# Optional: make model labels pretty
 aic_long$model <- factor(aic_long$model, levels = c("step_aic", "exp_aic"),
                          labels = c("Step Model", "Exponential Model"))
 
@@ -169,9 +174,10 @@ ggplot(aic_long, aes(x = model, y = AIC)) +
     y = "AIC)"
   ) +
   theme_minimal()
-
+}
 
 #with three models
+plotAICValues <- function () {
 aic_long <- results %>%
   select(participant, step1_aic, step2_aic, exp_aic) %>%
   pivot_longer(cols = c(step1_aic, step2_aic, exp_aic),
@@ -194,7 +200,6 @@ aic_long <- aic_long %>%
 aic_long$model <- factor(aic_long$model, levels = c("one-step", "two-step", "exponential"))
 aic_long$winning_model <- factor(aic_long$winning_model,
                                  levels = c("one-step", "two-step", "exponential"))
-
 
 ggplot(aic_long, aes(x = model, y = AIC)) +
   geom_boxplot(
@@ -231,8 +236,10 @@ ggplot(aic_long, aes(x = model, y = AIC)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   )
+}
 
 ###or just plot winners
+plotAICBest <- function () {
 aic_long <- results %>%
   select(participant, step1_aic, step2_aic, exp_aic) %>%
   pivot_longer(cols = c(step1_aic, step2_aic, exp_aic),
@@ -276,7 +283,7 @@ ggplot(best_models, aes(x = model, y = AIC, fill = model)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   )
-
+}
 
 
 
