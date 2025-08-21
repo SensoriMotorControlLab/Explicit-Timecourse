@@ -39,7 +39,7 @@ plotMeanAim <- function(target='inline', main=NULL) {
                   dpi=300,
                   sprintf('doc/fig2c_learningrates.%s', target))
   
-  grouped_strategy_data <- total_group_data %>%
+  grouped_strategy_data <- total_learners_data %>%
     mutate(group = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
   
   grouped_strategy_data <- grouped_strategy_data %>%
@@ -191,159 +191,12 @@ plotSteps <- function (target = "inline", main = NULL) {
 } 
 
 
-###fit step or curved to steps per participant
-last_8_aligned <- strat_data[
-  (strat_data$cutrial_no %in% 81:88 & strat_data$group == 'Group 1') |
-    (strat_data$cutrial_no %in% 105:112 & strat_data$group == 'Group 2'), ]
-
-# First 50 rotated trials after rotation
-first_50_rotated <- strat_data[
-  (strat_data$cutrial_no %in% 89:138 & strat_data$group == 'Group 1') |
-    (strat_data$cutrial_no %in% 113:162 & strat_data$group == 'Group 2'), ]
-
-combined_data <- rbind(last_8_aligned, first_50_rotated)
-combined_data$trial_relative <- NA
-
-combined_data$trial_relative[combined_data$group == "Group 1"] <- combined_data$cutrial_no[combined_data$group == "Group 1"] - 88
-combined_data$trial_relative[combined_data$group == "Group 2"] <- combined_data$cutrial_no[combined_data$group == "Group 2"] - 112
-
-
-fit_participant_models <- function(df) {
-  df <- df[order(df$trial_relative), ]
-  
-  # Remove missing data
-  df <- df %>% filter(!is.na(aimdeviation_deg), !is.na(trial_relative))
-  pid <- unique(df$participant_id)
-  
-  if (nrow(df) < 5) {
-    return(tibble(
-      participant_id = pid,
-      step_aic = NA_real_,
-      exp_aic = NA_real_,
-      two_step_aic = NA_real_,
-      first_step_trial = NA_real_,
-      best_model = NA_character_
-    ))
-  }
-  
-  above_thresh <- which(df$trial_relative > 0 & df$aimdeviation_deg > 10)
-  
-  if (length(above_thresh) == 0) {
-    first_step_trial <- NA_real_
-  } else {
-    first_step_trial <- df$trial_relative[above_thresh[1]]
-  }
-  
-  # 1-step model
-  step_model <- function(par, trial, aimdev) {
-    t_step <- par[1]
-    height <- par[2]
-    noise_sd <- par[3]
-    pred <- ifelse(trial >= t_step, height, 0)
-    -sum(dnorm(aimdev, mean = pred, sd = noise_sd, log = TRUE))
-  }
-  
-  # exponential model
-  exp_model <- function(par, trial, aimdev) {
-    asymptote <- par[1]
-    rate <- par[2]
-    noise_sd <- par[3]
-    pred <- asymptote * (1 - exp(-rate * trial))
-    -sum(dnorm(aimdev, mean = pred, sd = noise_sd, log = TRUE))
-  }
-  
-  # 2-step model
-  two_step_model <- function(par, trial, aimdev) {
-    t_step1 <- par[1]
-    t_step2 <- par[2]
-    mean2 <- par[3]
-    mean3 <- par[4]
-    noise_sd <- par[5]
-    
-    # Penalize if step times are not ordered or out of bounds
-    if (t_step2 <= t_step1 || t_step1 < 0 || t_step2 < 0) return(1e6)
-    
-    pred <- ifelse(trial < t_step1, 0,
-                   ifelse(trial < t_step2, mean2, mean3))
-    
-    -sum(dnorm(aimdev, mean = pred, sd = noise_sd, log = TRUE))
-  }
-  
-  # Fit 1-step model
-  step_fit <- tryCatch({
-    optim(par = c(max(first_step_trial, 0), 20, 5),
-          fn = step_model,
-          trial = df$trial_relative,
-          aimdev = df$aimdeviation_deg,
-          method = "L-BFGS-B",
-          lower = c(0, -180, 1e-2),
-          upper = c(max(df$trial_relative), 180, 50))
-  }, error = function(e) NULL)
-  
-  # Fit exponential model
-  exp_fit <- tryCatch({
-    optim(par = c(20, 0.1, 5),
-          fn = exp_model,
-          trial = df$trial_relative,
-          aimdev = df$aimdeviation_deg,
-          method = "L-BFGS-B",
-          lower = c(-180, 1e-3, 1e-2),
-          upper = c(180, 2, 50))
-  }, error = function(e) NULL)
-  
-  # Fit 2-step model
-  two_step_fit <- tryCatch({
-    optim(par = c(max(first_step_trial, 0), max(first_step_trial, 0) + 5, 15, 30, 5), 
-          fn = two_step_model,
-          trial = df$trial_relative,
-          aimdev = df$aimdeviation_deg,
-          method = "L-BFGS-B",
-          lower = c(0, 0, -180, -180, 1e-2),
-          upper = c(max(df$trial_relative), max(df$trial_relative), 180, 180, 50))
-  }, error = function(e) NULL)
-  
-  # Handle cases where fits fail
-  if (is.null(step_fit) || is.null(exp_fit) || is.null(two_step_fit)) {
-    return(tibble(
-      participant_id = pid,
-      step_aic = if(!is.null(step_fit)) 2*length(step_fit$par) + 2*step_fit$value else NA_real_,
-      exp_aic = if(!is.null(exp_fit)) 2*length(exp_fit$par) + 2*exp_fit$value else NA_real_,
-      two_step_aic = if(!is.null(two_step_fit)) 2*length(two_step_fit$par) + 2*two_step_fit$value else NA_real_,
-      first_step_trial = first_step_trial,
-      best_model = NA_character_
-    ))
-  }
-  
-  # Calculate AIC for all models
-  step_aic <- 2 * length(step_fit$par) + 2 * step_fit$value
-  exp_aic <- 2 * length(exp_fit$par) + 2 * exp_fit$value
-  two_step_aic <- 2 * length(two_step_fit$par) + 2 * two_step_fit$value
-  
-  # Determine best model by lowest AIC
-  aic_values <- c(step = step_aic, exp = exp_aic, two_step = two_step_aic)
-  best_model <- names(which.min(aic_values))
-  
-  tibble(
-    participant_id = pid,
-    step_aic = step_aic,
-    exp_aic = exp_aic,
-    two_step_aic = two_step_aic,
-    first_step_trial = first_step_trial,
-    best_model = best_model
-  )
-}
-
-
-
-
-
-
 plotProportion <- function () {
   
   plot_data_yes <- logit_data %>%
     group_by(rotation) %>%
     summarise(
-      count_yes = sum(strategy == "Yes"),
+      count_yes = sum(group == "Yes"),
       total = n(),
       proportion_yes = count_yes / total,
       .groups = "drop"
@@ -391,10 +244,151 @@ plotProportion <- function () {
 
   
 }
+
+#####AIC ANALYSES
+#lets plot 
+plot_AIC <- function () {
+  results$step_aic <- pmin(results$step1_aic, results$step2_aic) #
+  
+  aic_long <- results %>%
+    select(participant, exp_aic, step_aic) %>%
+    pivot_longer(cols = c(exp_aic, step_aic),
+                 names_to = "model",
+                 values_to = "AIC")
+  
+  aic_long$model <- factor(aic_long$model, levels = c("step_aic", "exp_aic"),
+                           labels = c("Step Model", "Exponential Model"))
+  
+  # Plot
+  ggplot(aic_long, aes(x = model, y = AIC)) +
+    geom_jitter(width = 0.1, height = 0, alpha = 0.7, color = "blue", size = 3) +
+    geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+    labs(
+      title = "AIC Scores per Participant",
+      x = "Model",
+      y = "AIC)"
+    ) +
+    theme_minimal()
+}
+
+#with three models
+plotAICValues <- function () {
+  aic_long <- results %>%
+    select(participant, step1_aic, step2_aic, exp_aic) %>%
+    pivot_longer(cols = c(step1_aic, step2_aic, exp_aic),
+                 names_to = "model",
+                 values_to = "AIC") %>%
+    mutate(model = recode(model,
+                          step1_aic = "one-step",
+                          step2_aic = "two-step",
+                          exp_aic = "exponential"))
+  
+  best_models <- aic_long %>%
+    group_by(participant) %>%
+    slice_min(AIC, with_ties = FALSE) %>%
+    ungroup() %>%
+    select(participant, winning_model = model)
   
   
+  aic_long <- aic_long %>%
+    left_join(best_models, by = "participant")
+  aic_long$model <- factor(aic_long$model, levels = c("one-step", "two-step", "exponential"))
+  aic_long$winning_model <- factor(aic_long$winning_model,
+                                   levels = c("one-step", "two-step", "exponential"))
   
-par(cex.axis = 1.5)
+  ggplot(aic_long, aes(x = model, y = AIC)) +
+    geom_boxplot(
+      aes(fill = model),
+      alpha = 0.4,
+      outlier.shape = NA,
+      color = "navy",
+      show.legend = FALSE  
+    ) +
+    
+    geom_point(
+      aes(fill = winning_model),
+      shape = 21, size = 3.7, alpha = 0.4, color = "grey",
+      position = position_jitter(width = 0.15, height = 0)
+    ) +
+    
+    scale_fill_manual(
+      values = c(
+        "one-step" = "orange",
+        "two-step" = "cyan",
+        "exponential" = "purple"
+      )
+    ) +
+    
+    labs(
+      title = "",
+      x = "Model",
+      y = "AIC Value",
+      fill = "Winning Model"
+    ) +
+    
+    theme_minimal() +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+}
+
+###or just plot winners
+plotAICBest <- function () {
+  aic_long <- results %>%
+    select(participant, step1_aic, step2_aic, exp_aic) %>%
+    pivot_longer(cols = c(step1_aic, step2_aic, exp_aic),
+                 names_to = "model",
+                 values_to = "AIC") %>%
+    mutate(model = recode(model,
+                          step1_aic = "one-step",
+                          step2_aic = "two-step",
+                          exp_aic = "exponential"))
+  
+  
+  best_models <- aic_long %>%
+    group_by(participant) %>%
+    slice_min(AIC, with_ties = FALSE) %>%
+    ungroup()
+  best_models$model <- factor(best_models$model, levels = c("one-step", "two-step", "exponential"))
+  
+  ggplot(best_models, aes(x = model, y = AIC, fill = model)) +
+    
+    geom_jitter(width = 0.15, size = 4, alpha = 0.6, color = "grey70") +
+    
+    
+    geom_boxplot(alpha = 0.4, outlier.shape = NA, color = "black") +
+    
+    
+    scale_fill_manual(values = c(
+      "one-step" = "magenta",
+      "two-step" = "cyan",
+      "exponential" = "purple"
+    )) +
+    
+    labs(
+      title = "Best Model AIC per Participant",
+      x = "Winning Model",
+      y = "AIC (lower is better)",
+      fill = "Winning Model"
+    ) +
+    
+    theme_minimal() +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+}
+
+
+
+
+
+
+
+
+  
+####SIMULATES HISTOGRAMS - FROM POSTER  
 
 plot_step_histogram <- function(sim_data) {
   plot(NA,
