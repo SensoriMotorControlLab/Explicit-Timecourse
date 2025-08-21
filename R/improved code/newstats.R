@@ -30,41 +30,7 @@ result_table <- dplyr::select(first_step_over_10,
 print(result_table)
 }
 
-
-plotStep <- function () {
-  library(tidyr)
-  result_table$aligned <- 0
-  
-  df_steps <- result_table %>%
-    rowwise() %>%
-    mutate(
-      trials = list(-8:50),
-      aim_deviation = list(pmin(ifelse(-8:50 < cutrial_no, 0, aimdeviation_deg), 60))
-    ) %>%
-    unnest(c(trials, aim_deviation))
-  
-  # Plot
-  ggplot(df_steps, aes(x = trials, y = aim_deviation, color = factor(rotation))) +
-    geom_line(aes(group = participant_id), size = 0.8) +
-    geom_vline(data = result_table, aes(xintercept = cutrial_no), linetype = "dashed", color = "NA") +
-    labs(
-      x = "Trial",
-      y = "Aim Deviation (deg)",
-      color = "Rotation",
-      title = "Strategy Onset of Each Participant"
-    ) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(),
-    ) 
-} 
-  
-  
-  
+meanStep <- function () { 
   mean_transitions <- result_table %>%
     group_by(rotation) %>%
     summarise(
@@ -73,7 +39,6 @@ plotStep <- function () {
       .groups = "drop"
     )
   
-  # Step 2: Build stepwise data: 0 before cut, step to mean_aim after
   mean_step_data <- mean_transitions %>%
     rowwise() %>%
     mutate(
@@ -81,27 +46,11 @@ plotStep <- function () {
       aim_deviation = list(ifelse(-8:50 < mean_cut, 0, mean_aim))
     ) %>%
     unnest(c(trial, aim_deviation))
+}  
   
-  
-  ggplot(mean_step_data, aes(x = trial, y = aim_deviation, color = factor(rotation))) +
-    geom_line(size = 0.8) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +  # Rotation start
-    labs(
-      x = "Trial",
-      y = "Mean Aim Deviation (deg)",
-      color = "Rotation Group",
-      title = "Average Strategy Onset per Rotation Group"
-    ) +
-    theme_minimal(base_size = 14) +
-    theme(
-      panel.grid = element_blank(),  # Remove all grid lines
-      axis.line = element_line(),    # Add axis lines
-      legend.position = "right"
-    )
-  
-  
-  #log reg
-  grouped_strategy_data <- total_group_data %>%
+#log reg
+logAnalysis <- function () {  
+  grouped_strategy_data <- total_learners_data %>%
     mutate(group = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
   
   grouped_strategy_data <- grouped_strategy_data %>%
@@ -114,21 +63,21 @@ plotStep <- function () {
   
   model <- glm(group ~ rotation, data = logit_data, family = binomial)
   summary(model)
+}
 
-  
-  #aov for mean of last 8 rotated trials
+  #aov for mean of last 16 rotated trials
+  aimAOV <- function () {
   plot_mean_aim_data <- grouped_strategy_data %>%
-    filter(cutrial_no %in% c(201:208, 225:232)) %>%
+    filter(cutrial_no %in% c(193:208, 217:232)) %>%
     group_by(rotation, participant_id, group) %>%
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
-  
   
    plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
   
   anova_result <- aov(mean_aim ~ rotation, data = plot_mean_aim_data)
   summary(anova_result)
   TukeyHSD(anova_result)
-  
+  }
 
   
 #Is the average trial number where participants start using a strategy different across the rotation groups?
@@ -139,29 +88,85 @@ plotStep <- function () {
 
 
 ########T-tests
-#does aligned differ from 0?
-first_aligned <- subset(strat_data$aimdeviation_deg, 
-                        (strat_data$cutrial_no >= 1 & strat_data$cutrial_no <= 24))
+  
+  
+#does final aligned differ from 0 (or -5 to 5 threshold)?
+zeroT <- function () {
+  results <- list()
+  last_aligned <- strat_data %>%
+    filter(trial_type.x == "aligned") %>% 
+    group_by(participant_id) %>%      
+    arrange(cutrial_no, .by_group = TRUE) %>%  
+    slice_tail(n = 16) %>%            # take last 16 per participant
+    summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
+  
+  results[["aligned"]] <- t.test(last_aligned$mean_aim, mu = -1)
 
-t.test(first_aligned, mu=0)
 
-#does rotated differ from 0?
+#does first rotated differ from 0?
 first_rotated <-  subset(strat_data, 
                          (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
                            (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
 
-t.test(first_rotated$aimdeviation_deg, mu=0)
- 
-#does aligned differ from rotated?
+first_rotated <- strat_data %>%
+  filter(trial_type.x == "rotated") %>% 
+  group_by(participant_id) %>%      
+  arrange(cutrial_no, .by_group = TRUE) %>%  
+  slice_head(n = 16) %>%            
+  summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
+
+results[["rotated"]] <- t.test(first_rotated$mean_aim, mu=-0.88)
+
+return(results)
+}
 
 
-last_aligned <-  subset(strat_data, 
-                                      (group == "Group 1" & cutrial_no >= 81 & cutrial_no <= 88) |
-                                        (group == "Group 2" & cutrial_no >= 105 & cutrial_no <= 112))
+#does rotated differ from ideal angle?
 
-last_rotated <-  subset(strat_data, 
-                         (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 96) |
-                           (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 120))
+idealT <- function () {
+  results <- list()
+rotated20_mean <- strat_data %>%
+  filter(rotation == 20, trial_type.x == "rotated") %>%
+  group_by(participant_id) %>%
+  arrange(cutrial_no, .by_group = TRUE) %>%
+  slice_tail(n = 50) %>%  
+  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+results[["rotation20"]] <- t.test(rotated20_mean$mean_reach_dev, mu = 20)
+
+rotated30_mean <- strat_data %>%
+  filter(rotation == 30, trial_type.x == "rotated") %>%
+  group_by(participant_id) %>%
+  arrange(cutrial_no, .by_group = TRUE) %>%
+  slice_tail(n = 30) %>%  
+  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+results[["rotation30"]] <- t.test(rotated30_mean$mean_reach_dev, mu = 30)
+
+rotated40_mean <- strat_data %>%
+  filter(rotation == 40, trial_type.x == "rotated") %>%
+  group_by(participant_id) %>%
+  arrange(cutrial_no, .by_group = TRUE) %>%
+  slice_tail(n = 50) %>%  
+  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+results[["rotation40"]] <- t.test(rotated40_mean$mean_reach_dev, mu = 40)
 
 
-t.test(last_aligned$aimdeviation_deg,last_rotated$aimdeviation_deg)
+rotated50_mean <- strat_data %>%
+  filter(rotation == 50, trial_type.x == "rotated") %>%
+  group_by(participant_id) %>%
+  arrange(cutrial_no, .by_group = TRUE) %>%
+  slice_tail(n = 50) %>%  
+  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+results[["rotation50"]] <- t.test(rotated50_mean$mean_reach_dev, mu = 50)
+
+
+rotated60_mean <- strat_data %>%
+  filter(rotation == 60, trial_type.x == "rotated") %>%
+  group_by(participant_id) %>%
+  arrange(cutrial_no, .by_group = TRUE) %>%
+  slice_tail(n = 60) %>%  
+  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+results[["rotation60"]] <- t.test(rotated60_mean$mean_reach_dev, mu = 60)
+
+return(results)
+}
+
