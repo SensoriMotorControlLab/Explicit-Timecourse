@@ -1,33 +1,33 @@
 getStep <- function () {
   strat_data <- read.csv("data/strategy_only_participants.csv")
-
-aligned_trials <- subset(strat_data, 
-                         (group == "Group 1" & cutrial_no >= 81 & cutrial_no <= 88) |
-                           (group == "Group 2" & cutrial_no >= 101 & cutrial_no <= 112))
-
-
-
-rotated_trials <- subset(strat_data, 
-                         (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
-                           (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
-
-
-first_50_rotated <- rotated_trials %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no) %>%
-  slice_head(n = 50) %>%
-  mutate(cutrial_no = row_number())  # Count trial numbers 1 to 50 within participant
-
-first_step_over_10 <- first_50_rotated %>%
-  filter(aimdeviation_deg > 10) %>%
-  group_by(participant_id) %>%
-  slice_min(order_by = cutrial_no, n = 1)
-
-
-result_table <- dplyr::select(first_step_over_10, 
-                              participant_id, rotation, cutrial_no, aimdeviation_deg)
-
-print(result_table)
+  
+  aligned_trials <- subset(strat_data, 
+                           (group == "Group 1" & cutrial_no >= 81 & cutrial_no <= 88) |
+                             (group == "Group 2" & cutrial_no >= 101 & cutrial_no <= 112))
+  
+  
+  
+  rotated_trials <- subset(strat_data, 
+                           (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
+                             (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
+  
+  
+  first_50_rotated <- rotated_trials %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no) %>%
+    slice_head(n = 50) %>%
+    mutate(cutrial_no = row_number())  # Count trial numbers 1 to 50 within participant
+  
+  first_step_over_10 <- first_50_rotated %>%
+    filter(aimdeviation_deg > 10) %>%
+    group_by(participant_id) %>%
+    slice_min(order_by = cutrial_no, n = 1)
+  
+  
+  result_table <- dplyr::select(first_step_over_10, 
+                                participant_id, rotation, cutrial_no, aimdeviation_deg)
+  
+  print(result_table)
 }
 
 meanStep <- function () { 
@@ -47,7 +47,7 @@ meanStep <- function () {
     ) %>%
     unnest(c(trial, aim_deviation))
 }  
-  
+
 #log reg
 logAnalysis <- function () {  
   grouped_strategy_data <- total_learners_data %>%
@@ -65,31 +65,31 @@ logAnalysis <- function () {
   summary(model)
 }
 
-  #aov for mean of last 16 rotated trials
-  aimAOV <- function () {
+#aov for mean of last 16 rotated trials
+aimAOV <- function () {
   plot_mean_aim_data <- grouped_strategy_data %>%
     filter(cutrial_no %in% c(193:208, 217:232)) %>%
     group_by(rotation, participant_id, group) %>%
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
   
-   plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
+  plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
   
   anova_result <- aov(mean_aim ~ rotation, data = plot_mean_aim_data)
   summary(anova_result)
   TukeyHSD(anova_result)
-  }
+}
 
-  
+
 #Is the average trial number where participants start using a strategy different across the rotation groups?
-  summary(aov(cutrial_no ~ factor(rotation), data = result_table))
-  
-  
+summary(aov(cutrial_no ~ factor(rotation), data = result_table))
+
+
 #Descriptive Stats for aiming deviation of strategy-users (last 16 rotated trials)
 
 
 ########T-tests
-  
-  
+
+
 #does final aligned differ from 0 (or -5 to 5 threshold)?
 zeroT <- function () {
   results <- list()
@@ -101,23 +101,23 @@ zeroT <- function () {
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
   
   results[["aligned"]] <- t.test(last_aligned$mean_aim, mu = -1)
-
-
-#does first rotated differ from 0?
-first_rotated <-  subset(strat_data, 
-                         (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
-                           (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
-
-first_rotated <- strat_data %>%
-  filter(trial_type.x == "rotated") %>% 
-  group_by(participant_id) %>%      
-  arrange(cutrial_no, .by_group = TRUE) %>%  
-  slice_head(n = 16) %>%            
-  summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
-
-results[["rotated"]] <- t.test(first_rotated$mean_aim, mu=-0.88)
-
-return(results)
+  
+  
+  #does first rotated differ from 0?
+  first_rotated <-  subset(strat_data, 
+                           (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
+                             (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
+  
+  first_rotated <- strat_data %>%
+    filter(trial_type.x == "rotated") %>% 
+    group_by(participant_id) %>%      
+    arrange(cutrial_no, .by_group = TRUE) %>%  
+    slice_head(n = 16) %>%            
+    summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
+  
+  results[["rotated"]] <- t.test(first_rotated$mean_aim, mu=-0.88)
+  
+  return(results)
 }
 
 
@@ -125,48 +125,48 @@ return(results)
 
 idealT <- function () {
   results <- list()
-rotated20_mean <- strat_data %>%
-  filter(rotation == 20, trial_type.x == "rotated") %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 50) %>%  
-  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
-results[["rotation20"]] <- t.test(rotated20_mean$mean_reach_dev, mu = 20)
-
-rotated30_mean <- strat_data %>%
-  filter(rotation == 30, trial_type.x == "rotated") %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 30) %>%  
-  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
-results[["rotation30"]] <- t.test(rotated30_mean$mean_reach_dev, mu = 30)
-
-rotated40_mean <- strat_data %>%
-  filter(rotation == 40, trial_type.x == "rotated") %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 50) %>%  
-  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
-results[["rotation40"]] <- t.test(rotated40_mean$mean_reach_dev, mu = 40)
-
-
-rotated50_mean <- strat_data %>%
-  filter(rotation == 50, trial_type.x == "rotated") %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 50) %>%  
-  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
-results[["rotation50"]] <- t.test(rotated50_mean$mean_reach_dev, mu = 50)
-
-
-rotated60_mean <- strat_data %>%
-  filter(rotation == 60, trial_type.x == "rotated") %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 60) %>%  
-  summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
-results[["rotation60"]] <- t.test(rotated60_mean$mean_reach_dev, mu = 60)
-
-return(results)
+  rotated20_mean <- strat_data %>%
+    filter(rotation == 20, trial_type.x == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 50) %>%  
+    summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+  results[["rotation20"]] <- t.test(rotated20_mean$mean_reach_dev, mu = 20)
+  
+  rotated30_mean <- strat_data %>%
+    filter(rotation == 30, trial_type.x == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 30) %>%  
+    summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+  results[["rotation30"]] <- t.test(rotated30_mean$mean_reach_dev, mu = 30)
+  
+  rotated40_mean <- strat_data %>%
+    filter(rotation == 40, trial_type.x == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 50) %>%  
+    summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+  results[["rotation40"]] <- t.test(rotated40_mean$mean_reach_dev, mu = 40)
+  
+  
+  rotated50_mean <- strat_data %>%
+    filter(rotation == 50, trial_type.x == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 50) %>%  
+    summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+  results[["rotation50"]] <- t.test(rotated50_mean$mean_reach_dev, mu = 50)
+  
+  
+  rotated60_mean <- strat_data %>%
+    filter(rotation == 60, trial_type.x == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 60) %>%  
+    summarise(mean_reach_dev = mean(aimdeviation_deg, na.rm = TRUE))
+  results[["rotation60"]] <- t.test(rotated60_mean$mean_reach_dev, mu = 60)
+  
+  return(results)
 }
 
