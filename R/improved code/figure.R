@@ -58,7 +58,7 @@ plotMeanAim <- function(target='inline', main=NULL) {
     title(main=main, adj=0, cex.main=2)
   }
   
-p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, color = factor(rotation))) +
+  p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, color = factor(rotation))) +
     geom_point(aes(shape = group, fill = factor(rotation)), size = 6, stroke = 1.2) +
     
     scale_shape_manual(
@@ -110,14 +110,14 @@ p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, color = 
       legend.text = element_text(size = 16),     # legend item labels
       legend.title = element_text(size = 17, face = "bold"),
     ) +
-  theme(
-    axis.title.x = element_text(size = 17),
-    axis.title.y = element_text(size = 17),
-    axis.text.x  = element_text(size = 16),
-    axis.text.y  = element_text(size = 16),
-    legend.title = element_text(size = 16),
-    legend.text  = element_text(size = 15),
-    plot.title   = element_text(size = 19, hjust = 0)
+    theme(
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      axis.text.x  = element_text(size = 16),
+      axis.text.y  = element_text(size = 16),
+      legend.title = element_text(size = 16),
+      legend.text  = element_text(size = 15),
+      plot.title   = element_text(size = 19, hjust = 0)
     ) + 
     labs(
       x = "",
@@ -127,7 +127,7 @@ p <- ggplot(plot_mean_aim_data, aes(x = factor(rotation), y = mean_aim, color = 
   if (target %in% c('pdf','svg','png','tiff')) {
     dev.off()
   }
-print(p)
+  print(p)
 } 
 
 
@@ -143,11 +143,11 @@ plotSteps <- function (target = "inline", main = NULL) {
     rowwise() %>%  # Add the pipe before rowwise
     mutate(
       trials = list(-8:50),
-      aim_deviation = list(pmin(ifelse(-8:50 < cutrial_no, 0, aimdeviation_deg), 60))
+      aim_deviation = list(pmin(ifelse(-8:50 < first_trial, 0, first_aimdev), 60))
     ) %>%
     unnest(c(trials, aim_deviation))
   
-   p <- ggplot(df_steps, aes(x = trials, y = aim_deviation, color = factor(rotation))) +
+  p <- ggplot(df_steps, aes(x = trials, y = aim_deviation, color = factor(rotation))) +
     geom_line(aes(group = participant_id), size = 0.8) +
     geom_vline(data = result_table, aes(xintercept = cutrial_no), linetype = "dashed", color = NA) +  # use NA not "NA"
     labs(
@@ -158,11 +158,11 @@ plotSteps <- function (target = "inline", main = NULL) {
     ) +
     geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
     scale_color_manual(values = c(
-      "20" = "blue",     # orange
-      "30" = "mediumpurple",    # purple
-      "40" = "lightsalmon2",            # blue
-      "50" = "plum2",           # pinkish-purple
-      "60" = "skyblue"          # light blue
+      "20" = "darkorange",  # orange
+      "30" = "mediumorchid",  # sky blue
+      "40" = "red2",  # green
+      "50" = "purple4",  # yellow
+      "60" = "violetred"   # red
     )) +
     theme_minimal() +
     theme(
@@ -171,16 +171,16 @@ plotSteps <- function (target = "inline", main = NULL) {
       panel.background = element_blank(),
       axis.line = element_line()
     ) +
-     theme(
-       axis.title.x = element_text(size = 17),
-       axis.title.y = element_text(size = 17),
-       axis.text.x  = element_text(size = 16),
-       axis.text.y  = element_text(size = 16),
-       legend.title = element_text(size = 17),
-       legend.text  = element_text(size = 16),
-       plot.title   = element_text(size = 19, hjust = 0),
-       legend.position = "inside",
-       legend.position.inside = c(0.08, 0.5))
+    theme(
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      axis.text.x  = element_text(size = 16),
+      axis.text.y  = element_text(size = 16),
+      legend.title = element_text(size = 17),
+      legend.text  = element_text(size = 16),
+      plot.title   = element_text(size = 19, hjust = 0),
+      legend.position = "inside",
+      legend.position.inside = c(0.08, 0.5))
   
   if (target %in% c('pdf','svg','png','tiff')) {
     dev.off()
@@ -203,11 +203,11 @@ plotProportion <- function () {
     )
   
   custom_colors <- c(
-    "20" = "lightsalmon",  # orange
-    "30" = "mediumpurple",  # sky blue
-    "40" = "blue",  # green
-    "50" = "plum2",  # yellow
-    "60" = "skyblue"   # red
+    "20" = "darkorange",  # orange
+    "30" = "mediumorchid",  # sky blue
+    "40" = "red2",  # green
+    "50" = "purple4",  # yellow
+    "60" = "violetred"   # red
   )
   
   library(scales)
@@ -241,23 +241,22 @@ plotProportion <- function () {
       plot.title   = element_text(size = 19, hjust = 0))
   
   
-
+  
   
 }
 
 #####AIC ANALYSES
 #lets plot 
 plot_AIC <- function () {
-  results$step_aic <- pmin(results$step1_aic, results$step2_aic) #
-  
+  library(tidyr)
   aic_long <- results %>%
-    select(participant, exp_aic, step_aic) %>%
-    pivot_longer(cols = c(exp_aic, step_aic),
+    select(participant, exp_aic, step1_aic, step2_aic) %>%
+    pivot_longer(cols = c(exp_aic, step1_aic, step2_aic),
                  names_to = "model",
                  values_to = "AIC")
   
-  aic_long$model <- factor(aic_long$model, levels = c("step_aic", "exp_aic"),
-                           labels = c("Step Model", "Exponential Model"))
+  aic_long$model <- factor(aic_long$model, levels = c("step1_aic","step2_aic", "exp_aic"),
+                           labels = c("Step Model","Two Step Model", "Exponential Model"))
   
   # Plot
   ggplot(aic_long, aes(x = model, y = AIC)) +
@@ -313,9 +312,9 @@ plotAICValues <- function () {
     
     scale_fill_manual(
       values = c(
-        "one-step" = "orange",
-        "two-step" = "cyan",
-        "exponential" = "purple"
+        "one-step" = "#FF69B4",
+        "two-step" = "lightblue",
+        "exponential" = "#EEE98F"
       )
     ) +
     
@@ -382,12 +381,16 @@ plotAICBest <- function () {
 
 
 
+df <- total_group_data[total_group_data$participant_id == "33e532", ] 
+plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 60),
+     col= "grey", lwd = 1)
+lines(x=113, col="red")
 
 
 
 
 
-  
+
 ####SIMULATES HISTOGRAMS - FROM POSTER  
 
 plot_step_histogram <- function(sim_data) {
@@ -495,6 +498,5 @@ simulate_exponential_learning <- function(n_participants = 50,
 
 exp_data <- simulate_exponential_learning(n_participants = 80)
 plot_step_histogram(exp_data)
-  
-  
-  
+
+
