@@ -80,11 +80,11 @@ total_group_data <- total_group_data %>%
 getLearners <- function(total_group_data) {
   learner_df <- total_group_data %>%
     filter(
-      (group == "Group 1" & cutrial_no %in% 194:209) |
-        (group == "Group 2" & cutrial_no %in% 218:233)
+      (group == "Group 1" & cutrial_no %in% 193:208) |
+        (group == "Group 2" & cutrial_no %in% 217:232)
     ) %>%
     group_by(participant_id, rotation) %>%
-    summarise(
+    reframe(
       is_learner = median(reachdeviation_deg, na.rm = TRUE) > (rotation / 2),
       .groups = "drop"
     )
@@ -111,41 +111,56 @@ getLearners <- function(total_group_data) {
 #filter out non learners
 LearnerCSV <- function () {
   total_learners_data <- total_group_data %>%
-  semi_join(learner_id, by = c("rotation", "participant_id")) %>%
-  select(participant_id, cutrial_no, aimdeviation_deg, reachdeviation_deg, rotation, trial_type, group)
-write_csv(total_learners_data, "data/total_learners_data.csv")
+    left_join(learner_id, by = c("participant_id", "rotation")) %>% 
+    filter(is_learner) %>%    
+    select(participant_id, cutrial_no, aimdeviation_deg, reachdeviation_deg,
+           rotation, trial_type, group)
+  
+  write_csv(total_learners_data, "data/total_learners_data.csv")
+  return(total_learners_data)
 }
-
+total_learners_data <- LearnerCSV()
 ####STRATEGY
 
 #use last 16 rotated trials which represents where strategies are most consistent
 
 getCI <- function () {
   
-  last_16_rotated <- total_learners_data[
-  (total_learners_data$cutrial_no %in% 193:208 & total_learners_data$group == 'Group 1') |
-    (total_learners_data$cutrial_no %in% 217:232 & total_learners_data$group == 'Group 2'),
-]
-
-CI <- aggregate(
+  last_16_rotated_learners <- total_learners_data[
+    (total_learners_data$cutrial_no %in% 193:208 & total_learners_data$group == 'Group 1') |
+      (total_learners_data$cutrial_no %in% 217:232 & total_learners_data$group == 'Group 2'),
+  ]
+  
+  CI <- aggregate(
     aimdeviation_deg ~ participant_id + rotation,
-    data = last_16_rotated,
+    data = last_16_rotated_learners,
     FUN = function(x) 
-    Reach::getConfidenceInterval(x)
+      Reach::getConfidenceInterval(x)
   )
-return(CI)
+  return(CI)
 }
 
 #using CI function, we can now use a 95% interval approach to figure out strategy-users
 getStrategies <- function () {
-  rotated_CI <- CI(last_16_rotated_learners)
-  ci_compare <- rotated_CI
+  ci_compare <- getCI()
   
-  ci_compare$strategy <- ifelse(
-    (ci_compare$aimdeviation_deg[,1] > 0 | ci_compare$aimdeviation_deg[,2] < 0) & 
-      ci_compare$aimdeviation_deg[,1] > 4.9, 
-    "Yes", 
-    "No")
+  ci_compare <- ci_compare %>%
+    group_by(participant_id) %>%
+    mutate(
+      final_trials = list(tail(
+        last_16_rotated_learners$aimdeviation_deg[
+          last_16_rotated_learners$participant_id == participant_id
+        ], 8
+      )),
+      strategy = ifelse(
+        (aimdeviation_deg[,1] > 0 & aimdeviation_deg[,2] > 0) &
+          (length(final_trials[[1]]) == 8 & all(final_trials[[1]] >= 0)) &
+          (first(aimdeviation_deg[,1]) > 5),
+        "Yes", "No"
+      )
+    ) %>%
+    ungroup()
+  
   print(ci_compare[, c("participant_id", "rotation", "aimdeviation_deg", "strategy")])
 }
 
@@ -157,94 +172,62 @@ countStrategies <- function () {
 
 strategySummary <- function () {
   ci_compare %>% 
-   group_by(rotation) %>%
-  summarise(
-    total_n = n(),
-    strategy_users = sum(strategy %in% c('Yes')),
-    percent_strategy_users = round(100 * strategy_users / total_n, 1),
-    .groups = "drop"
-  )
+    group_by(rotation) %>%
+    summarise(
+      total_n = n(),
+      strategy_users = sum(strategy %in% c('Yes')),
+      percent_strategy_users = round(100 * strategy_users / total_n, 1),
+      .groups = "drop"
+    )
 }
 
 #make new strategy file
 
 Strategyfile <- function () {
   strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
-
   
-strategy_data <- total_learners_data %>%
-  filter(participant_id %in% strategy_ids)
-
-strategy_data <- strategy_data %>%
-  left_join(
-    total_learners_data %>% select(participant_id, cutrial_no, trial_type),
-    by = c("participant_id", "cutrial_no")
-  ) 
-
-write.csv(strategy_data, "data/strategy_only_participants.csv", row.names = FALSE)
+  
+  strategy_data <- total_learners_data %>%
+    filter(participant_id %in% strategy_ids)
+  
+  strategy_data <- strategy_data %>%
+    left_join(
+      total_learners_data %>% select(participant_id, cutrial_no, trial_type),
+      by = c("participant_id", "cutrial_no")
+    ) 
+  
+  write.csv(strategy_data, "data/strategy_only_participants.csv", row.names = FALSE)
 }
 
 total_learners_data <- total_learners_data %>%
   mutate(strategy = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
 
 total_learners_data$strategy <- ifelse(total_learners_data$strategy == "yes", 1,
-                    ifelse(total_learners_data$strategy == "no", 0, NA))
+                                       ifelse(total_learners_data$strategy == "no", 0, NA))
 
 
 
-  
+
 
 
 ###not a part of my data analysis###
 
-#exploratory
-df <- total_group_data[total_group_data$participant_id == "f275ca", ] 
+#onestep
+df <- total_group_data[total_group_data$participant_id == "7eec53", ] 
 plot(df$aimdeviation_deg, type = "l", main = "aiming 60", ylim = c(-10, 60),
-     col= "#DAA520", lwd = 1)
-abline(h = 0, col = "red", lty = 2)
-abline(h = 60, col = "red", lty = 2)
+     col= "#FF69B4", lwd = 1)
+abline(v = 89, col = "black", lty = 2)
 
 
-#slow insight
-df <- total_group_data[total_group_data$participant_id == "54044d", ] 
-plot(df$aimdeviation_deg, type = "l", main = "50", ylim = c(-10, 60))
-abline(h = 0, col = "red", lty = 2)
-abline(h = 50, col = "red", lty = 2)
 
-#fast insight - two step
-df <- total_group_data[total_group_data$participant_id == "31b753", ] 
-plot(df$aimdeviation_deg, type = "l", main = "60", ylim = c(-10, 60))
-abline(h = 0, col = "red", lty = 2)
-abline(h = 60, col = "red", lty = 2)
+#two step 
+df <- total_group_data[total_group_data$participant_id == "13d986", ] 
+plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 60))
+abline(v = 113, col = "red", lty = 2)
 
-#slow insight
-df <- total_group_data[total_group_data$participant_id == "9fb9fe", ] 
-plot(df$aimdeviation_deg, type = "l", main = "aiming 30", ylim = c(-10, 60),
-     col= "darkred", lwd = 1)
-abline(h = 0, col = "red", lty = 2)
-abline(h = 30, col = "red", lty = 2)
 
-#fast insight
-df <- total_group_data[total_group_data$participant_id == "4093e8", ] 
-plot(df$aimdeviation_deg, type = "l", main = "aiming 60", ylim = c(-10, 60),
-     col= "purple", lwd = 1)
-abline(h = 0, col = "red", lty = 2)
-abline(h = 60, col = "red", lty = 2)
+#exp
+df <- total_group_data[total_group_data$participant_id == "a02c67", ] 
+plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 60))
+abline(v = 113, col = "red", lty = 2)
 
-df <- total_group_data[total_group_data$participant_id == "94709f", ] 
-plot(df$aimdeviation_deg, type = "l", main = "50", ylim = c(-10, 60))
-abline(h = 0, col = "red", lty = 2)
-abline(h = 60, col = "red", lty = 2)
-
-#systemic exploration 
-df <- total_group_data[total_group_data$participant_id == "901482", ] 
-plot(df$aimdeviation_deg, type = "l", main = "aiming 50", ylim = c(-10, 60),
-     col= "forestgreen", lwd = 1)
-abline(h = 0, col = "red", lty = 2)
-abline(h = 50, col = "red", lty = 2)
-
-#60 aiming: 98e5cb noisy and non consistent strategy & 3091de
-#40 aiming: 6ebd75 ??? i think they get the startegy bc all left hand trials have a good strategy too 
-#40 aa25ec is also back and forth
-
-#let me check if they aimed above 10 for half of the trials which might determine if motivation factors are at play!
