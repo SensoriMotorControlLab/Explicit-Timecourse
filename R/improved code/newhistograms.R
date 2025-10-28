@@ -39,13 +39,13 @@ hist2d <- function(x, y=NA, nbins=c(25,25), edges=NA) {
 
 #create data frame
 
-last_8_aligned <- total_group_data[
-  (total_group_data$cutrial_no %in% 81:88 & total_group_data$group == 'Group 1') |
-    (total_group_data$cutrial_no %in% 105:112 & total_group_data$group == 'Group 2'),]
+last_8_aligned <- total_learners_data[
+  (total_learners_data$cutrial_no %in% 85:88 & total_learners_data$group == 'Group 1') |
+    (total_learners_data$cutrial_no %in% 109:112 & total_learners_data$group == 'Group 2'),]
 
 last_8_aligned <- last_8_aligned %>%
   group_by(group, participant_id) %>%  # adjust 'participant_id' to your actual column name
-  mutate(time = -8:-1) %>%
+  mutate(time = -4:-1) %>%
   ungroup()
 
 last_8_aligned_learners <- last_8_aligned %>%
@@ -58,9 +58,9 @@ dfAligned <- data.frame(
 )
 
 
-first_32_rotated <- total_group_data[
-  (total_group_data$cutrial_no %in% 89:120 & total_group_data$group == 'Group 1') |
-    (total_group_data$cutrial_no %in% 105:136 & total_group_data$group == 'Group 2'),]
+first_32_rotated <- total_learners_data[
+  (total_learners_data$cutrial_no %in% 89:120 & total_learners_data$group == 'Group 1') |
+    (total_learners_data$cutrial_no %in% 105:136 & total_learners_data$group == 'Group 2'),]
 
 
 first_32_rotated <- first_32_rotated %>%
@@ -83,19 +83,65 @@ all_hist_data <- rbind(dfAligned, dfRotated)
 #60 aiming histogram
 plot60aim <- function () {
   aim_60_hist <- all_hist_data %>%
-  filter(rotation_group == '60')
-
+    filter(rotation_group == '60')
+  
   plot(NA,
-       main='Explicit Learning With a 60° Rotation',
-       xlab='Trial', ylab='',
-       xlim=c(-8,32), ylim=c(-15,70), 
+       main='',
+       xlab='', ylab='',
+       xlim=c(-4,32), ylim=c(-15,65),   # match 50
        ax=F, bty='n',
        cex.lab = 1.6,
-       cex.main = 2)
+       cex.main = 2,
+       cex.axis = 2)
   
-
-  img_info <- hist2d(x=aim_60_hist, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,65,2.5)))
+  img_info <- hist2d(
+    x = aim_60_hist,
+    nbins = NA,
+    edges = list(seq(-4,31.5,1), seq(-15,50,2.5))
+  )
   img <- log(img_info$freq2D + 1)
+  
+  image(x=img_info$x.edges,
+        y=img_info$y.edges,
+        col=colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        z=img,
+        add=TRUE)
+  
+  # X-axis numbers same as 50
+  axis(side=1, at=c(-4, 0, 8, 16, 24, 32), labels=c(-4, 0, 8, 16, 24, 32), cex.axis = 1.6)
+  
+  # Y-axis numbers same as 50
+  axis(side=2, at=seq(-10, 60, 10), cex.axis = 1.6)
+  
+  # Reference box line same style, adjusted to 60° height
+  lines(x=c(-4, 0, 0, 32), 
+        y=c(-0.5, -0.5, 59.5, 59.5), 
+        col='navy', lty=3, lwd=2)
+}
+
+avg_aim60 <- aggregate(y ~ x, data=aim_60_hist, FUN=mean)
+#lines(avg_aim60$x, avg_aim60$y, col="grey30", lwd=2)
+#text(x = -8, y = 63, adj = c(0,2), col = "black", cex = 1)
+
+
+#50 aiming histogram
+plot50aim <- function () {
+  aim_50_hist <- all_hist_data %>%
+    filter(rotation_group == '50')
+  
+  # Plotting
+  plot(NA,
+       main='',
+       xlab='', ylab='',
+       xlim=c(-4,32), ylim=c(-15,65), 
+       ax=F, bty='n',
+       cex.lab = 1.6,
+       cex.main = 2,
+       cex.axis=2)
+  
+  img_info <- hist2d(x=aim_50_hist, nbins=NA, edges=list(seq(-4,31.5,1), seq(-15,65,2.5)))
+  img <- log(img_info$freq2D + 1)
+  
   
   image(x=img_info$x.edges,
         y=img_info$y.edges,
@@ -103,85 +149,52 @@ plot60aim <- function () {
         z=img,
         add=TRUE)
   
-  axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-  axis(side=2, at=seq(-10,70,10))
-  lines(x=c(-8, 0, 0, 32), 
-        y=c(-0.5, -0.5, 59.5, 59.5), 
+  axis(side=1, at=c(-4, 0,8, 16, 24, 32), labels=c(-4, 0,8, 16, 24, 32), cex.axis = 1.6)
+  axis(side = 2, at = seq(-10, 65, 10), cex.axis = 1.6)
+  lines(x=c(-4, 0, 0, 32), 
+        y=c(-0.5, -0.5, 49.5, 49.5), 
         col='navy', lty=3, lwd=2)
-avg_aim60 <- aggregate(y ~ x, data=aim_60_hist, FUN=mean)
-#lines(avg_aim60$x, avg_aim60$y, col="grey30", lwd=2)
-#text(x = -8, y = 63, adj = c(0,2), col = "black", cex = 1)
-}
-
-#50 aiming histogram
-plot50aim <- function () {
-  aim_50_hist <- all_hist_data %>%
-  filter(rotation_group == '50')
-
-# Plotting
-plot(NA,
-     main='Explicit Learning With a 50° Rotation',
-     xlab='Trial', ylab='',
-     xlim=c(-8,32), ylim=c(-15,70), 
-     ax=F, bty='n',
-     cex.lab = 1.6,
-     cex.main = 2)
-
-img_info <- hist2d(x=aim_50_hist, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,50,2.5)))
-img <- log(img_info$freq2D + 1)
-
-
-image(x=img_info$x.edges,
-      y=img_info$y.edges,
-      col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
-      z=img,
-      add=TRUE)
-
-axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-axis(side=2, at=seq(-10,70,10))
-lines(x=c(-8, 0, 0, 32), 
-      y=c(-0.5, -0.5, 49.5, 49.5), 
-      col='navy', lty=3, lwd=2)
-
-avg_aim50 <- aggregate(y ~ x, data=aim_50_hist, FUN=mean)
-#lines(avg_aim60$x, avg_aim50$y, col="hotpink", lwd=2)
-#text(x = -8, y = 53, adj = c(0,2), col = "black", cex = 1)
+  
+  avg_aim50 <- aggregate(y ~ x, data=aim_50_hist, FUN=mean)
+  #lines(avg_aim60$x, avg_aim50$y, col="hotpink", lwd=2)
+  #text(x = -8, y = 53, adj = c(0,2), col = "black", cex = 1)
 }
 
 #40 aiming histogram
 
 plot40aim <- function () {
   aim_40_hist <- all_hist_data %>%
-  filter(rotation_group == '40')
-
-# Plotting
-plot(NA,
-     main='Explicit Learning With a 40° Rotation',
-     xlab='Trial', ylab='',
-     xlim=c(-8,32), ylim=c(-15,70), 
-     ax=F, bty='n',
-     cex.lab = 1.6,
-     cex.main = 2)
-
-img_info <- hist2d(x=aim_40_hist, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,40,2.5)))
-img <- log(img_info$freq2D + 1)
-
-
-image(x=img_info$x.edges,
-      y=img_info$y.edges,
-      col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
-      z=img,
-      add=TRUE)
-
-axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-axis(side=2, at=seq(-10,70,10))
-lines(x=c(-8, 0, 0, 32), 
-      y=c(-0.5, -0.5, 39.5, 39.5), 
-      col='navy', lty=3, lwd=2)
-
-avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
-#lines(avg_aim40$x, avg_aim40$y, col="hotpink", lwd=2)
-#text(x = -8, y = 43, adj = c(0,2), col = "black", cex = 1)
+    filter(rotation_group == '40')
+  
+  # Plotting
+  plot(NA,
+       main='  ',
+       xlab='', ylab='',
+       xlim=c(-4,32), ylim=c(-15,65), 
+       ax=F, bty='n',
+       cex.lab = 1.6,
+       cex.main = 2,
+       cex.axis=2)
+  
+  img_info <- hist2d(x=aim_40_hist, nbins=NA, edges=list(seq(-4,31.5,1), seq(-15,40,2.5)))
+  img <- log(img_info$freq2D + 1)
+  
+  
+  image(x=img_info$x.edges,
+        y=img_info$y.edges,
+        col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        z=img,
+        add=TRUE)
+  
+  axis(side=1, at=c(-4, 0,8, 16, 24, 32), labels=c(-4, 0,8, 16, 24, 32),cex.axis = 1.6)
+  axis(side=2, at=seq(-10,65,10),cex.axis = 1.6)
+  lines(x=c(-4, 0, 0, 32), 
+        y=c(-0.5, -0.5, 39.5, 39.5), 
+        col='navy', lty=3, lwd=2)
+  
+  avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
+  #lines(avg_aim40$x, avg_aim40$y, col="hotpink", lwd=2)
+  #text(x = -8, y = 43, adj = c(0,2), col = "black", cex = 1)
 }
 
 
@@ -429,95 +442,95 @@ all_hist_data_reach <- rbind(dfAlignedReach, dfRotatedReach)
 #60 reach histogram
 plot60reach <- function () {
   aim_60_hist_reach <- all_hist_data_reach %>%
-  filter(rotation_group == '60')
-
-plot(NA,
-     main='Reach Deviation With a 60° Rotation',
-     xlab='Trial', ylab='Aim Deviation (°)',
-     xlim=c(-8,32), ylim=c(-15,60), 
-     ax=F, bty='n')
-
-
-img_info <- hist2d(x=aim_60_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,60,2.5)))
-img <- log(img_info$freq2D + 1)
-
-image(x=img_info$x.edges,
-      y=img_info$y.edges,
-      col=colorRampPalette(c("white", "#d5d5d5", "#858f94", "#49525e"))(100),
-      z=img,
-      add=TRUE)
-
-axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-axis(side=2, at=seq(-10,60,10))
-lines(x=c(-8, 0, 0, 32), 
-      y=c(-0.5, -0.5, 59.5, 59.5), 
-      col='navy', lty=3, lwd=2)
-avg_aim60r <- aggregate(y ~ x, data=aim_60_hist_reach, FUN=mean)
-lines(avg_aim60r$x, avg_aim60r$y, col="#a93154", lwd=2)
-text(x = -8, y = 63, labels = "", adj = c(0,2), col = "black", cex = 1)
+    filter(rotation_group == '60')
+  
+  plot(NA,
+       main='Reach Deviation With a 60° Rotation',
+       xlab='Trial', ylab='Aim Deviation (°)',
+       xlim=c(-8,32), ylim=c(-15,60), 
+       ax=F, bty='n')
+  
+  
+  img_info <- hist2d(x=aim_60_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,60,2.5)))
+  img <- log(img_info$freq2D + 1)
+  
+  image(x=img_info$x.edges,
+        y=img_info$y.edges,
+        col=colorRampPalette(c("white", "#d5d5d5", "#858f94", "#49525e"))(100),
+        z=img,
+        add=TRUE)
+  
+  axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+  axis(side=2, at=seq(-10,60,10))
+  lines(x=c(-8, 0, 0, 32), 
+        y=c(-0.5, -0.5, 59.5, 59.5), 
+        col='navy', lty=3, lwd=2)
+  avg_aim60r <- aggregate(y ~ x, data=aim_60_hist_reach, FUN=mean)
+  lines(avg_aim60r$x, avg_aim60r$y, col="#a93154", lwd=2)
+  text(x = -8, y = 63, labels = "", adj = c(0,2), col = "black", cex = 1)
 }
 
 #reach 50
 plot50reach <- function () {
   aim_50_hist_reach <- all_hist_data_reach %>%
-  filter(rotation_group == '50')
-
-plot(NA,
-     main='Reach Deviation With a 50° Rotation',
-     xlab='Trial', ylab='Aim Deviation (°)',
-     xlim=c(-8,32), ylim=c(-15,50), 
-     ax=F, bty='n')
-
-
-img_info <- hist2d(x=aim_50_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,50,2.5)))
-img <- log(img_info$freq2D + 1)
-
-image(x=img_info$x.edges,
-      y=img_info$y.edges,
-      col=colorRampPalette(c("white", "#d5d5d5", "#858f94", "#49525e"))(100),
-      z=img,
-      add=TRUE)
-
-axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-axis(side=2, at=seq(-10,50,10))
-lines(x=c(-8, 0, 0, 32), 
-      y=c(-0.5, -0.5, 49.5, 49.5), 
-      col='navy', lty=3, lwd=2)
-avg_aim50r <- aggregate(y ~ x, data=aim_50_hist_reach, FUN=mean)
-lines(avg_aim50r$x, avg_aim50r$y, col="#a93154", lwd=2)
-text(x = -8, y = 63, labels = "", adj = c(0,2), col = "black", cex = 1)
+    filter(rotation_group == '50')
+  
+  plot(NA,
+       main='Reach Deviation With a 50° Rotation',
+       xlab='Trial', ylab='Aim Deviation (°)',
+       xlim=c(-8,32), ylim=c(-15,50), 
+       ax=F, bty='n')
+  
+  
+  img_info <- hist2d(x=aim_50_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,50,2.5)))
+  img <- log(img_info$freq2D + 1)
+  
+  image(x=img_info$x.edges,
+        y=img_info$y.edges,
+        col=colorRampPalette(c("white", "#d5d5d5", "#858f94", "#49525e"))(100),
+        z=img,
+        add=TRUE)
+  
+  axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+  axis(side=2, at=seq(-10,50,10))
+  lines(x=c(-8, 0, 0, 32), 
+        y=c(-0.5, -0.5, 49.5, 49.5), 
+        col='navy', lty=3, lwd=2)
+  avg_aim50r <- aggregate(y ~ x, data=aim_50_hist_reach, FUN=mean)
+  lines(avg_aim50r$x, avg_aim50r$y, col="#a93154", lwd=2)
+  text(x = -8, y = 63, labels = "", adj = c(0,2), col = "black", cex = 1)
 }
 
 #reach 40
 
 plot40reach <- function() {
   aim_40_hist_reach <- all_hist_data_reach %>%
-  filter(rotation_group == '40')
-
-plot(NA,
-     main='Reach Deviation With a 40° Rotation',
-     xlab='Trial', ylab='Aim Deviation (°)',
-     xlim=c(-8,32), ylim=c(-15,40), 
-     ax=F, bty='n')
-
-
-img_info <- hist2d(x=aim_40_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,40,2.5)))
-img <- log(img_info$freq2D + 1)
-
-image(x=img_info$x.edges,
-      y=img_info$y.edges,
-      col=colorRampPalette(c("#ffffff", "#d5d5d5", "#858f94", "#49525e"))(100),
-      z=img,
-      add=TRUE)
-
-axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-axis(side=2, at=seq(-10,40,10))
-lines(x=c(-8, 0, 0, 32), 
-      y=c(-0.5, -0.5, 39.5, 39.5), 
-      col='navy', lty=3, lwd=2)
-avg_aim40r <- aggregate(y ~ x, data=aim_40_hist_reach, FUN=mean)
-lines(avg_aim40r$x, avg_aim40r$y, col="#a93154", lwd=2)
-text(x = -8, y = 63, labels = "", adj = c(0,2), col = "black", cex = 1)
+    filter(rotation_group == '40')
+  
+  plot(NA,
+       main='Reach Deviation With a 40° Rotation',
+       xlab='Trial', ylab='Aim Deviation (°)',
+       xlim=c(-8,32), ylim=c(-15,40), 
+       ax=F, bty='n')
+  
+  
+  img_info <- hist2d(x=aim_40_hist_reach, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,40,2.5)))
+  img <- log(img_info$freq2D + 1)
+  
+  image(x=img_info$x.edges,
+        y=img_info$y.edges,
+        col=colorRampPalette(c("#ffffff", "#d5d5d5", "#858f94", "#49525e"))(100),
+        z=img,
+        add=TRUE)
+  
+  axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+  axis(side=2, at=seq(-10,40,10))
+  lines(x=c(-8, 0, 0, 32), 
+        y=c(-0.5, -0.5, 39.5, 39.5), 
+        col='navy', lty=3, lwd=2)
+  avg_aim40r <- aggregate(y ~ x, data=aim_40_hist_reach, FUN=mean)
+  lines(avg_aim40r$x, avg_aim40r$y, col="#a93154", lwd=2)
+  text(x = -8, y = 63, labels = "", adj = c(0,2), col = "black", cex = 1)
 }
 
 plot30reach <- function() {
@@ -585,13 +598,13 @@ par(cex.axis = 1.5)
 
 plot_step_histogram <- function(sim_data) {
   plot(NA,
-      # main = 'Step-like Explicit Learning (60°)',
+       # main = 'Step-like Explicit Learning (60°)',
        xlab = 'Trial', ylab = 'Aim Deviation (°)',
        xlim = c(-8, 32), ylim = c(-15, 65),
        ax = FALSE, bty = 'n',
-      cex.lab = 1.5,     # Axis titles (xlab, ylab)
-      cex.axis = 4,  # Axis numbers
-      cex.main = 2.2)
+       cex.lab = 1.5,     # Axis titles (xlab, ylab)
+       cex.axis = 4,  # Axis numbers
+       cex.main = 2.2)
   
   img_info <- hist2d(x = sim_data[, c("time", "aimdeviation_deg")],
                      edges = list(seq(-8, 31.5, 1), seq(-15, 65, 2.5)))
@@ -768,67 +781,67 @@ fake60 <- function () {
 
 fake50 <- function () {
   set.seed(42)
-n_fake <- 500
-trials <- 0:31  # same as your plotting range
-
-fake_data <- do.call(rbind, lapply(1:n_fake, function(id) {
-  step_trial <- sample(22, 1)  # where the jump happens
-  data.frame(
-    x = trials,
-    y = ifelse(trials < step_trial, 
-               rnorm(length(trials), -0.7, 1.3),   
-               rnorm(length(trials), 10.72, 9.80)), 
-    participant = paste0("fake_", id),
-    rotation_group = 50
+  n_fake <- 500
+  trials <- 0:31  # same as your plotting range
+  
+  fake_data <- do.call(rbind, lapply(1:n_fake, function(id) {
+    step_trial <- sample(22, 1)  # where the jump happens
+    data.frame(
+      x = trials,
+      y = ifelse(trials < step_trial, 
+                 rnorm(length(trials), -0.7, 1.3),   
+                 rnorm(length(trials), 10.72, 9.80)), 
+      participant = paste0("fake_", id),
+      rotation_group = 50
+    )
+  }))
+  
+  fake_data <- fake_data %>%
+    mutate(rotation_group = as.numeric(rotation_group))
+  
+  all_hist_data <- all_hist_data %>%
+    mutate(rotation_group = as.numeric(rotation_group))
+  
+  aim_50_hist <- all_hist_data %>%
+    filter(rotation_group == "50") %>%
+    bind_rows(fake_data)
+  
+  
+  plot(NA,
+       #main = 'Explicit Learning With a 60° Rotation',
+       xlab = 'Trial', ylab = 'Aim Deviation (°)',
+       xlim = c(-8, 32), ylim = c(-15, 70), 
+       ax = FALSE, bty = 'n')
+  
+  # Create 2D histogram
+  img_info <- hist2d(
+    x = aim_50_hist,
+    nbins = NA,
+    edges = list(seq(-8, 31.5, 1), seq(-15, 87, 2.5))
   )
-}))
-
-fake_data <- fake_data %>%
-  mutate(rotation_group = as.numeric(rotation_group))
-
-all_hist_data <- all_hist_data %>%
-  mutate(rotation_group = as.numeric(rotation_group))
-
-aim_50_hist <- all_hist_data %>%
-  filter(rotation_group == "50") %>%
-  bind_rows(fake_data)
-
-
-plot(NA,
-     #main = 'Explicit Learning With a 60° Rotation',
-     xlab = 'Trial', ylab = 'Aim Deviation (°)',
-     xlim = c(-8, 32), ylim = c(-15, 70), 
-     ax = FALSE, bty = 'n')
-
-# Create 2D histogram
-img_info <- hist2d(
-  x = aim_50_hist,
-  nbins = NA,
-  edges = list(seq(-8, 31.5, 1), seq(-15, 87, 2.5))
-)
-
-# Log-transform frequency counts for better color contrast
-img <- log(img_info$freq2D + 1)
-
-# Plot heatmap
-image(
-  x = img_info$x.edges,
-  y = img_info$y.edges,
-  col = colorRampPalette(c("white", "#E09B33", "#A4443F", "#4B112D"))(100),
-  z = img,
-  add = TRUE
-)
-
-# Axis formatting
-axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
-axis(side = 2, at = seq(-10, 80, 10))
-
-# Add bounding box for rotated phase
-lines(
-  x = c(-8, 0, 0, 32), 
-  y = c(-0.5, -0.5, 49.5, 49.5), 
-  col = 'navy', lty = 3, lwd = 2
-)
+  
+  # Log-transform frequency counts for better color contrast
+  img <- log(img_info$freq2D + 1)
+  
+  # Plot heatmap
+  image(
+    x = img_info$x.edges,
+    y = img_info$y.edges,
+    col = colorRampPalette(c("white", "#E09B33", "#A4443F", "#4B112D"))(100),
+    z = img,
+    add = TRUE
+  )
+  
+  # Axis formatting
+  axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
+  axis(side = 2, at = seq(-10, 80, 10))
+  
+  # Add bounding box for rotated phase
+  lines(
+    x = c(-8, 0, 0, 32), 
+    y = c(-0.5, -0.5, 49.5, 49.5), 
+    col = 'navy', lty = 3, lwd = 2
+  )
 }
 
 
@@ -905,5 +918,6 @@ library(readr)
 sched <- read_csv("~/Desktop/sched.csv")
 
 plot(sched, type="l")
+
 
 
