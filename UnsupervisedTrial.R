@@ -23,13 +23,12 @@ trial_scaled <- scale(trial_summary %>% select(-participant_id))
 pca <- prcomp(trial_scaled, center = TRUE, scale. = TRUE)
 summary(pca)
 
-trial_pca <- as.data.frame(pca$x[, 1:3])  # keep first 5 PCs
+trial_pca <- as.data.frame(pca$x[, 1:3]) #3 features
 trial_pca$participant_id <- trial_summary$participant_id
 
-# k means
-set.seed(123)
-km <- kmeans(trial_scaled, centers = 3, nstart = 50)
+km <- kmeans(trial_pca[, 1:3], centers = 3, nstart = 50)
 clusters <- km$cluster
+trial_pca$cluster <- factor(clusters)
 
 ##plot
 pca_df$participant_id <- trial_summary$participant_id
