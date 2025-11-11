@@ -11,7 +11,7 @@ strategy_data <- strategy_data %>%
   ungroup()
 
 trial_features <- strategy_data %>%
-  filter(trial_after_rot <= 60) %>% 
+  filter(trial_after_rot <= 32) %>% 
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   mutate(
