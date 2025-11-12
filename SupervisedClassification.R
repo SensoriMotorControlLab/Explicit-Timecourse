@@ -103,14 +103,6 @@ abline(v = 113, col = "black", lty = 2, lwd = 0.5)
 # ab3b79 - erratic early 118, 11.25. deg **
 
 
-
-df <- total_learners_data[total_learners_data$participant_id == "ab3b79", ] 
-plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
-     xlim = c(0, 232),
-     col= "hotpink", lwd = 1)
-abline(v = 113, col = "black", lty = 2, lwd = 0.5)
-
-
 library(randomForest)
 library(caret)
 
@@ -171,6 +163,20 @@ print(model)
 
 
 ##------- Leave out method -------##
+participant_features <- trial_features %>%
+  group_by(participant_id) %>%
+  summarise(
+    across(where(is.numeric), 
+           list(mean = mean, sd = sd), 
+           .names = "{.col}_{.fn}")) %>%
+  inner_join(onset_labels, by = "participant_id")
+
+participant_features_clean <- participant_features %>%
+  select(-participant_id)
+
+participant_features_clean$label <- as.factor(participant_features_clean$label)
+
+
 participant_features_clean[is.na(participant_features_clean)] <- 0
 participant_features_clean$participant_id <- participant_features$participant_id
 
@@ -210,21 +216,49 @@ trial_features_clustered <- trial_features %>%
   left_join(predictions, by = "participant_id") %>%
   rename(cluster = predicted_label)
 
+
 cluster_means <- trial_features_clustered %>%
   group_by(cluster, trial_after_rot) %>%
   summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
+library(ggplot2)
 
-ggplot(trial_features_clustered, aes(x = trial_after_rot, y = aimdeviation_deg, group = participant_id)) +
-  geom_line(alpha = 0.4) +
-  #geom_line(data = cluster_means, aes(y = mean_aim, color = cluster), size = 1.2) +
-  facet_wrap(~cluster, ncol = 1) +
-  theme_minimal() +
-  labs(
-    title = "Trial-by-trial aiming deviation by predicted cluster (Random Forest)",
-    x = "Trial after rotation",
-    y = "Aiming deviation (degrees)"
+# Define custom cluster labels
+trial_labels <- c(
+  "erratic" = "Erratic strategy onset",
+  "rapid" = "Rapid strategy onset",
+  "delayed" = "Delayed strategy onset"
+)
+
+# Define custom colors for each cluster
+trial_colors <- c(
+  "erratic" = "#E64B35",  # red
+  "rapid" = "#4DBBD5",  # blue
+  "delayed" = "#00A087"   # green
+)
+
+ggplot(trial_features_clustered, 
+       aes(x = trial_after_rot, y = aimdeviation_deg, 
+           group = participant_id, color = factor(cluster))) +
+  geom_line(alpha = 0.4, linewidth = 0.7) +
+  # Optional: Uncomment to add cluster mean lines
+  # geom_line(data = cluster_means, aes(y = mean_aim, color = factor(cluster)), size = 1.2) +
+  facet_wrap(~cluster, ncol = 1, labeller = as_labeller(trial_labels)) +
+  scale_color_manual(values = trial_colors, guide = "none") +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),               # remove grid lines
+    strip.text = element_text(size = 14, face = "bold"),  # facet titles
+    axis.title = element_text(size = 13),
+    axis.text = element_text(size = 11),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    panel.spacing = unit(1, "lines")
   ) +
-  coord_cartesian(ylim = c(-100, 100))
+  labs(
+    title = "",
+    x = "Trial after rotation",
+    y = "Aiming deviation (°)"
+  ) +
+  coord_cartesian(ylim = c(-80, 100))
 
 
 
@@ -247,4 +281,51 @@ chisq.test(compare_df$predicted_label, compare_df$unsupervised_cluster)
 
 
 
-#take all participants except one,  see what forest predicts when you leaveone out
+#does rotation predict strategy type?
+
+strategy_summary <- strategy_data %>%
+  group_by(participant_id) %>%
+  summarise(rotation = unique(rotation))
+
+table_data <- strategy_summary %>%
+  inner_join(onset_labels %>% select(participant_id, label),
+             by = "participant_id") %>%
+  distinct(participant_id, .keep_all = TRUE)
+
+prop <- table_data %>%
+  count(table_data$label,group_by(rotation))
+
+
+
+filtered_data <- table_data %>%
+  filter(rotation != 20)
+
+plot_data <- filtered_data %>%
+  group_by(label, rotation) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(label) %>%
+  mutate(prop = n / sum(n)) 
+
+
+ggplot(plot_data, aes(x = label, y = prop, fill = as.factor(rotation))) +
+  geom_col(position = "dodge") +
+  labs(x = "Strategy Type", y = "Proportion", fill = "Rotation Size") +
+  
+  scale_color_manual(values = c(
+    "20"="#B9D3EE","30"="#85adf3","40"="#87CEEB","50"="#4682B4","60"="cadetblue"
+  )) +
+  scale_fill_manual(values = c(
+    "20"="#B9D3EE","30"="#85adf3","40"="#87CEEB","50"="#4682B4","60"="cadetblue"
+  )) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_blank(),     
+  )
+  
+
+
+cont_table <- table(filtered_data$label, filtered_data$rotation)
+
+# Run chi-squared test
+chi_sq_result <- chisq.test(cont_table)
+chi_sq_result
