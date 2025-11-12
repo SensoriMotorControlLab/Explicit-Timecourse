@@ -53,7 +53,6 @@ sdchangeRapid <- sd(participant_first_aim %>%
 
                                #----- delayed -----#
 
-# Same as rapid but t0 should be above 10
 
 meanaimDelayed <- mean(participant_first_aim %>%
                        filter(strategy_type == "delayed") %>%
@@ -115,15 +114,12 @@ sdchangeErratic <- sd(participant_first_aim %>%
 
 
 fit_step_model_onset <- function(df, threshold = 7) {
-  # Find first trial where aim deviation exceeds threshold
   first_jump <- which(df$aimdeviation_deg >= threshold)[1]
   
   if (is.na(first_jump)) {
     return(tibble(t0 = NA, step_size = NA))
   }
-  
-  # Step size: difference between trial before and after the jump
-  # (optional, you can define it as first jump minus baseline mean)
+  )
   baseline <- mean(df$aimdeviation_deg[1:(first_jump-1)], na.rm = TRUE)
   step_size <- df$aimdeviation_deg[first_jump] - baseline
   
@@ -154,10 +150,10 @@ sign_flips_df <- strategy_data %>%
 
 classified <- step_fits %>%
   left_join(early_sd, by = "participant_id") %>%
-  left_join(sign_flips_df, by = "participant_id") %>%  # sign_flips_df has participant_id and sign_flips
+  left_join(sign_flips_df, by = "participant_id") %>%  
   mutate(
     model_class = case_when(
-      sd_early > 10 & sign_flips > 3 ~ "erratic",  # only this single erratic condition
+      sd_early > 10 & sign_flips > 3 ~ "erratic", 
       t0 <= 10 ~ "rapid",
       t0 > 10  ~ "delayed",
       TRUE ~ "unclassified"
@@ -171,15 +167,12 @@ table(classified$model_class)
 library(dplyr)
 library(ggplot2)
 
-# compute the mean aim per trial
 mean_plot_data <- plot_data %>%
   group_by(model_class, trial_after_rot) %>%
   summarise(mean_aim = mean(aimdeviation_deg), .groups = "drop")
 
 ggplot() +
-  # mean actual aiming
   geom_line(data = mean_plot_data, aes(x = trial_after_rot, y = mean_aim), color = "grey", size = 1.1) +
-  # all individual predicted steps
   geom_line(data = plot_data, aes(x = trial_after_rot, y = predicted_step, group = participant_id),
             color = "red", alpha = 0.3) +
   facet_wrap(~model_class) +
