@@ -57,7 +57,7 @@
 
 #-------------------------------#
 
-df <- total_learners_data[total_learners_data$participant_id == "05484c", ] 
+df <- total_learners_data[total_learners_data$participant_id == "15f2a1", ] 
 plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
      xlim = c(0, 232),
      col= "hotpink", lwd = 1)
@@ -82,7 +82,7 @@ plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
 # ee29d6 - delayed: 9.25 at trial 132
 #-------------------------------#
 
-df <- total_learners_data[total_learners_data$participant_id == "3e3a73", ] 
+df <- total_learners_data[total_learners_data$participant_id == "205194", ] 
 plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
      xlim = c(0, 232),
      col= "hotpink", lwd = 1)
@@ -121,7 +121,7 @@ onset_labels <- data.frame(
                     "70e8cb","52ef4e","35f115","20d744","205194",
                     "1e2a6b", "19e7ed","0b1dca", "05484c"),
   
-    label = c("erratic", "rapid", "rapid", "rapid", "rapid", 
+    label = c("erratic", "rapid", "rapid", "rapid", "delayed", 
             "rapid", "rapid", "rapid", "erratic", "erratic", "rapid", "delayed",
             "erratic", "delayed", "rapid", "rapid", "rapid", "rapid", "rapid", "erratic",
             "rapid", "rapid", "rapid", "rapid", "rapid", "rapid", "rapid","rapid", "rapid", 
