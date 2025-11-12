@@ -13,7 +13,8 @@ participant_first_aim <- strategy_data_clusters %>%
   mutate(strategy_type = case_when(
     strategy_type == 1 ~ "erratic",
     strategy_type == 2 ~ "delayed",
-    strategy_type == 3 ~ "rapid"
+    strategy_type == 3 ~ "rapid",
+    
   ))
 
 View(participant_first_aim)
@@ -58,13 +59,13 @@ meanaimDelayed <- mean(participant_first_aim %>%
                        filter(strategy_type == "delayed") %>%
                        pull(aim_at_first_trial),
                      na.rm = TRUE
-) #16,73
+) #16.73
 
 sdaimDelayed <- sd(participant_first_aim %>%
                    filter(strategy_type == "delayed") %>%
                    pull(aim_at_first_trial),
                  na.rm = TRUE
-) #9,31
+) #9.31
 
 meanchangeDelayed <- mean(participant_first_aim %>%
                           filter(strategy_type == "delayed") %>%
@@ -113,88 +114,109 @@ sdchangeErratic <- sd(participant_first_aim %>%
 #have aligned
 
 
-fit_onestep_model <- function(trials, aim,
-                              init_baseline = 0,
-                              init_mean = 20,
-                              init_tchange = 10,
-                              init_aimsd1 = 10,
-                              min_step = 5) {
+fit_step_model_onset <- function(df, threshold = 7) {
+  # Find first trial where aim deviation exceeds threshold
+  first_jump <- which(df$aimdeviation_deg >= threshold)[1]
   
-  step_model <- function(par, trials) {
-    baseline <- par[1]   # baseline before change
-    mean2 <- par[2]      # plateau after change
-    tchange <- par[3]    # trial of change
-    pred <- ifelse(trials < tchange, baseline, mean2)
-    return(pred)
+  if (is.na(first_jump)) {
+    return(tibble(t0 = NA, step_size = NA))
   }
   
-  sse_function <- function(par) {
-    pred <- step_model(par, trials)
-    sum((aim - pred)^2, na.rm = TRUE)
-  }
+  # Step size: difference between trial before and after the jump
+  # (optional, you can define it as first jump minus baseline mean)
+  baseline <- mean(df$aimdeviation_deg[1:(first_jump-1)], na.rm = TRUE)
+  step_size <- df$aimdeviation_deg[first_jump] - baseline
   
-  fit <- optim(
-    par = c(init_baseline, init_mean, init_tchange),
-    fn = sse_function,
-    method = "L-BFGS-B",
-    lower = c(-90, 0, min_step),
-    upper = c(90, 180, max(trials))
+  tibble(
+    t0 = df$trial_after_rot[first_jump],
+    step_size = step_size
   )
-  
-  return(fit)
 }
 
-strategy_params <- list(
-  rapid = list(
-    init_baseline = 0,
-    init_mean = 15,
-    init_tchange = 6,
-    init_sd = 5,        # relatively low noise
-    min_step = 5
-  ),
-  delayed = list(
-    init_baseline = 0,
-    init_mean = 15,
-    init_tchange = 30,
-    init_sd = 5,        # also low/moderate noise
-    min_step = 11
-  ),
-  erratic = list(
-    init_baseline = 0,
-    init_mean = 15,
-    init_tchange = 10,  # can be midrange
-    init_sd = 25,       # **high SD** → large variability
-    min_step = 5
-  )
-)
-
-
-
-fits <- trial_features %>%
+# Apply to your dataset
+step_fits <- strategy_data %>%
   group_by(participant_id) %>%
-  group_modify(~{
-    trials <- .x$trial_after_rot
-    aim <- .x$aimdeviation_deg
-    
-    models <- lapply(strategy_params, function(p) {
-      fit_onestep_model(
-        trials = trials,
-        aim = aim,
-        init_mean = p$init_mean,
-        init_tchange = p$init_tchange,
-        init_aimsd1 = p$init_aimsd1,
-        min_step = p$min_step
-      )
-    })
-    
-    sse_values <- sapply(models, function(f) f$value)
-    best_model <- names(which.min(sse_values))
-    
-    tibble(
-      participant_id = unique(.x$participant_id),
-      best_model = best_model,
-      sse_rapid = sse_values["rapid"],
-      sse_delayed = sse_values["delayed"],
-      sse_erratic = sse_values["erratic"]
+  group_modify(~ fit_step_model_onset(.x))
+
+
+early_sd <- strategy_data %>%
+  filter(trial_after_rot <= 15) %>%
+  group_by(participant_id) %>%
+  summarise(sd_early = sd(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
+
+sign_flips_df <- strategy_data %>%
+  group_by(participant_id) %>%
+  arrange(trial_after_rot, .by_group = TRUE) %>%
+  summarise(
+    sign_flips = sum(lag(aimdeviation_deg >= -7, default = TRUE) & aimdeviation_deg < -7, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+classified <- step_fits %>%
+  left_join(early_sd, by = "participant_id") %>%
+  left_join(sign_flips_df, by = "participant_id") %>%  # sign_flips_df has participant_id and sign_flips
+  mutate(
+    model_class = case_when(
+      sd_early > 10 & sign_flips > 3 ~ "erratic",  # only this single erratic condition
+      t0 <= 10 ~ "rapid",
+      t0 > 10  ~ "delayed",
+      TRUE ~ "unclassified"
     )
-  })
+  )
+
+classified
+table(classified$model_class)
+
+
+library(dplyr)
+library(ggplot2)
+
+# compute the mean aim per trial
+mean_plot_data <- plot_data %>%
+  group_by(model_class, trial_after_rot) %>%
+  summarise(mean_aim = mean(aimdeviation_deg), .groups = "drop")
+
+ggplot() +
+  # mean actual aiming
+  geom_line(data = mean_plot_data, aes(x = trial_after_rot, y = mean_aim), color = "grey", size = 1.1) +
+  # all individual predicted steps
+  geom_line(data = plot_data, aes(x = trial_after_rot, y = predicted_step, group = participant_id),
+            color = "red", alpha = 0.3) +
+  facet_wrap(~model_class) +
+  labs(
+    x = "Trial after rotation",
+    y = "Aim deviation (deg)",
+    title = "Informed Step Model Fits"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_blank(),     
+  )
+
+
+
+
+#assess agreement
+all_labels <- classified %>%
+  select(participant_id, step_model = model_class) %>%
+  inner_join(rf_labels, by = "participant_id") %>%
+  inner_join(unsupervised_labels, by = "participant_id") %>%
+  mutate(
+    step_model = factor(step_model),
+    predicted_label = factor(predicted_label),
+    unsupervised_cluster = factor(unsupervised_cluster)
+  )
+
+all_labels
+
+table(all_labels$step_model, all_labels$predicted_label)
+
+
+chisq.test(all_labels$step_model, all_labels$predicted_label)
+#X-squared = 91.73, df = 4, p-value < 2.2e-16
+chisq.test(all_labels$step_model, all_labels$unsupervised_cluster)
+#X-squared = 43.336, df = 4, p-value = 8.811e-09
+
+
+
