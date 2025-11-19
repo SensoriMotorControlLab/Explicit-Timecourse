@@ -230,7 +230,21 @@ table <- model_counts %>%
   ) %>%
   arrange(best_model)
 
-table
+table 
+
+models <- results_joined
+
+oneSt <- models %>%
+  filter(best_model == "one-step")
+
+twoSt <- models %>%
+filter(best_model=="two-step")
+
+exp <- models %>%
+  filter(best_model=="exponential")
+
+
+
 
 chisq_test <- chisq.test(
   xtabs(count ~ rotation + best_model, data = model_counts)
