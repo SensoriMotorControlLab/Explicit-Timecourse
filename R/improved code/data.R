@@ -17,20 +17,17 @@ osf_download(files, path = "data/", conflicts = "overwrite")
 
 getData <- function() {
   
-  
   Reach::downloadOSFdata(
     repository = '6g3h7',
     filelist = list(
       'data' = c(
         'demographics.zip',
-        'Instructed_all.zip',
         'Instructed_summary.zip',
-        'pilot_all.zip',
+       'pilot_all.zip',
         'pilot_summary.zip')),
     folder = 'data/',
     overwrite = TRUE,
     unzip = TRUE,
     removezips = TRUE)
-  
 }
   
