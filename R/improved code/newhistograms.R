@@ -86,8 +86,8 @@ plot60aim <- function () {
     filter(rotation_group == '60')
   
   plot(NA,
-       main='',
-       xlab='', ylab='',
+       main='60° Rotation',
+       xlab='Trial', ylab='Aim Deviation (°)',
        xlim=c(-4,32), ylim=c(-15,65),   # match 50
        ax=F, bty='n',
        cex.lab = 1.6,
@@ -103,7 +103,7 @@ plot60aim <- function () {
   
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        col=colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        col=colorRampPalette(c("white", "#B9D3EE", "#638ac1", "#271716"))(100),
         z=img,
         add=TRUE)
   
@@ -119,7 +119,7 @@ plot60aim <- function () {
         col='navy', lty=3, lwd=2)
 }
 
-avg_aim60 <- aggregate(y ~ x, data=aim_60_hist, FUN=mean)
+#avg_aim60 <- aggregate(y ~ x, data=aim_60_hist, FUN=mean)
 #lines(avg_aim60$x, avg_aim60$y, col="grey30", lwd=2)
 #text(x = -8, y = 63, adj = c(0,2), col = "black", cex = 1)
 
@@ -131,8 +131,8 @@ plot50aim <- function () {
   
   # Plotting
   plot(NA,
-       main='',
-       xlab='', ylab='',
+       main='50° Rotation',
+       xlab='Trial', ylab='Aim Deviation (°)',
        xlim=c(-4,32), ylim=c(-15,65), 
        ax=F, bty='n',
        cex.lab = 1.6,
@@ -145,7 +145,7 @@ plot50aim <- function () {
   
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        col = colorRampPalette(c("white", "#B9D3EE", "#638ac1", "#271716"))(100),
         z=img,
         add=TRUE)
   
@@ -168,8 +168,8 @@ plot40aim <- function () {
   
   # Plotting
   plot(NA,
-       main='  ',
-       xlab='', ylab='',
+       main=' 40° Rotation ',
+       xlab='Trial', ylab='Aim Deviation (°)',
        xlim=c(-4,32), ylim=c(-15,65), 
        ax=F, bty='n',
        cex.lab = 1.6,
@@ -182,7 +182,7 @@ plot40aim <- function () {
   
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        col = colorRampPalette(c("white", "#B9D3EE", "#638ac1", "#271716"))(100),
         z=img,
         add=TRUE)
   
@@ -192,7 +192,7 @@ plot40aim <- function () {
         y=c(-0.5, -0.5, 39.5, 39.5), 
         col='navy', lty=3, lwd=2)
   
-  avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
+ # avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
   #lines(avg_aim40$x, avg_aim40$y, col="hotpink", lwd=2)
   #text(x = -8, y = 43, adj = c(0,2), col = "black", cex = 1)
 }
@@ -204,10 +204,13 @@ plot30aim <- function () {
   
   # Plotting
   plot(NA,
-       main='Explicit Learning With a 30° Rotation',
+       main='30° Rotation',
        xlab='Trial', ylab='Aim Deviation (°)',
-       xlim=c(-8,32), ylim=c(-15,30), 
-       ax=F, bty='n')
+       xlim=c(-8,32), ylim=c(-15,65), 
+       ax=F, bty='n',
+       cex.lab = 1.6,
+       cex.main = 2,
+       cex.axis=2)
   
   img_info <- hist2d(x=aim_30_hist, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,30,2.5)))
   img <- log(img_info$freq2D + 1)
@@ -215,7 +218,7 @@ plot30aim <- function () {
   
   image(x=img_info$x.edges,
         y=img_info$y.edges,
-        col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        col = colorRampPalette(c("white", "#B9D3EE", "#638ac1", "#271716"))(100),
         z=img,
         add=TRUE)
   
@@ -225,7 +228,7 @@ plot30aim <- function () {
         y=c(-0.5, -0.5, 29.5, 29.5), 
         col='navy', lty=3, lwd=2)
   
-  avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
+ # avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
   #lines(avg_aim40$x, avg_aim40$y, col="hotpink", lwd=2)
   #text(x = -8, y = 43, adj = c(0,2), col = "black", cex = 1)
 }
@@ -237,28 +240,33 @@ plot20aim <- function () {
   
   # Plotting
   plot(NA,
-       main='Explicit Learning With a 20° Rotation',
+       main=' 20° Rotation',
        xlab='Trial', ylab='Aim Deviation (°)',
-       xlim=c(-8,32), ylim=c(-15,20), 
-       ax=F, bty='n')
+       xlim=c(-8,32), ylim=c(-15,65), 
+       ax=F, bty='n',
+       cex.lab = 1.6,
+       cex.main = 2,
+       cex.axis=2)
   
   img_info <- hist2d(x=aim_20_hist, nbins=NA, edges=list(seq(-8,31.5,1), seq(-15,20,2.5)))
   img <- log(img_info$freq2D + 1)
   
   
-  image(x=img_info$x.edges,
-        y=img_info$y.edges,
-        col=colorRampPalette(c("white", "#e0f2e6", "#80baa9", "#005d67"))(100),
-        z=img,
-        add=TRUE)
+
   
-  axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
-  axis(side=2, at=seq(-10,60,10))
-  lines(x=c(-8, 0, 0, 32), 
-        y=c(-0.5, -0.5, 19.5, 19.5), 
-        col='navy', lty=3, lwd=2)
+        image(x=img_info$x.edges,
+              y=img_info$y.edges,
+              col = colorRampPalette(c("white", "#B9D3EE", "#638ac1", "#271716"))(100),
+              z=img,
+              add=TRUE)
+        
+        axis(side=1, at=c(-8, 0,8, 16, 24, 32), labels=c(-8, 0,8, 16, 24, 32))
+        axis(side=2, at=seq(-10,60,10))
+        lines(x=c(-8, 0, 0, 32), 
+              y=c(-0.5, -0.5, 19.5, 19.5), 
+              col='navy', lty=3, lwd=2)
   
-  avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
+#  avg_aim40 <- aggregate(y ~ x, data=aim_40_hist, FUN=mean)
   #lines(avg_aim40$x, avg_aim40$y, col="hotpink", lwd=2)
   #text(x = -8, y = 43, adj = c(0,2), col = "black", cex = 1)
 }
@@ -921,3 +929,153 @@ plot(sched, type="l")
 
 
 
+
+
+clean_data <- strat_data %>%
+  filter(trial_type.y %in% c("aligned", "rotated")) %>%
+  group_by(participant_id, rotation) %>%
+  # find each participant's first rotated trial
+  mutate(rotation_onset = min(cutrial_no[trial_type.y == "rotated"])) %>%
+  # normalize trial number so onset = 0
+  mutate(norm_trial = cutrial_no - rotation_onset) %>%
+  ungroup() %>%
+  # remove outliers per rotation group (±3 SD)
+  group_by(rotation) %>%
+  mutate(
+    mean_rot = mean(aimdeviation_deg, na.rm = TRUE),
+    sd_rot   = sd(aimdeviation_deg, na.rm = TRUE)
+  ) %>%
+  filter(
+    aimdeviation_deg <= mean_rot + 3 * sd_rot,
+    aimdeviation_deg >= mean_rot - 3 * sd_rot
+  ) %>%
+  ungroup()
+
+# summarise by rotation & normalized trial number
+summary_data <- clean_data %>%
+  group_by(rotation, norm_trial) %>%
+  summarise(
+    mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+    ci = Reach::getConfidenceInterval(aimdeviation_deg),
+    ci_lower = ci[1],
+    ci_upper = ci[2],
+    .groups = "drop"
+  )
+
+# check normalized trial ranges (optional sanity check)
+summary_data %>% 
+  group_by(rotation) %>% 
+  summarise(min_trial = min(norm_trial), max_trial = max(norm_trial))
+
+rotation_levels <- sort(unique(summary_data$rotation))
+
+ggplot(summary_data, aes(x = norm_trial, y = mean_aim,
+                         color = factor(rotation), fill = factor(rotation))) +
+  # custom horizontal lines for each rotation angle
+  geom_hline(yintercept = rotation_levels, 
+             color = "grey85", linetype = "solid", linewidth = 0.5) +
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  
+  scale_color_manual(values = c(
+    "20"="#FA8072","30"="#7EC0EE","40"="#8968CD","50"="#EE799F","60"="#104E8B"
+  )) +
+  scale_fill_manual(values = c(
+    "20"="#FA8072","30"="#6CA6CD","40"="#8968CD","50"="#EE799F","60"="#1874CD"
+  )) +
+  
+  labs(
+    x = "Trial Number",
+    y = "Reach deviation (°)",
+    color = "Rotation (°)",
+    fill = "Rotation (°)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),      # remove default grid
+    legend.position = "right",
+    axis.line = element_line(color = "black")
+  )
+
+
+library(dplyr)
+library(ggplot2)
+
+
+strat_data <- read.csv("data/strategy_only_participants.csv")
+
+clean_data <- strat_data %>%
+  filter(trial_type.y %in% c("aligned", "rotated")) %>%
+  group_by(participant_id, rotation) %>%
+  # find each participant's first rotated trial
+  mutate(rotation_onset = min(cutrial_no[trial_type.y == "rotated"])) %>%
+  # normalize trial number so onset = 0
+  mutate(norm_trial = cutrial_no - rotation_onset) %>%
+  ungroup() %>%
+  # remove outliers per rotation group (±1 SD instead of ±3)
+  group_by(rotation) %>%
+  mutate(
+    mean_rot = mean(aimdeviation_deg, na.rm = TRUE),
+    sd_rot   = sd(aimdeviation_deg, na.rm = TRUE)
+  ) %>%
+  filter(
+    aimdeviation_deg <= mean_rot + 3 * sd_rot,
+    aimdeviation_deg >= mean_rot - 3 * sd_rot
+  ) %>%
+  ungroup()
+
+
+
+# Create a simple reference dataframe for horizontal lines
+hline_data <- data.frame(rotation = c(20, 30, 40, 50, 60),
+                         yintercept = c(20, 30, 40, 50, 60))
+
+
+ggplot() +
+  # participant traces
+  geom_line(
+    data = clean_data,
+    aes(x = norm_trial, y = aimdeviation_deg, group = participant_id),
+    color = "grey70", alpha = 0.4, linewidth = 0.4
+  ) +
+  
+  # mean line per rotation
+  geom_line(
+    data = summary_data,
+    aes(x = norm_trial, y = mean_aim, color = factor(rotation)),
+    size = 1
+  ) +
+  
+  # add horizontal reference lines (one per rotation facet)
+  geom_hline(
+    data = hline_data,
+    aes(yintercept = yintercept),
+    color = "grey80", linetype = "dashed", linewidth = 0.6
+  ) +
+  
+  # vertical dashed line at onset
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  
+  facet_wrap(~ rotation, ncol = 2) +
+  
+  scale_y_continuous(limits = c(-15, 70)) +
+  
+  scale_color_manual(values = c(
+    "20"="#B9D3EE","30"="#85adf3","40"="#87CEEB","50"="#4682B4","60"="#271716"
+  )) +
+  
+  labs(
+    x = "Trial Number",
+    y = "Aim deviation (°)",
+    color = "Rotation (°)"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "none",
+    strip.text = element_text(size = 14, face = "bold"),
+    axis.line = element_line(color = "black")
+  )
