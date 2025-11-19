@@ -64,12 +64,41 @@ table <- strategy_data_clusters %>%
   select(participant_id, cluster) %>%
   distinct()
 
-ggplot(strategy_data_clusters, aes(x = trial_after_rot, y = aimdeviation_deg, group = participant_id)) +
-  geom_line(alpha = 0.6) +  
-  facet_wrap(~cluster, ncol = 1) + 
-  theme_minimal() +
+
+
+
+##plot
+
+strategy_labels <- c(
+  "1" = "Erratic strategy onset",
+  "2" = "Rapid strategy onset",
+  "3" = "Delayed strategy onset"
+)
+
+
+cluster_colors <- c(
+  "1" = "#E64B35", 
+  "2" = "#4DBBD5",  
+  "3" = "#00A087"   
+)
+
+ggplot(strategy_data_clusters, 
+       aes(x = trial_after_rot, y = aimdeviation_deg, 
+           group = participant_id, color = factor(cluster))) +
+  geom_line(alpha = 0.6, linewidth = 0.7) +
+  facet_wrap(~cluster, ncol = 1, labeller = as_labeller(strategy_labels)) +
+  scale_color_manual(values = cluster_colors, guide = "none") +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid = element_blank(),          # remove grid lines
+    strip.text = element_text(size = 14, face = "bold"),  # facet titles
+    axis.title = element_text(size = 13),
+    axis.text = element_text(size = 11),
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    panel.spacing = unit(1, "lines")
+  ) +
   labs(
-    title = "Trial-by-trial aiming deviation by cluster",
+    title = "Trial-by-trial aiming deviation by strategy cluster",
     x = "Trial after rotation",
-    y = "Aiming deviation (degrees)"
+    y = "Aiming deviation (°)"
   )
