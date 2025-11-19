@@ -79,6 +79,19 @@ aimAOV <- function () {
   TukeyHSD(anova_result)
 }
 
+aimvarAOV <- function () {
+  plot_mean_aim_data <- grouped_strategy_data %>%
+    filter(cutrial_no %in% c(193:208, 217:232)) %>%
+    group_by(rotation, participant_id, group) %>%
+    summarise(sd = sd(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
+  
+  plot_mean_aim_data$rotation <- factor(plot_mean_aim_data$rotation)
+  
+  anova_result <- aov(sd ~ rotation, data = plot_mean_aim_data)
+  summary(anova_result)
+  TukeyHSD(anova_result)
+}
+
 
 #Is the average trial number where participants start using a strategy different across the rotation groups?
 summary(aov(cutrial_no ~ factor(rotation), data = result_table))
