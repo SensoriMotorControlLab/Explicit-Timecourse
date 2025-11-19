@@ -222,26 +222,22 @@ cluster_means <- trial_features_clustered %>%
   summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
 library(ggplot2)
 
-# Define custom cluster labels
 trial_labels <- c(
   "erratic" = "Erratic strategy onset",
   "rapid" = "Rapid strategy onset",
   "delayed" = "Delayed strategy onset"
 )
 
-# Define custom colors for each cluster
 trial_colors <- c(
-  "erratic" = "#E64B35",  # red
-  "rapid" = "#4DBBD5",  # blue
-  "delayed" = "#00A087"   # green
+  "erratic" = "#E64B35",
+  "rapid" = "#4DBBD5",  
+  "delayed" = "#00A087"   
 )
 
 ggplot(trial_features_clustered, 
        aes(x = trial_after_rot, y = aimdeviation_deg, 
            group = participant_id, color = factor(cluster))) +
   geom_line(alpha = 0.4, linewidth = 0.7) +
-  # Optional: Uncomment to add cluster mean lines
-  # geom_line(data = cluster_means, aes(y = mean_aim, color = factor(cluster)), size = 1.2) +
   facet_wrap(~cluster, ncol = 1, labeller = as_labeller(trial_labels)) +
   scale_color_manual(values = trial_colors, guide = "none") +
   theme_minimal(base_size = 14) +
