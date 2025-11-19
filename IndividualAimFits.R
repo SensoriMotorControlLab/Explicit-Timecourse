@@ -703,7 +703,7 @@ lines(c(step1_trial, nrow(df)), c(step1_size, step1_size), col = "blue", lwd = 1
 ##beauty
 df <- total_learners_data[total_learners_data$participant_id == "96634a", ] 
 plot(df$aimdeviation_deg, type = "l", main = "One-Step Winner", ylim = c(-10, 50),
-     xlim = c(0, last_rot_trial),
+     xlim = c(0, 232),
      col= "hotpink", lwd = 1)
 abline(v = 113, col = "red", lty = 2, lwd = 1)
 abline(h = 40, col = "red", lty = 2, lwd = 1)
@@ -751,9 +751,9 @@ lines(c(step1_trial, nrow(df)), c(step1_size, step1_size), col = "blue", lwd = 1
 
 
 ##
-df <- total_learners_data[total_learners_data$participant_id == "bd8518", ] 
+df <- total_learners_data[total_learners_data$participant_id == "c0144b", ] 
 plot(df$aimdeviation_deg, type = "l", main = "One-Step Winner", ylim = c(-10, 50),
-     xlim = c(0, last_rot_trial),
+     xlim = c(0, 232),
      col= "hotpink", lwd = 1)
 abline(v = 113, col = "red", lty = 2, lwd = 1)
 abline(h = 20, col = "red", lty = 2, lwd = 1)
@@ -921,7 +921,7 @@ lines(c(step1_trial, nrow(df)), c(step1_size, step1_size), col = "blue", lwd = 2
 #########TWO STEP <3 fast
 df <- total_learners_data[total_learners_data$participant_id == "4a6642", ] 
 plot(df$aimdeviation_deg, type = "l", main = "One-Step Winner", ylim = c(-10, 50),
-     xlim = c(0, last_rot_trial),
+     xlim = c(0, 208),
      col= "lightblue", lwd = 1)
 abline(v = 89, col = "red", lty = 2, lwd = 1)
 abline(h = 40, col = "red", lty = 2, lwd = 1)
@@ -940,7 +940,7 @@ lines(c(step2_trial, nrow(df)), c(step2_size, step2_size), col = "blue", lwd = 1
 ####NOT BAD FIT
 df <- total_learners_data[total_learners_data$participant_id == "81d984", ] 
 plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 70),
-     xlim = c(0, last_rot_trial),
+     xlim = c(0, 208),
      col= "grey", lwd = 1.5,
      xlab = "Trial",
      ylab = "Aim Deviation (degrees)",)
