@@ -1,5 +1,6 @@
 strat_data <- read.csv("data/strategy_only_participants.csv")
 
+fitAllModels <- function(strat_data) {
 results <- data.frame(
   participant = character(),
   group = character(),
@@ -127,41 +128,85 @@ for (pid in participants) {
   }
   
   ################## exponential model (continuous increase)
-  fit_exponential_model <- function(trials, aim) {
-    fit_values <- Reach::exponentialFit(
-      signal = aim,
-      timepoints = trials,
-      mode = "learning",
-      gridpoints = 11,
-      gridfits = 10
-    )
-    mse <- mean((fit_values - aim)^2)
-    return(list(mse = mse, k = 2))
-  }
   
+  #okay i have to block this one bc this isn't aligning with the reach fits...
+ # fit_exponential_model <- function(trials, aim) {
+  #  fit_values <- Reach::exponentialFit(
+   #   signal = aim,
+   #   timepoints = trials,
+   #   mode = "learning",
+   #   gridpoints = 11,
+   #   gridfits = 10
+  #  )
+  #  mse <- mean((fit_values - aim)^2)
+  #  return(list(mse = mse, k = 2))
+#  }
+  
+  
+  fit_exponential_model <- function(trials, aim) {
+    
+    # Exponential prediction function
+    exp_func <- function(time, A, tau) {
+      A * (1 - exp(-time / tau))
+    }
+    
+    neg_log_likelihood <- function(par) {
+      A   <- par[1]
+      tau <- abs(par[2])        # rate parameter must be positive
+      sd  <- abs(par[3])        # single SD, fair with step models
+      
+      pred <- exp_func(trials, A, tau)
+      residuals <- aim - pred
+      
+      -sum(dnorm(residuals, mean=0, sd=sd, log=TRUE), na.rm=TRUE)
+    }
+    
+    # Multiple starting values
+    init_list <- list(
+      c(20,  5, 5),
+      c(40, 10, 5),
+      c(60, 20, 5)
+    )
+    
+    fits <- lapply(init_list, function(init) {
+      optim(init, neg_log_likelihood, method="L-BFGS-B",
+            lower=c(0, 0.01, 0.1),
+            upper=c(200, 100, 20))
+    })
+    
+    best_fit <- fits[[which.min(sapply(fits, function(f) f$value))]]
+    
+    return(list(
+      mse = best_fit$value,   
+      params = best_fit$par,
+      k = 3                   
+    ))
+  }
+  ##this code increases exponential participants by 6 more
+
   ################## AIC helper
   compute_aic <- function(mse, k, n) {
     Reach::AIC(mse, k, n)
   }
   
-  # --- Fit models
+
   step1_fit <- fit_onestep_model(trials, aim, first_rot_trial)
   step2_fit <- fit_twostep_model(trials, aim, first_rot_trial)
   exp_fit   <- fit_exponential_model(trials, aim)
   
   n_trials <- length(trials)
   
-  # --- Compute AICs
+
   step1_aic <- compute_aic(step1_fit$mse, step1_fit$k, n_trials)
   step2_aic <- compute_aic(step2_fit$mse, step2_fit$k, n_trials)
   exp_aic   <- compute_aic(exp_fit$mse, exp_fit$k, n_trials)
   
   best_model <- c("exponential", "one-step", "two-step")[which.min(c(exp_aic, step1_aic, step2_aic))]
   
-  # --- rotation onset
+
   rotation_onset <- if (group == 'Group 1') 89 else if (group == 'Group 2') 113 else stop("Unknown group!")
   
-  # --- Step 1 details
+
   if (best_model %in% c("one-step", "two-step")) {
     step1_trial_val  <- round(step1_fit$params["trial1"])   # relative to onset
     step1_cut_trial  <- rotation_onset + step1_trial_val - 1
@@ -172,8 +217,7 @@ for (pid in participants) {
     step1_size <- NA
     step1_aim <- NA
   }
-  
-  # --- Step 2 details
+
   if (best_model == "two-step") {
     step2_trial_val  <- round(step2_fit$params["trial2"])
     step2_cut_trial  <- rotation_onset + step2_trial_val - 1
@@ -185,7 +229,7 @@ for (pid in participants) {
     step2_aim <- NA
   }
   
-  # --- Save results
+
   results <- rbind(results, data.frame(
     participant = pid,
     group = group,
@@ -206,272 +250,51 @@ for (pid in participants) {
     step2_aim   = step2_aim
   ))
   print(results)
+  }
 }
 
 
-results_joined <- results %>%
-  left_join(
-    strat_data %>%
-      select(participant_id, rotation) %>%
-      distinct(participant_id, rotation),  # ensures one per participant
-    by = c("participant" = "participant_id")
-  )
+ModelTable <- function(results, strat_data) {
+  results_joined <- results %>%
+    left_join(
+      strat_data %>%
+        select(participant_id, rotation) %>%
+        distinct(participant_id, rotation),
+      by = c("participant" = "participant_id")
+    )
 
+  model_counts <- results_joined %>%
+    group_by(rotation, best_model) %>%
+    summarise(count = n(), .groups = "drop")
+  
+  table <- model_counts %>%
+    pivot_wider(
+      names_from = rotation,
+      values_from = count,
+      values_fill = 0
+    ) %>%
+    arrange(best_model)
+  
+  return(table)
+}
 
-model_counts <- results_joined %>%
-  group_by(rotation, best_model) %>%
-  summarise(count = n(), .groups = "drop")
-
-table <- model_counts %>%
-  pivot_wider(
-    names_from = rotation,
-    values_from = count,
-    values_fill = 0  # fill missing combos with 0
-  ) %>%
-  arrange(best_model)
-
-table 
+ModelTable(results, strat_data)
 
 models <- results_joined
 
-oneSt <- models %>%
-  filter(best_model == "one-step")
+modeltest <- table(results$best_model)[c("one-step", "exponential")]
+chisq.test(modeltest)
 
-twoSt <- models %>%
-filter(best_model=="two-step")
-
-exp <- models %>%
-  filter(best_model=="exponential")
+tbl2 <- table(results$best_model)[c("two-step", "exponential")]
+chisq.test(tbl2)
 
 
-
-
+#does rotation have an effect on predicted model fit?
 chisq_test <- chisq.test(
   xtabs(count ~ rotation + best_model, data = model_counts)
 )
 chisq_test
-chisq_test$residuals
-#20° rotation: Strong positive residual for exponential (+2.03) 👉 More participants than expected showed exponential model fits here.
-#60° rotation:Positive residual for two-step (+1.90) 👉 More two-step model fits than expected for large rotations.
-
-
-#df - include models
-
-#null model with average x value - 0.
-
-
-#erratic strategy search - high noise initially (high sd), shift in mean and decrease in noise again.
-#take window of 10 trials to see where noise is high and when it goes down
-
-#model second implicit process
 
 
 
-#show jonathan tsay strategy types 
-rotated_trials <- subset(strat_data, 
-                         (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
-                           (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
-
-
-first_50_rotated <- rotated_trials %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no) %>%
-  slice_head(n = 50) %>%
-  mutate(cutrial_no = row_number())  # Count trial numbers 1 to 50 within participant
-
-first_step_over_10 <- first_50_rotated %>%
-  filter(aimdeviation_deg > 10) %>%
-  group_by(participant_id) %>%
-  slice_min(order_by = cutrial_no, n = 1)
-
-
-result_table <- dplyr::select(first_step_over_10, 
-                              participant_id, rotation, cutrial_no, aimdeviation_deg)
-
-df_steps <- result_table %>%
-  rowwise() %>%
-  mutate(
-    trials = list(-8:50),
-    aim_deviation = list(pmin(ifelse(-8:50 < cutrial_no, 0, aimdeviation_deg), 60))
-  ) %>%
-  unnest(c(trials, aim_deviation))
-
-
-plotSteps <- function(target = "inline", main = NULL) {
-  setupFigureFile(
-    target = target,
-    width = 3,
-    height = 3,
-    dpi = 300,
-    sprintf("images/plotsteps.%s", target)
-  )
-  
-  # join in best model info
-  df_steps <- result_table %>%
-    left_join(
-      results %>% select(participant, best_model),
-      by = c("participant_id" = "participant")
-    ) %>%
-    rowwise() %>%
-    mutate(
-      trials = list(-8:50),
-      aim_deviation = list({
-        x <- -8:50
-        if (best_model == "one-step") {
-          pmin(ifelse(x < cutrial_no, 0, aimdeviation_deg), 60)
-        } else if (best_model == "two-step") {
-          # toy example: half step at cutrial_no, full after +10
-          pmin(ifelse(x < cutrial_no, 0,
-                      ifelse(x < cutrial_no + 10, aimdeviation_deg / 2, aimdeviation_deg)), 60)
-        } else if (best_model == "exponential") {
-          # toy example exponential rise after cutrial_no
-          rise <- aimdeviation_deg * (1 - exp(-(x - cutrial_no) / 5))
-          rise[x < cutrial_no] <- 0
-          pmin(rise, 60)
-        } else {
-          rep(0, length(x))
-        }
-      })
-    ) %>%
-    unnest(c(trials, aim_deviation))  %>%
-    dplyr::filter(!rotation %in% c("20", "30"))
-  
-  p <- ggplot(df_steps, aes(x = trials, y = aim_deviation, color = factor(rotation,
-                                                                          4lim(-10:80)))) +
-    geom_line(aes(group = participant_id), size = 0.8) +
-    geom_vline(data = result_table, aes(xintercept = cutrial_no),
-               linetype = "dashed", color = NA) +
-    labs(
-      x = "",
-      y = "",
-      color = "Rotation",
-      title = ""
-    ) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
-    scale_color_manual(values = c(
-      "40" = "darkorange",
-      "50" = "darkmagenta",
-      "60" = "hotpink"
-    )) +
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      legend.title = element_text(size = 17),
-      legend.text  = element_text(size = 16),
-      plot.title   = element_text(size = 19, hjust = 0),
-      legend.position = "inside",
-      legend.position.inside = c(0.08, 0.5)
-    )
-  
-  if (target %in% c("pdf", "svg", "png", "tiff")) {
-    dev.off()
-  }
-  print(p)
-}
-
-
-
-
-# --- select rotated trials (Group 1 and 2) ---
-rotated_trials <- subset(
-  strat_data, 
-  (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
-    (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163)
-)
-
-# --- take first 50 rotated trials per participant ---
-first_50_rotated <- rotated_trials %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no) %>%
-  slice_head(n = 60) %>%
-  mutate(cutrial_no = row_number())  # renumber within-participant 1–50
-
-# --- find first step over 10 deg ---
-first_step_over_10 <- first_50_rotated %>%
-  filter(aimdeviation_deg > 10) %>%
-  group_by(participant_id) %>%
-  slice_min(order_by = cutrial_no, n = 1)
-
-# --- compact results ---
-result_table <- dplyr::select(
-  first_step_over_10, participant_id, rotation, cutrial_no, aimdeviation_deg
-)
-
-# --- build model predictions ---
-df_steps <- result_table %>%
-  left_join(results %>% select(participant, best_model),
-            by = c("participant_id" = "participant")) %>%
-  rowwise() %>%
-  mutate(
-    trials = list(-8:60),   # extend to 60 after rotation
-    aim_deviation = list({
-      x <- -8:60
-      if (best_model == "one-step") {
-        pmin(ifelse(x < cutrial_no, 0, aimdeviation_deg), 80)
-      } else if (best_model == "two-step") {
-        # toy example: half step at cutrial_no, full step after +10
-        pmin(ifelse(x < cutrial_no, 0,
-                    ifelse(x < cutrial_no + 10, aimdeviation_deg / 2, aimdeviation_deg)), 80)
-      } else if (best_model == "exponential") {
-        rise <- aimdeviation_deg * (1 - exp(-(x - cutrial_no) / 5))
-        rise[x < cutrial_no] <- 0
-        pmin(rise, 80)
-      } else {
-        rep(0, length(x))
-      }
-    })
-  ) %>%
-  unnest(c(trials, aim_deviation)) %>%
-  filter(!rotation %in% c("20", "30"))
-
-# --- plot function ---
-plotSteps <- function(target = "inline", main = NULL) {
-  setupFigureFile(
-    target = target,
-    width = 3,
-    height = 3,
-    dpi = 300,
-    sprintf("images/plotsteps.%s", target)
-  )
-  
-  p <- ggplot(df_steps, aes(x = trials, y = aim_deviation,
-                            color = factor(rotation))) +
-    geom_line(aes(group = participant_id), size = 0.8) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
-    labs(x = "", y = "", color = "Rotation", title = main) +
-    scale_color_manual(values = c(
-      "40" = "darkorange",
-      "50" = "cadetblue",
-      "60" = "hotpink"
-    )) +
-    coord_cartesian(xlim = c(-8, 60), ylim = c(0, 80)) +   # enforce axis ranges
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 17),
-      legend.text  = element_text(size = 16),
-      plot.title   = element_text(size = 19, hjust = 0),
-      legend.position = "inside",
-      legend.position.inside = c(0.08, 0.5)
-    )
-  
-  if (target %in% c("pdf", "svg", "png", "tiff")) {
-    dev.off()
-  }
-  print(p)
-}
 
