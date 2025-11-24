@@ -65,28 +65,28 @@ ggplot() +
   geom_line(
     data = mean_traj %>% filter(trial_rel >= -8, trial_rel <= 85),
     aes(x = trial_rel, y = mean_aim),
-    linewidth = 1.2, color="cadetblue"
+    linewidth = 1.2, alpha = 0.35,  color="cadetblue"
   ) +
   
   geom_segment(
     data = step_segments,
     aes(x = 0, xend = step_trial,
         y = baseline_value, yend = baseline_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    color = "salmon", linewidth = 0.6, alpha = 1
   ) +
   
   geom_segment(
     data = step_segments,
     aes(x = step_trial, xend = step_trial,
         y = baseline_value, yend = step_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    color = "salmon", linewidth = 0.6, alpha = 1
   ) +
   
   geom_segment(
     data = step_segments,
     aes(x = step_trial, xend = plateau_end,
         y = step_value, yend = step_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    color = "salmon", linewidth = 0.6, alpha = 1
   ) +
   
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.5) +
@@ -106,123 +106,109 @@ ggplot() +
 
 ##########
 
-aligned <- total_learners_data %>%
-  filter(trial_type %in% c("aligned", "rotated")) %>%
-  group_by(participant_id, rotation) %>%
-  mutate(
-    rotation_onset = min(cutrial_no[trial_type == "rotated"]),
-    trial_rel = cutrial_no - rotation_onset
-  ) %>%
-  ungroup()
-
-
-twoSt <- models %>%
-  filter(best_model == "two-step") %>%
-  filter(participant %in% aligned$participant_id) 
+twoSt <- models %>% filter(best_model == "two-step")
 
 
 aligned_twoSt <- aligned %>%
   filter(participant_id %in% twoSt$participant)
 
 
-two_steps <- aligned_twoSt %>%
-  filter(trial_type == "rotated") %>%
-  group_by(participant_id) %>%
-  arrange(trial_rel) %>%
-  summarise(
-    step1_row = which(aimdeviation_deg > 7)[1],
-    step1_trial = trial_rel[step1_row],
-    step1_value = aimdeviation_deg[step1_row],
-    step2_row = which(aimdeviation_deg > 30 & trial_rel > step1_trial)[1],
-    step2_trial = trial_rel[step2_row],
-    step2_value = aimdeviation_deg[step2_row],
-    .groups = "drop"
-  ) %>%
-  filter(!is.na(step1_trial) & !is.na(step2_trial))
-
 baseline <- aligned_twoSt %>%
-  filter(trial_rel == 0,
-         participant_id %in% two_steps$participant_id) %>%
+  filter(trial_rel == 0) %>%
   select(participant_id, baseline_value = aimdeviation_deg)
 
 
+first_steps <- aligned_twoSt %>%
+  filter(trial_type == "rotated") %>%
+  group_by(participant_id) %>%
+  filter(aimdeviation_deg > 10) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  select(participant_id, step1_trial = trial_rel, step1_value = aimdeviation_deg)
 
-step_segments <- two_steps %>%
+
+second_steps <- aligned_twoSt %>%
+  filter(trial_type == "rotated") %>%
+  group_by(participant_id) %>%
+  filter(
+    trial_rel > first_steps$step1_trial[match(participant_id, first_steps$participant_id)],
+    aimdeviation_deg - first_steps$step1_value[match(participant_id, first_steps$participant_id)] >= 7
+  ) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  select(participant_id, step2_trial = trial_rel, step2_value = aimdeviation_deg)
+steps_all <- first_steps %>%
+  left_join(second_steps, by = "participant_id") %>%
   left_join(baseline, by = "participant_id") %>%
   mutate(
-    plateau1_end = step1_trial + 10,
-    plateau2_end = step2_trial + 25
+    plateau1_end = step1_trial + 10,  
+    plateau2_end = step2_trial + 50
   )
 
-meantwo_traj <- aligned_twoSt %>%
-  filter(participant_id %in% two_steps$participant_id) %>%
+
+mean_traj <- aligned_twoSt %>%
   group_by(trial_rel) %>%
   summarise(
     mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
     sd = sd(aimdeviation_deg, na.rm = TRUE),
     n = n(),
     se = sd / sqrt(n),
-    ci_lower = mean_aim - 1.96 * se,
-    ci_upper = mean_aim + 1.96 * se,
+    ci_lower = mean_aim - 1.96*se,
+    ci_upper = mean_aim + 1.96*se,
     .groups = "drop"
   )
 
 ggplot() +
+  # Mean trajectory
   geom_ribbon(
-    data = meantwo_traj %>% filter(trial_rel >= -10, trial_rel <= 110),
+    data = mean_traj,
     aes(x = trial_rel, ymin = ci_lower, ymax = ci_upper),
     fill = "lightblue", alpha = 0.3
   ) +
-
   geom_line(
-    data = meantwo_traj %>% filter(trial_rel >= -8, trial_rel <= 110),
+    data = mean_traj,
     aes(x = trial_rel, y = mean_aim),
-    linewidth = 1.2, color="cadetblue"
+    color = "cadetblue", linewidth = 1.2, alpha = 0.5
   ) +
-  # Step 1 segments
+  
+  # Step 1 staircase
   geom_segment(
-    data = step_segments,
-    aes(x = 0, xend = step1_trial, y = baseline_value, yend = baseline_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
-  ) +
-  geom_segment(
-    data = step_segments,
-    aes(x = step1_trial, xend = step1_trial, y = baseline_value, yend = step1_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    data = steps_all,
+    aes(x = 0, xend = step1_trial, y = baseline_value, yend = baseline_value, group = participant_id),
+    color = "salmon", linewidth = 0.8
   ) +
   geom_segment(
-    data = step_segments,
-    aes(x = step1_trial, xend = plateau1_end, y = step1_value, yend = step1_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
-  ) +
-  # Step 2 segments
-  geom_segment(
-    data = step_segments,
-    aes(x = step1_trial, xend = step2_trial, y = step1_value, yend = step1_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    data = steps_all,
+    aes(x = step1_trial, xend = step1_trial, y = baseline_value, yend = step1_value, group = participant_id),
+    color = "salmon", linewidth = 0.8
   ) +
   geom_segment(
-    data = step_segments,
-    aes(x = step2_trial, xend = step2_trial, y = step1_value, yend = step2_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    data = steps_all,
+    aes(x = step1_trial, xend = step2_trial, y = step1_value, yend = step1_value, group = participant_id),
+    color = "salmon", linewidth = 0.8
+  ) +
+  
+  # Step 2 staircase
+  geom_segment(
+    data = steps_all %>% filter(!is.na(step2_trial)),
+    aes(x = step2_trial, xend = step2_trial, y = step1_value, yend = step2_value, group = participant_id),
+    color = "salmon", linewidth = 0.8
   ) +
   geom_segment(
-    data = step_segments,
-    aes(x = step2_trial, xend = plateau2_end, y = step2_value, yend = step2_value),
-    color = "salmon", linewidth = 0.6, alpha = 0.35
+    data = steps_all %>% filter(!is.na(step2_trial)),
+    aes(x = step2_trial, xend = plateau2_end, y = step2_value, yend = step2_value, group = participant_id),
+    color = "salmon", linewidth = 0.8
   ) +
-
+  
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.5) +
   labs(
-    title = "Two-Step Participants: Mean Aim Trajectory with Steps",
+    title = "Two-Step Participants: Individual Stairs Over Mean Trajectory",
     x = "Trials (0 = Rotation Onset)",
     y = "Aim Deviation (deg)"
   ) +
-  coord_cartesian(ylim = c(-10, 65)) + 
-  theme_minimal() +
-  theme(panel.background = element_blank(),
-        panel.grid = element_blank())
-        
+  coord_cartesian(xlim = c(-10, 120), ylim = c(-10, 65)) +
+  theme_minimal()
+
 
 
 
