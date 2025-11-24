@@ -77,7 +77,7 @@ total_group_data <- total_group_data %>%
 
 ####LEARNERS
 
-getLearners <- function(total_group_data) {
+getLearners <- function() {
   learner_df <- total_group_data %>%
     filter(
       (group == "Group 1" & cutrial_no %in% 193:208) |
@@ -164,11 +164,11 @@ getStrategies <- function () {
   print(ci_compare[, c("participant_id", "rotation", "aimdeviation_deg", "strategy")])
 }
 
-countStrategies <- function () {
-  strategy_users <- sum(ci_compare$strategy %in% c('Yes'))
-  percent_strategy_users <- round(100 * strategy_users / nrow(ci_compare), 1)
-  print(percent_strategy_users)
+countStrategies <- function() {
+  strategy_users <- sum(ci_compare$strategy == "Yes", na.rm = TRUE)
+  print(strategy_users)
 }
+
 
 strategySummary <- function () {
   ci_compare %>% 
