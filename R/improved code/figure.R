@@ -191,6 +191,104 @@ plotSteps <- function (target = "inline", main = NULL) {
 } 
 
 
+
+##we can do a steps plot but with each participants' model fit
+rotated_trials <- subset(
+  strat_data, 
+  (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
+    (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163)
+)
+
+first_50_rotated <- rotated_trials %>%
+  group_by(participant_id) %>%
+  arrange(cutrial_no) %>%
+  slice_head(n = 60) %>%
+  mutate(cutrial_no = row_number())  # renumber within-participant 1–50
+
+
+first_step_over_10 <- first_50_rotated %>%
+  filter(aimdeviation_deg > 10) %>%
+  group_by(participant_id) %>%
+  slice_min(order_by = cutrial_no, n = 1)
+
+
+result_table <- dplyr::select(
+  first_step_over_10, participant_id, rotation, cutrial_no, aimdeviation_deg
+)
+
+
+df_steps <- result_table %>%
+  left_join(results %>% select(participant, best_model),
+            by = c("participant_id" = "participant")) %>%
+  rowwise() %>%
+  mutate(
+    trials = list(-8:60),   # extend to 60 after rotation
+    aim_deviation = list({
+      x <- -8:60
+      if (best_model == "one-step") {
+        pmin(ifelse(x < cutrial_no, 0, aimdeviation_deg), 80)
+      } else if (best_model == "two-step") {
+        # toy example: half step at cutrial_no, full step after +10
+        pmin(ifelse(x < cutrial_no, 0,
+                    ifelse(x < cutrial_no + 10, aimdeviation_deg / 2, aimdeviation_deg)), 80)
+      } else if (best_model == "exponential") {
+        rise <- aimdeviation_deg * (1 - exp(-(x - cutrial_no) / 5))
+        rise[x < cutrial_no] <- 0
+        pmin(rise, 80)
+      } else {
+        rep(0, length(x))
+      }
+    })
+  ) %>%
+  unnest(c(trials, aim_deviation)) %>%
+  filter(!rotation %in% c("20", "30"))
+
+
+plotSteps <- function(target = "inline", main = NULL) {
+  setupFigureFile(
+    target = target,
+    width = 3,
+    height = 3,
+    dpi = 300,
+    sprintf("images/plotsteps.%s", target)
+  )
+  
+  p <- ggplot(df_steps, aes(x = trials, y = aim_deviation,
+                            color = factor(rotation))) +
+    geom_line(aes(group = participant_id), size = 0.8) +
+    geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
+    labs(x = "", y = "", color = "Rotation", title = main) +
+    scale_color_manual(values = c(
+      "40" = "darkorange",
+      "50" = "cadetblue",
+      "60" = "hotpink"
+    )) +
+    coord_cartesian(xlim = c(-8, 60), ylim = c(0, 80)) +   # enforce axis ranges
+    theme_minimal() +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(),
+      axis.text.x  = element_text(size = 24),
+      axis.text.y  = element_text(size = 24),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      legend.title = element_text(size = 17),
+      legend.text  = element_text(size = 16),
+      plot.title   = element_text(size = 19, hjust = 0),
+      legend.position = "inside",
+      legend.position.inside = c(0.08, 0.5)
+    )
+  
+  if (target %in% c("pdf", "svg", "png", "tiff")) {
+    dev.off()
+  }
+  print(p)
+}
+
+
+
 plotProportion <- function () {
   
   plot_data_yes <- logit_data %>%
@@ -395,13 +493,13 @@ lines(x=113, col="red")
 
 plot_step_histogram <- function(sim_data) {
   plot(NA,
-       # main = 'Step-like Explicit Learning (60°)',
-       xlab = '', ylab = '',
+        main = 'Stepwise Pattern',
+       xlab = 'Trial', ylab = 'Aim Deviation (deg)',
        xlim = c(-8, 32), ylim = c(-15, 65),
        ax = FALSE, bty = 'n',
-       cex.lab = 1.5,     # Axis titles (xlab, ylab)
-       cex.axis = 4,  # Axis numbers
-       cex.main = 2.2)
+       cex.lab = 1,     # Axis titles (xlab, ylab)
+       cex.axis = 3,  # Axis numbers
+       cex.main = 1.5)
   
   img_info <- hist2d(x = sim_data[, c("time", "aimdeviation_deg")],
                      edges = list(seq(-8, 31.5, 1), seq(-15, 65, 2.5)))
