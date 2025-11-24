@@ -163,6 +163,8 @@ print(model)
 
 
 ##------- Leave out method -------##
+
+##we can generate trial features within each participant
 participant_features <- trial_features %>%
   group_by(participant_id) %>%
   summarise(
@@ -174,11 +176,14 @@ participant_features <- trial_features %>%
 participant_features_clean <- participant_features %>%
   select(-participant_id)
 
+
 participant_features_clean$label <- as.factor(participant_features_clean$label)
-
-
 participant_features_clean[is.na(participant_features_clean)] <- 0
 participant_features_clean$participant_id <- participant_features$participant_id
+
+
+#-
+
 
 participants <- unique(participant_features_clean$participant_id)
 predictions <- data.frame(participant_id = character(),
@@ -200,12 +205,13 @@ for (p in participants) {
   pred <- predict(rf_model, test_data)
   predictions <- rbind(predictions,
                        data.frame(participant_id = p,
-                                  true_label = as.character(test_data$label),
+                                  true_label = as.character(test_data$label), #label from onset_label col
                                   predicted_label = as.character(pred)))
 }
 
-table(predictions$true_label, predictions$predicted_label)
+SuperTable <- table(predictions$true_label, predictions$predicted_label)
 
+SuperTable
 
 
 ##plot 
@@ -305,9 +311,7 @@ plot_data <- filtered_data %>%
 
 ggplot(plot_data, aes(x = label, y = prop, fill = as.factor(rotation))) +
   geom_col(position = "dodge") +
-  labs(x = "Strategy Type", y = "Proportion", fill = "Rotation Size") +
-  
-  scale_color_manual(values = c(
+  labs(x = "Strategy Type", y = "Proportion", fill = "Rotation Size") + 3 jz \3 scale_color_manual(values = c(
     "20"="#B9D3EE","30"="#85adf3","40"="#87CEEB","50"="#4682B4","60"="cadetblue"
   )) +
   scale_fill_manual(values = c(
