@@ -129,7 +129,6 @@ fit_step_model_onset <- function(df, threshold = 7) {
   )
 }
 
-# Apply to your dataset
 step_fits <- strategy_data %>%
   group_by(participant_id) %>%
   group_modify(~ fit_step_model_onset(.x))
