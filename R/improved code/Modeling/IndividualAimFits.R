@@ -271,14 +271,12 @@ lines(trials, pred, col = "blue", lwd = 2)
 
 ############
 # ---- subset participant ----
-df <- total_learners_data[total_learners_data$participant_id == "8d426d", ] 
+df <- total_learners_data[total_learners_data$participant_id == "a02c67", ] 
 
 rot_start <- 113
 
-# Create relative trial axis (rotation onset = 0)
 df$trial_rel <- df$cutrial_no - rot_start
 
-# Subset data: 8 trials before rotation and 60 after
 df_sub <- df[df$trial_rel >= -8 & df$trial_rel <= 60, ]
 trials_sub <- df_sub$trial_rel
 aim_sub    <- df_sub$aimdeviation_deg
@@ -292,7 +290,6 @@ fit_params <- Reach::exponentialFit(
   gridfits   = 10
 )
 
-# ---- helper to compute predictions ----
 exp_predict <- function(params, trials, rot_trial = 0) {
   lambda <- params[1]
   N0     <- params[2]
@@ -304,7 +301,6 @@ exp_predict <- function(params, trials, rot_trial = 0) {
   return(pred)
 }
 
-# Generate predictions
 pred <- exp_predict(fit_params, trials_sub, rot_trial = 0)
 
 # ---- plot ----
