@@ -2,7 +2,7 @@
 
 library(zoo)
 strategy_data <- strat_data
-trial_features <- function(strategy_data, trial_type = "rotated", max_trial = 32) {
+GetFeatures <- function(strategy_data, trial_type = "rotated", max_trial = 32) {
   strategy_data <- strategy_data %>%
     filter(trial_type.x == trial_type) %>%
     group_by(participant_id) %>%
@@ -36,7 +36,7 @@ trial_features <- function(strategy_data, trial_type = "rotated", max_trial = 32
 
 
 
-pca_clustering <- function(trial_summary, n_clusters = 3) {
+PCA <- function(trial_summary, n_clusters = 3) {
  
   
   trial_scaled <- trial_summary %>%
@@ -58,7 +58,7 @@ pca_clustering <- function(trial_summary, n_clusters = 3) {
 
 
 ##plot
-plot_strategy_clusters <- function(strategy_data, trial_pca) {
+PlotUnsuper <- function(strategy_data, trial_pca) {
   
   strategy_data_clusters <- strategy_data %>%
     filter(trial_type.x == "rotated") %>%
