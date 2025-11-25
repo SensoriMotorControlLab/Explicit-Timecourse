@@ -47,13 +47,11 @@ for (pid in participants) {
       sd1    <- abs(par[3])
       sd2    <- abs(par[4])
       
-      # Enforce minimum stable step
       if(mean2 < min_step) return(1e6)
       
       pred <- ifelse(trials < trial1, 0, mean2)
       residuals <- aim - pred
       
-      # Downweight extreme outliers (don’t inflate)
       extreme_mask <- !is.na(residuals) & (abs(residuals) > 2 * max(rotation_vals, na.rm=TRUE))
       residuals[extreme_mask] <- residuals[extreme_mask] / noise_sd
       
@@ -144,16 +142,14 @@ for (pid in participants) {
   
   
   fit_exponential_model <- function(trials, aim) {
-    
-    # Exponential prediction function
     exp_func <- function(time, A, tau) {
       A * (1 - exp(-time / tau))
     }
     
     neg_log_likelihood <- function(par) {
       A   <- par[1]
-      tau <- abs(par[2])        # rate parameter must be positive
-      sd  <- abs(par[3])        # single SD, fair with step models
+      tau <- abs(par[2])       
+      sd  <- abs(par[3])       
       
       pred <- exp_func(trials, A, tau)
       residuals <- aim - pred
@@ -266,34 +262,31 @@ ModelTable <- function(results, strat_data) {
   model_counts <- results_joined %>%
     group_by(rotation, best_model) %>%
     summarise(count = n(), .groups = "drop")
-  
-  table <- model_counts %>%
-    pivot_wider(
-      names_from = rotation,
-      values_from = count,
-      values_fill = 0
-    ) %>%
-    arrange(best_model)
-  
-  return(table)
+ return(model_counts) 
 }
 
 ModelTable(results, strat_data)
 
-models <- results_joined
 
-modeltest <- table(results$best_model)[c("one-step", "exponential")]
-chisq.test(modeltest)
+###chi sq to see if model # signficantly differs from # of exp
 
-tbl2 <- table(results$best_model)[c("two-step", "exponential")]
-chisq.test(tbl2)
+ModelChi <- function () {
+model_counts <- results_joined %>%
+  group_by(best_model, rotation) %>%
+  summarise(count = n())
+chisq.test(model_counts$count)
+}
 
 
 #does rotation have an effect on predicted model fit?
-chisq_test <- chisq.test(
+ModelChi2 <- function () {
+  model_counts <- results_joined %>%
+    group_by(best_model, rotation) %>%
+    summarise(count = n())
+chisq.test(
   xtabs(count ~ rotation + best_model, data = model_counts)
 )
-chisq_test
+}
 
 
 
