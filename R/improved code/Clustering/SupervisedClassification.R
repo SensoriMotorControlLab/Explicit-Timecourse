@@ -165,57 +165,56 @@ print(model)
 ##------- Leave out method -------##
 
 ##we can generate trial features within each participant
-participant_features <- trial_features %>%
-  group_by(participant_id) %>%
-  summarise(
-    across(where(is.numeric), 
-           list(mean = mean, sd = sd), 
-           .names = "{.col}_{.fn}")) %>%
-  inner_join(onset_labels, by = "participant_id")
 
-participant_features_clean <- participant_features %>%
-  select(-participant_id)
-
-
-participant_features_clean$label <- as.factor(participant_features_clean$label)
-participant_features_clean[is.na(participant_features_clean)] <- 0
-participant_features_clean$participant_id <- participant_features$participant_id
-
-
-#-
-
-
-participants <- unique(participant_features_clean$participant_id)
-predictions <- data.frame(participant_id = character(),
-                          true_label = character(),
-                          predicted_label = character(),
-                          stringsAsFactors = FALSE)
-
-
-
-set.seed(42)
-for (p in participants) {
-
-  train_data <- participant_features_clean %>% filter(participant_id != p)
-  test_data  <- participant_features_clean %>% filter(participant_id == p)
+RFmodel <- function(trial_features, onset_labels) {
   
+  library(randomForest)
 
-  rf_model <- randomForest(label ~ . -participant_id, data = train_data, ntree = 500)
-
-  pred <- predict(rf_model, test_data)
-  predictions <- rbind(predictions,
-                       data.frame(participant_id = p,
-                                  true_label = as.character(test_data$label), #label from onset_label col
-                                  predicted_label = as.character(pred)))
+  participant_features <- trial_features %>%
+    group_by(participant_id) %>%
+    summarise(
+      across(where(is.numeric), 
+             list(mean = mean, sd = sd), 
+             .names = "{.col}_{.fn}")) %>%
+    inner_join(onset_labels, by = "participant_id")
+  
+  participant_features_clean <- participant_features %>%
+    select(-participant_id)
+  
+  participant_features_clean$label <- as.factor(participant_features_clean$label)
+  participant_features_clean[is.na(participant_features_clean)] <- 0
+  participant_features_clean$participant_id <- participant_features$participant_id
+  
+  # LOO method
+  participants <- unique(participant_features_clean$participant_id)
+  predictions <- data.frame(participant_id = character(),
+                            true_label = character(),
+                            predicted_label = character(),
+                            stringsAsFactors = FALSE)
+  
+  set.seed(42)
+  for (p in participants) {
+    train_data <- participant_features_clean %>% filter(participant_id != p)
+    test_data  <- participant_features_clean %>% filter(participant_id == p)
+    
+    rf_model <- randomForest(label ~ . -participant_id, data = train_data, ntree = 500)
+    pred <- predict(rf_model, test_data)
+    
+    predictions <- rbind(predictions,
+                         data.frame(participant_id = p,
+                                    true_label = as.character(test_data$label),
+                                    predicted_label = as.character(pred)))
+  }
+  
+  SuperTable <- table(predictions$true_label, predictions$predicted_label)
+  
+  return(list(predictions = predictions, SuperTable = SuperTable))
 }
 
-SuperTable <- table(predictions$true_label, predictions$predicted_label)
-
-SuperTable
-
+RFmodel(trial_features, onset_labels)
 
 ##plot 
-
+SuperPlot <- function () {
 predictions <- predictions %>%
   select(participant_id, predicted_label)
 trial_features_clustered <- trial_features %>%
@@ -261,7 +260,7 @@ ggplot(trial_features_clustered,
     y = "Aiming deviation (°)"
   ) +
   coord_cartesian(ylim = c(-80, 100))
-
+}
 
 
 
