@@ -110,8 +110,8 @@ Strategyfile()
 
 [Aiming stats script](newstats.R)
 
-1) Is final mean aim deviation different from final aligned mean in each
-group?
+1)  Is final mean aim deviation different from final aligned mean in
+    each group?
 
 ```{r}
 idealT()
@@ -128,7 +128,7 @@ Here we took the mean final 8 aligned and mean final 8 rotated per
 participant and ran 5 paired T-tests per rotation group. All tests
 reveal significance.
 
-2) Is strategy enagagement predicted by rotation size?
+2)  Is strategy enagagement predicted by rotation size?
 
 ```{r}
 logAnalysis()
@@ -137,7 +137,7 @@ logAnalysis()
 The odds of using an explicit strategy are much higher in the 40°, 50°,
 and 60° rotation groups compared to the 20° group.
 
-3) Does aim magnitude vary across rotation sizes?
+3)  Does aim magnitude vary across rotation sizes?
 
 ```{r}
 aimAOV()
@@ -147,7 +147,7 @@ Taking the mean from the last 16 trials, One way anova shows an effect
 of rotation size. Post-hoc tukey shows that the 60 degree group produces
 a higher aim strategy than all other groups.
 
-4) Does aim variance vary across rotation sizes?
+4)  Does aim variance vary across rotation sizes?
 
 ```{r}
 aimvarAOV()
@@ -158,7 +158,7 @@ rotation size. Post-hoc tukey shows that participants in the 60°
 rotation group show significantly greater variability in their final
 performance than participants in the 20°, 30°, and 40° groups.
 
-5) Is there an effect of rotation size on strategy-onset?
+5)  Is there an effect of rotation size on strategy-onset?
 
 ```{r}
 summary(aov(cutrial_no ~ factor(rotation), data = result_table))
@@ -193,22 +193,22 @@ if explicit learning follows and exponential vs stepwise process
 
 Aiming Onset
 
-### Is explicit learning an exponential process? 
+### Is explicit learning an exponential process?
 
 [Model Fits script](EXPvsSTEP.R)
 
 First, we can fit models to aimdeviation_deg data of each participant.
 Three models we can use are
 
-1) Step model - Do participant deviate their aim in 1 step and does this
-aim stay stable?
+1)  Step model - Do participant deviate their aim in 1 step and does
+    this aim stay stable?
 
-2) Two-step model - Do participants deviate their aim once (ie, around
-15 degrees) and modify their step again (ie, around their rotation
-size)?
+2)  Two-step model - Do participants deviate their aim once (ie, around
+    15 degrees) and modify their step again (ie, around their rotation
+    size)?
 
-3) Exponential - Do particpants deviate their aim in small incremental
-steps till it reaches their max aim deviation?
+3)  Exponential - Do particpants deviate their aim in small incremental
+    steps till it reaches their max aim deviation?
 
 For protocol see: [Open data analysis
 notebook](modelfittingprotocol.Rmd)
@@ -289,11 +289,17 @@ SuperTable
 
 -   Last, we can fit step functions that account for
 
-    -   1) timing (early vs late)
+    -   
 
-    -   2) variability (erratic)
+        1)  timing (early vs late)
 
-    -   3) sign flips (erratic)
+    -   
+
+        2)  variability (erratic)
+
+    -   
+
+        3)  sign flips (erratic)
 
 -   We can then see how these models align with the previous methods
 
