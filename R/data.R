@@ -4,11 +4,9 @@ library(osfr)
 
 #find project 
 project <- osf_retrieve_node("6g3h7")
-
-# List files in the project to see what you can download
 files <- osf_ls_files(project)
 
-# Download files (use the file names from 'files')
+
 osf_download(files, path = "data/", conflicts = "overwrite")
 
 getData <- function() {
