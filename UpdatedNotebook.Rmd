@@ -48,9 +48,18 @@ Source project code:
 
 ```{r}
 # download and handle data:
-source('R/')
-# scripts for group 2:
-source('R/')
+source("R/data.R") 
+source("R/newcode.R") 
+source("R/AimHistograms.R") 
+source("R/AimDevPlot.R") 
+source("R/newstats.R") 
+source("R/Modeling/EXPvsSTEP.R") 
+source("R/Modeling/originalmodelplots.R") 
+source("R/Clustering/UnsuperTrial.R") 
+source("R/Clustering/SupervisedClassification.R") 
+source("R/Clustering/InformedFits.R") 
+source("R/Reach Data/ReachDevPlot.R")
+source("R/Reach Data/IndividualReaches.R")
 ```
 
 ## Analysis
@@ -71,16 +80,17 @@ recieved.
 Filter out non-learners
 
 ```{r}
-LearnerCSV()
-total_learners_data <- LearnerCSV()
+learner_id <- getLearners()
+total_learners_data <- LearnerCSV(learner_id)
 ```
 
 ![](R/Figures/ReachPlot.png)
 
 We can plot participant reach deviations to show the magnitude of
-learning per rotation group [Reach script](reachstats.r)
+learning per rotation group
 
 ```{r}
+setupREACH(total_learners_data)
 plotREACH(summary_data)
 ```
 
@@ -103,7 +113,7 @@ degrees to account for motor noise
 For further analysis, we can create a csv file for only strategy users.
 
 ```{r}
-Strategyfile()
+Strategyfile(total_learners_data, ci_compare)
 ```
 
 #### Statistics
@@ -214,17 +224,21 @@ For protocol see: [Open data analysis
 notebook](modelfittingprotocol.Rmd)
 
 ```{r}
-fitAllModels()
-ModelTable(results, strat_data)
+fitAllModels(strat_data)
 
+#chi-sq test
+ModelChi()
 
-modeltest <- table(results$best_model)[c("one-step", "exponential")]
-chisq.test(modeltest)
 ```
 
-61 participants do not fit with the exponential model (n=44 for
+54 participants do not fit with the exponential model (n=42 for
 one-step). A chi-squared test revealed that significantly more
 participants were classified as one-step than exponential (p \<0.001)
+
+```{r}
+#chi-sq to see if model differs by rotation
+ModelChi2()
+```
 
 ![](R/Figures/ExponentialFit.png)
 
@@ -247,9 +261,14 @@ determine if we can observe similar patterns through three methods
 -   Next, we will run a pca analysis to 'summarize' the large data set
     before finding kmeans
 
+```{r}
+#table of cluster #
+PCA()
+```
+
 [Unsupervised Method script](UnsuperTrial.R)
 
-![](R/Figures/UnsuperCluster.png){width="417"}
+![](Unsuper.png)
 
 -   3 Clusters identified: participants who make an aim change
     immediately will mild sign flips, participants who make an aim
@@ -274,9 +293,7 @@ determine if we can observe similar patterns through three methods
 [Supervised Analysis](Supervisedclassifcation.R)
 
 ```{r}
-SuperTable <- table(predictions$true_label, predictions$predicted_label)
-
-SuperTable
+RFmodel(trial_features, onset_labels)
 ```
 
 ![](R/Figures/SuperCluster.png)
