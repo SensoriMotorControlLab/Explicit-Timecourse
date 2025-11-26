@@ -2,10 +2,6 @@
 
 library(osfr)
 
-# Authenticate (only if private repo)
-Sys.setenv(OSF_PAT = "IqrzYi7u2W7S6DEOmesigZz7AQRndT47ZsEL2fONAsNDSd8Uig09CSgiVbodcTORM9nmRI") 
-osf_auth() 
-
 #find project 
 project <- osf_retrieve_node("6g3h7")
 
