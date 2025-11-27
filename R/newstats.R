@@ -51,7 +51,6 @@ meanStep <- function(result_table = getStep(strat_data)) {
   return(mean_step_data)
 }
 
-meanStep(result_table)
 
 
 #log reg
