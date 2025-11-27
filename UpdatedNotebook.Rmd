@@ -118,6 +118,7 @@ For further analysis, we can create a csv file for only strategy users.
 
 ```{r}
 Strategyfile(total_learners_data, ci_compare)
+strat_data <- read.csv("data/strategy_only_participants.csv")
 ```
 
 #### Statistics
