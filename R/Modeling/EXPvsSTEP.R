@@ -250,7 +250,8 @@ chisq_test
 
 
 ModelRotChi <- function () {
-rotation_summary <- strat_data %>%
+  model_results <- fitAllModels(strat_data)
+  rotation_summary <- strat_data %>%
     group_by(participant_id) %>%
     summarize(rotation_size = unique(rotation)[1])  
 
