@@ -7,7 +7,7 @@ library(osfr)
 downloadData <- function() {
   project <- osf_retrieve_node("6g3h7")
   files <- osf_ls_files(project)
-  osf_download(files, path = "data/", conflicts = "overwrite")
+  osf_download(files, path = "Explicit-Timecourse/data/", conflicts = "overwrite")
 }
 
 getData <- function() {
@@ -20,7 +20,7 @@ getData <- function() {
         'Instructed_summary.zip',
        'pilot_all.zip',
         'pilot_summary.zip')),
-    folder = 'data/',
+    folder = 'Explicit-Timecourse/data/',
     overwrite = TRUE,
     unzip = TRUE,
     removezips = TRUE)
