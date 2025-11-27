@@ -189,21 +189,36 @@ if explicit learning follows and exponential vs stepwise process
 
 **Simulated Data:**
 
-![](R/Figures/ExpHist.png){width="233"}
+```{r}
+plot_step_histogram(step_data_var_jump)
+```
 
-![](R/Figures/StepHist.png){width="233"}
+```{r}
+simulate_exponential_learning()
+plot_step_histogram(exp_data)
+```
 
 **Observed Data:**
 
-![](R/Figures/60hist.png){width="208"}
+```{r}
+plot60aim()
+```
 
-![](R/Figures/50hist.png){width="208"}
+```{r}
+plot50aim()
+```
 
-![](R/Figures/40hist.png){width="208"}
+```{r}
+plot40aim()
+```
 
-![](R/Figures/30hist.png){width="233"}
+```{r}
+plot30aim()
+```
 
-![](R/Figures/20hist.png){width="233"}
+```{r}
+plot20aim()
+```
 
 Aiming Onset
 
