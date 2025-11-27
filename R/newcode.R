@@ -62,21 +62,17 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
       
       TRUE ~ NA_character_
     ))
-  
-  # Optionally save the combined dataset
+
   write_csv(total_group_data, file.path(dir, "total_group_data.csv"))
   
   return(total_group_data)
 }
 
 
-
 ####LEARNERS
 total_group_data <- load_total_group_data("data/Instructed_summary/")
 
 getLearners <- function(total_group_data) {
-  
-
   learner_df <- total_group_data %>%
     filter(
       (group == "Group 1" & cutrial_no %in% 193:208) |
@@ -84,42 +80,46 @@ getLearners <- function(total_group_data) {
     ) %>%
     group_by(participant_id, rotation, group) %>%
     reframe(
-      is_learner = median(reachdeviation_deg, na.rm = TRUE) > (rotation / 2),
-      .groups = "drop"
+      is_learner = median(reachdeviation_deg, na.rm = TRUE) > (rotation / 2)
     ) %>%
-    group_by(participant_id, rotation, group) %>%
-    summarise(
-      is_learner = any(is_learner), 
-      .groups = "drop"
-    )
+    distinct(participant_id, rotation, group, .keep_all = TRUE)
   
   learner_summary <- learner_df %>%
     group_by(rotation) %>%
-    summarise(
+    reframe(
       total_n = n(),
       n_learners = sum(is_learner),
-      percent_learners = round(100 * n_learners / total_n, 1),
-      .groups = "drop"
+      percent_learners = round(100 * n_learners / total_n, 1)
     )
   
-  print(learner_df)
-
   print(learner_summary)
-
-  return(list(
-    participant_level = learner_df,
-    rotation_summary = learner_summary
-  ))
+  return(learner_df)
+  
 }
 
+LearnerCSV <- function(total_group_data) {
 
+  learner_id <- getLearners(total_group_data) %>%
+    distinct(participant_id, rotation, group, .keep_all = TRUE)
 
+  
+  total_learners_data <- total_group_data %>%
+    inner_join(
+      learner_id %>% filter(is_learner == TRUE),
+      by = c("participant_id", "rotation", "group")
+    )
+  
+  write.csv(total_learners_data, "total_learners_data.csv", row.names = FALSE)
+  total_learners_data
+}
+learner_id <- getLearners(total_group_data)
+total_learners_data <- LearnerCSV(total_group_data)
 
 ####STRATEGY
 
 #use last 16 rotated trials which represents where strategies are most consistent
 
-getCI <- function () {
+getCI <- function (total_learners_data) {
   
   last_16_rotated_learners <- total_learners_data[
     (total_learners_data$cutrial_no %in% 193:208 & total_learners_data$group == 'Group 1') |
@@ -132,39 +132,42 @@ getCI <- function () {
     FUN = function(x) 
       Reach::getConfidenceInterval(x)
   )
-  return(CI)
+  return(list(CI = CI, data = last_16_rotated_learners))
 }
 
 #using CI function, we can now use a 95% interval approach to figure out strategy-users
-getStrategies <- function() {
-  ci_compare <<- getCI()  
-  ci_compare <- ci_compare %>%
-    group_by(participant_id) %>%
+getStrategies <- function(total_learners_data) {
+  
+  ci_result <- getCI(total_learners_data)
+  last_16 <- ci_result$data
+  
+  strategy_df <- last_16 %>%
+    group_by(participant_id, rotation) %>%
+    summarise(
+      final_trials = list(tail(aimdeviation_deg, 8)),
+      .groups = "drop"
+    ) %>%
+    rowwise() %>%  
     mutate(
-      final_trials = list(tail(
-        last_16_rotated_learners$aimdeviation_deg[
-          last_16_rotated_learners$participant_id == participant_id
-        ], 8
-      )),
       strategy = ifelse(
-        (aimdeviation_deg[,1] > 0 & aimdeviation_deg[,2] > 0) &
-          (length(final_trials[[1]]) == 8 & all(final_trials[[1]] >= 0)) &
-          (first(aimdeviation_deg[,1]) > 5),
+        length(final_trials) == 8 & all(final_trials >= 0),
         "Yes", "No"
       )
     ) %>%
     ungroup()
   
-  return(ci_compare)
+  return(strategy_df)
 }
 
-countStrategies <- function(ci_compare = getStrategies()) {
+ci_compare <- getStrategies(total_learners_data)
+
+countStrategies <- function(ci_compare) {
   strategy_users <- sum(ci_compare$strategy == "Yes", na.rm = TRUE)
   print(strategy_users)
 }
 
 
-strategySummary <- function (ci_compare = getStrategies()) {
+strategySummary <- function (ci_compare) {
   ci_compare %>% 
     group_by(rotation) %>%
     summarise(
