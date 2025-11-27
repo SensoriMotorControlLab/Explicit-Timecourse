@@ -2,7 +2,7 @@
 
 library(zoo)
 
-getFeatures <- function () {
+getFeatures <- function (strat_data) {
 strategy_data <- strat_data
 strategy_data <- strategy_data %>%
   filter(trial_type.x == "rotated") %>%
@@ -37,7 +37,8 @@ trial_summary <- trial_features %>%
   mutate(
     trial_of_change = trial_of_change * 8
   )
-return(trial_summary)
+return(list(trial_features = trial_features,
+            trial_summary = trial_summary))
 }
 
 
