@@ -57,11 +57,6 @@
 
 #-------------------------------#
 
-df <- total_learners_data[total_learners_data$participant_id == "15f2a1", ] 
-plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
-     xlim = c(0, 232),
-     col= "hotpink", lwd = 1)
-
 
 #-------------------------------#
 # Participants in cluster 2: delayed
@@ -82,11 +77,6 @@ plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
 # ee29d6 - delayed: 9.25 at trial 132
 #-------------------------------#
 
-df <- total_learners_data[total_learners_data$participant_id == "205194", ] 
-plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-80, 80),
-     xlim = c(0, 232),
-     col= "hotpink", lwd = 1)
-abline(v = 113, col = "black", lty = 2, lwd = 0.5)
 
 
 #-------------------------------#
@@ -106,7 +96,7 @@ abline(v = 113, col = "black", lty = 2, lwd = 0.5)
 library(randomForest)
 library(caret)
 library(dplyr)
-
+strat_data <- read.csv("data/strategy_only_participants.csv")
 
 onset_labels <- data.frame(
   participant_id = c("0c7728", "0f6fbf", "13cb04", "2525df", "2528e1", 
@@ -135,7 +125,47 @@ onset_labels <- data.frame(
             "erratic",  "rapid", "rapid", "delayed")
 )
 
+getFeatures <- function (strat_data) {
+  strategy_data <- strat_data
+  strategy_data <- strategy_data %>%
+    filter(trial_type.x == "rotated") %>%
+    
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%   
+    mutate(trial_after_rot = row_number() - 1) %>%  
+    ungroup()
+  
+  trial_features <- strategy_data %>%
+    filter(trial_after_rot <= 32) %>% 
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    mutate(
+      trial_of_change = {
+        t <- which(aimdeviation_deg > 7 | aimdeviation_deg < -7)
+        if (length(t) > 0) t[1] else NA
+      }
+    ) %>%
+    ungroup() %>%
+    select(participant_id, trial_after_rot, aimdeviation_deg, trial_of_change)
+  
+  
+  trial_summary <- trial_features %>%
+    group_by(participant_id) %>%
+    summarise(
+      trial_of_change = ifelse(all(is.na(trial_of_change)), 32, mean(trial_of_change, na.rm = TRUE)),
+      sd_aim   = sd(aimdeviation_deg, na.rm = TRUE),
+      mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+      prop_negative = mean(aimdeviation_deg < -3, na.rm = TRUE)
+    ) %>%
+    mutate(
+      trial_of_change = trial_of_change * 8
+    )
+  return(list(trial_features = trial_features,
+              trial_summary = trial_summary))
+}
+
 # labels with features
+participantFeatures <- function () {
 participant_features <- trial_features %>%
   group_by(participant_id) %>%
   summarise(
@@ -147,20 +177,8 @@ participant_features <- trial_features %>%
 participant_features_clean <- participant_features %>%
   select(-participant_id)
 participant_features_clean$label <- as.factor(participant_features_clean$label)
-
-
-set.seed(42)
-data.imputed <- rfImpute(label ~ ., data = participant_features_clean, iter = 5)
-
-model <- randomForest(label ~ ., data = data.imputed, ntree = 500, proximity = TRUE)
-print(model)
-
-#The confusion matrix shows:
-#       - Delayed: classified very well (11% error)
-#       - Rapid: excellent (7% error)
-#       - Erratic: 50% error — expected because this group is smaller and more variable
-
-
+return(participant_features )
+}
 
 
 ##------- Leave out method -------##
@@ -212,7 +230,6 @@ RFmodel <- function(trial_features, onset_labels) {
   return(list(predictions = predictions, SuperTable = SuperTable))
 }
 
-RFmodel(trial_features, onset_labels)
 
 ##plot 
 SuperPlot <- function () {
@@ -265,6 +282,7 @@ ggplot(trial_features_clustered,
 
 
 ####compare LOO to unsupervised trial-trial features!
+SupersChi <- function () {
 rf_labels <- predictions %>%
   select(participant_id, predicted_label) %>%
   distinct(participant_id, .keep_all = TRUE)
@@ -278,12 +296,13 @@ compare_df <- rf_labels %>%
   inner_join(unsupervised_labels, by = "participant_id")
 
 chisq.test(compare_df$predicted_label, compare_df$unsupervised_cluster)
-
+}
 
 
 
 #does rotation predict strategy type?
 
+ProportionSuperPlot <- function () {
 strategy_summary <- strategy_data %>%
   group_by(participant_id) %>%
   summarise(rotation = unique(rotation))
@@ -322,11 +341,11 @@ ggplot(plot_data, aes(x = label, y = prop, fill = as.factor(rotation))) +
     panel.background = element_blank(),
     panel.grid = element_blank(),     
   )
-  
+}  
 
 
+SuperRotationChi <- function () {
 cont_table <- table(filtered_data$label, filtered_data$rotation)
-
-# Run chi-squared test
 chi_sq_result <- chisq.test(cont_table)
 chi_sq_result
+}
