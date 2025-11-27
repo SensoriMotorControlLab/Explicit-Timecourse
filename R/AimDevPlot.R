@@ -27,6 +27,7 @@ setupAIM <- function(strat_data) {
   
   return(clean_data)
 }
+clean_data <- setupAIM(strat_data)
 
 summarizeAIM <- function(clean_data) {
   summary_data <- clean_data %>%
@@ -44,6 +45,8 @@ summarizeAIM <- function(clean_data) {
   
   return(summary_data)
 }
+
+summary_data <- summarizeAIM(clean_data)
 
 plotAIM <- function(summary_data) {
   hline_data <- data.frame(rotation = c(20, 30, 40, 50, 60),
