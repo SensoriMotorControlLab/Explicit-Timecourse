@@ -1,75 +1,72 @@
-dir <- "data/Instructed_summary/"  
 library(readr)
 library(dplyr)
-rotations <- c(20, 30, 40, 50, 60)
 
-all_data <- list()
-participant_counter <- 1
+load_total_group_data <- function(dir = "data/Instructed_summary/") {
+  
+  rotations <- c(20, 30, 40, 50, 60)
+  all_data <- list()
+  
+  for (rot in rotations) {
+    folder_path <- file.path(dir, paste0("aiming", rot))
+    csv_files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
+    
+    for (file in csv_files) {
+      df <- read_csv(file, show_col_types = FALSE)
+      
 
-for (rot in rotations) {
-  folder_path <- file.path(dir, paste0("aiming", rot))
-  
-  csv_files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
-  
-  for (file in csv_files) {
-    df <- read_csv(file, show_col_types = FALSE)
-    
-    participant_id <- gsub(paste0("SUMMARY_aiming", rot, "_(.*)\\.csv"), "\\1", basename(file))
-    
-    
-    # Determine group based on task_idx (if max task_idx ≤ 13 → group 2)
-  
-    max_idx <- max(df$task_idx, na.rm = TRUE)
-    group <- if (max_idx <= 10) {
-      "Group 1"
-    } else if (max_idx <= 13) {
-      "Group 2"
-    } else {
-      "Unknown"
+      participant_id <- gsub(paste0("SUMMARY_aiming", rot, "_(.*)\\.csv"), "\\1", basename(file))
+      
+      max_idx <- max(df$task_idx, na.rm = TRUE)
+      group <- if (max_idx <= 10) {
+        "Group 1"
+      } else if (max_idx <= 13) {
+        "Group 2"
+      } else {
+        "Unknown"
+      }
+      
+      df <- df %>%
+        mutate(participant_id = participant_id,
+               group = group,
+               rotation = rot)
+      
+      all_data[[length(all_data) + 1]] <- df
     }
-    
-    df <- df %>%
-      mutate(participant_id = participant_id,
-             group = group,
-             rotation = rot)
-    
-    all_data[[length(all_data) + 1]] <- df
-    participant_counter <- participant_counter + 1
   }
+  
+  total_group_data <- bind_rows(all_data)
+  
+  total_group_data <- total_group_data %>%
+    mutate(trial_type = case_when(
+      group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+      group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
+      group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
+      group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
+      group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
+      group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
+      group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
+      group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamprotated",
+      group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthandrotated",
+      
+      group == "Group 2" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+      group == "Group 2" & cutrial_no >= 25  & cutrial_no <= 40   ~ "nocursor",
+      group == "Group 2" & cutrial_no >= 41  & cutrial_no <= 56   ~ "aligned",
+      group == "Group 2" & cutrial_no >= 57  & cutrial_no <= 64   ~ "errorclamp",
+      group == "Group 2" & cutrial_no >= 65  & cutrial_no <= 72   ~ "aligned",
+      group == "Group 2" & cutrial_no >= 73  & cutrial_no <= 80   ~ "nocursor",
+      group == "Group 2" & cutrial_no >= 81  & cutrial_no <= 88   ~ "aligned",
+      group == "Group 2" & cutrial_no >= 89  & cutrial_no <= 96   ~ "nocursor",
+      group == "Group 2" & cutrial_no >= 97  & cutrial_no <= 112  ~ "aligned",
+      group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 232  ~ "rotated",
+      group == "Group 2" & cutrial_no >= 233 & cutrial_no <= 256  ~ "nocursor",
+      
+      TRUE ~ NA_character_
+    ))
+  
+  write_csv(total_group_data, file.path(dir, "total_group_data.csv"))
+  
+  return(total_group_data)
 }
-
-
-total_group_data <- bind_rows(all_data)
-write_csv(total_group_data, "data/total_group_data.csv")
-
-
-total_group_data <- total_group_data %>%
-  mutate(trial_type= case_when(
-    group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
-    group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
-    group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
-    group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
-    group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
-    group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
-    group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
-    group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamprotated",
-    group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthandrotated",
-    
-    group == "Group 2" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
-    group == "Group 2" & cutrial_no >= 25  & cutrial_no <= 40   ~ "nocursor",
-    group == "Group 2" & cutrial_no >= 41  & cutrial_no <= 56   ~ "aligned",
-    group == "Group 2" & cutrial_no >= 57  & cutrial_no <= 64   ~ "errorclamp",
-    group == "Group 2" & cutrial_no >= 65  & cutrial_no <= 72   ~ "aligned",
-    group == "Group 2" & cutrial_no >= 73  & cutrial_no <= 80   ~ "nocursor",
-    group == "Group 2" & cutrial_no >= 81  & cutrial_no <= 88   ~ "aligned",
-    group == "Group 2" & cutrial_no >= 89  & cutrial_no <= 96   ~ "nocursor",
-    group == "Group 2" & cutrial_no >= 97  & cutrial_no <= 112  ~ "aligned",
-    group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 232  ~ "rotated",
-    group == "Group 2" & cutrial_no >= 233 & cutrial_no <= 256  ~ "nocursor",
-    
-    TRUE ~ NA_character_  # Default if no condition matches
-  ))
-
 
 
 
