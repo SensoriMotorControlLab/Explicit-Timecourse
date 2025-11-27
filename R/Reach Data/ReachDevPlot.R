@@ -39,8 +39,9 @@ setupREACH <- function(total_learners_data) {
   return(summary_data)
 }
 
-plotREACH <- function(summary_data) {
-  
+
+plotREACH <- function(total_learners_data) {
+  summary_data <- setupREACH(total_learners_data)
   rotation_levels <- sort(unique(summary_data$rotation))
   
   ggplot(summary_data, aes(
@@ -81,4 +82,6 @@ plotREACH <- function(summary_data) {
     )
 }
 
-plotREACH(summary_data)
+
+
+
