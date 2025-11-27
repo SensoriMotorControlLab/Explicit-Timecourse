@@ -150,7 +150,7 @@ getStrategies <- function(total_learners_data) {
     rowwise() %>%  
     mutate(
       strategy = ifelse(
-        length(final_trials) == 8 & all(final_trials >= 0),
+        length(final_trials) == 8 & all(final_trials >= 4.5),
         "Yes", "No"
       )
     ) %>%
