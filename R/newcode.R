@@ -63,6 +63,7 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
       TRUE ~ NA_character_
     ))
   
+  # Optionally save the combined dataset
   write_csv(total_group_data, file.path(dir, "total_group_data.csv"))
   
   return(total_group_data)
@@ -71,54 +72,47 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
 
 
 ####LEARNERS
+total_group_data <- load_total_group_data("data/Instructed_summary/")
 
-getLearners <- function() {
+getLearners <- function(total_group_data) {
+  
+
   learner_df <- total_group_data %>%
     filter(
       (group == "Group 1" & cutrial_no %in% 193:208) |
         (group == "Group 2" & cutrial_no %in% 217:232)
     ) %>%
-    group_by(participant_id, rotation) %>%
+    group_by(participant_id, rotation, group) %>%
     reframe(
       is_learner = median(reachdeviation_deg, na.rm = TRUE) > (rotation / 2),
       .groups = "drop"
-    )
-  
-  learner_id <- learner_df %>%
-    group_by(participant_id, rotation) %>%
+    ) %>%
+    group_by(participant_id, rotation, group) %>%
     summarise(
-      is_learner = any(is_learner),  # or if it's unique per participant, just take first()
+      is_learner = any(is_learner), 
       .groups = "drop"
     )
   
-  learner_summary <- learner_id %>%
+  learner_summary <- learner_df %>%
     group_by(rotation) %>%
     summarise(
-      total_n = n(),  # count unique participants in each rotation
+      total_n = n(),
       n_learners = sum(is_learner),
       percent_learners = round(100 * n_learners / total_n, 1),
       .groups = "drop"
     )
+  
+  print(learner_df)
+
   print(learner_summary)
-  
-  return(learner_id) 
+
+  return(list(
+    participant_level = learner_df,
+    rotation_summary = learner_summary
+  ))
 }
 
 
-#filter out non learners
-LearnerCSV <- function(learner_id) {
-  total_learners_data <- total_group_data %>%
-    left_join(learner_id, by = c("participant_id", "rotation")) %>% 
-    filter(is_learner) %>%    
-    select(participant_id, cutrial_no, aimdeviation_deg, reachdeviation_deg,
-           rotation, trial_type, group)
-  
-  write_csv(total_learners_data, "data/total_learners_data.csv")
-  return(total_learners_data)
-}
-
-learner_id <- getLearners()
-total_learners_data <- LearnerCSV(learner_id)
 
 
 ####STRATEGY
