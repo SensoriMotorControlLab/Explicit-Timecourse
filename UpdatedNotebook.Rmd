@@ -16,7 +16,7 @@ In this experiment, participants learned to counter a rotation and were
 instructed to report their aiming strategy by changing the direction of
 an arrow.
 
-Rotation sizes introduced were 20, 30, 40, 50, and 60 degrees.
+Rotation sizes introduced were 20, 30, 40, 50, and 60 degrees
 
 <br>
 
@@ -42,6 +42,13 @@ if ('Reach' %in% ip[,'Package']) {
 } else {
   remotes::install_github('thartbm/Reach')
 }
+```
+
+Download Files
+
+```{r}
+downloadData()
+getData()
 ```
 
 Source project code:
@@ -84,14 +91,13 @@ learner_id <- getLearners()
 total_learners_data <- LearnerCSV(learner_id)
 ```
 
-![](R/Figures/ReachPlot.png)
-
 We can plot participant reach deviations to show the magnitude of
 learning per rotation group
 
 ```{r}
 setupREACH(total_learners_data)
-plotREACH(summary_data)
+plotREACH(total_learners_data)
+
 ```
 
 ### Aiming
@@ -120,18 +126,12 @@ Strategyfile(total_learners_data, ci_compare)
 
 [Aiming stats script](newstats.R)
 
-1)  Is final mean aim deviation different from final aligned mean in
-    each group?
+1)  Does final aligned and first rotated differ from \~0
 
 ```{r}
-idealT()
+zeroT(strat_data)
 
-results <- idealT()
 
-for (i in 1:nrow(results)) {
-  cat("\n\n===== Rotation", results$rotation[i], "=====\n")
-  print(results$ttest[[i]])
-}
 ```
 
 Here we took the mean final 8 aligned and mean final 8 rotated per
@@ -171,14 +171,18 @@ performance than participants in the 20°, 30°, and 40° groups.
 5)  Is there an effect of rotation size on strategy-onset?
 
 ```{r}
-summary(aov(cutrial_no ~ factor(rotation), data = result_table))
+startTrialAOV(result_table)
 ```
 
 #### Visualization
 
 **Aiming Behaviour**
 
-![](R/Figures/AimDevLine.png)
+```{r}
+setupAIM(strat_data)
+summarizeAIM(clean_data)
+plotAIM(summary_data)
+```
 
 Next, we can look at all aim data across individuals to predict visually
 if explicit learning follows and exponential vs stepwise process
@@ -226,19 +230,17 @@ notebook](modelfittingprotocol.Rmd)
 ```{r}
 fitAllModels(strat_data)
 
+```
+
+```{r}
 #chi-sq test
 ModelChi()
-
+ModelRotChi()
 ```
 
 54 participants do not fit with the exponential model (n=42 for
 one-step). A chi-squared test revealed that significantly more
 participants were classified as one-step than exponential (p \<0.001)
-
-```{r}
-#chi-sq to see if model differs by rotation
-ModelChi2()
-```
 
 ![](R/Figures/ExponentialFit.png)
 
@@ -266,9 +268,11 @@ determine if we can observe similar patterns through three methods
 PCA()
 ```
 
-[Unsupervised Method script](UnsuperTrial.R)
+```{r}
+UnsuperPlot()
+```
 
-![](Unsuper.png)
+[Unsupervised Method script](UnsuperTrial.R)
 
 -   3 Clusters identified: participants who make an aim change
     immediately will mild sign flips, participants who make an aim
@@ -296,53 +300,49 @@ PCA()
 RFmodel(trial_features, onset_labels)
 ```
 
-![](R/Figures/SuperCluster.png)
+```{r}
+SuperPlot()
+
+```
+
+```{r}
+#Strategy types across rotation groups
+SuperRotationChi()
+```
 
 -   2 in the delayed group were mislabeled as rapid, 1 in the rapid
     group was mislabeled as delayed, 50% people in the erratic group
     were mislabeled.
 
+```{r}
+#does rotation predict supervised-predicted strategy type?
+SuperRotationChi()
+```
+
 **3) Informed Model fits**
 
--   Last, we can fit step functions that account for
+-   Last, we can fit step functions that account for:
 
-    -   
+    -   <div>
 
-        1)  timing (early vs late)
+        1.  timing (early vs late)
+        2.  variability (erratic)
+        3.  sign flips (erratic)
 
-    -   
-
-        2)  variability (erratic)
-
-    -   
-
-        3)  sign flips (erratic)
+        </div>
 
 -   We can then see how these models align with the previous methods
 
 ```{r}
-fit_step_model_onset()
+InformedTable(classified, rf_labels, unsupervised_labels)
 
-step_fits <- strategy_data %>%
-  group_by(participant_id) %>%
-  group_modify(~ fit_step_model_onset(.x))
+```
 
-classified <- step_fits %>%
-  left_join(early_sd, by = "participant_id") %>%
-  left_join(sign_flips_df, by = "participant_id") %>%  
-  mutate(
-    model_class = case_when(
-      sd_early > 10 & sign_flips > 3 ~ "erratic", 
-      t0 <= 10 ~ "rapid",
-      t0 > 10  ~ "delayed",
-      TRUE ~ "unclassified"
-    )
-  )
+```{r}
+informedResults(strat_data)
 ```
 
 [Informed Modelling Script](InformedFits.R)
-
-![](R/Figures/InformedCluster.png)
 
 -   44 participants fit to a "rapid step model"
 
