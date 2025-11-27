@@ -7,19 +7,18 @@ all_data <- list()
 participant_counter <- 1
 
 for (rot in rotations) {
-  folder_path <- file.path(dir, paste0("aiming", rot))  # e.g., aiming40
+  folder_path <- file.path(dir, paste0("aiming", rot))
   
   csv_files <- list.files(folder_path, pattern = "\\.csv$", full.names = TRUE)
   
   for (file in csv_files) {
-    df <- read_csv(file)
+    df <- read_csv(file, show_col_types = FALSE)
     
     participant_id <- gsub(paste0("SUMMARY_aiming", rot, "_(.*)\\.csv"), "\\1", basename(file))
     
     
     # Determine group based on task_idx (if max task_idx ≤ 13 → group 2)
-    group <- ifelse(max(df$task_idx, na.rm = TRUE) <= 13, "Group 2", "Group 1")
-    
+  
     max_idx <- max(df$task_idx, na.rm = TRUE)
     group <- if (max_idx <= 10) {
       "Group 1"
@@ -29,7 +28,6 @@ for (rot in rotations) {
       "Unknown"
     }
     
-    # Add new columns
     df <- df %>%
       mutate(participant_id = participant_id,
              group = group,
@@ -212,27 +210,4 @@ Strategyfile <- function(total_learners_data, ci_compare) {
 }
 
 
-
-
-
-###not a part of my data analysis###
-
-#onestep
-df <- total_group_data[total_group_data$participant_id == "7eec53", ] 
-plot(df$aimdeviation_deg, type = "l", main = "aiming 60", ylim = c(-10, 60),
-     col= "#FF69B4", lwd = 1)
-abline(v = 89, col = "black", lty = 2)
-
-
-
-#two step 
-df <- total_group_data[total_group_data$participant_id == "13d986", ] 
-plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 60))
-abline(v = 113, col = "red", lty = 2)
-
-
-#exp
-df <- total_group_data[total_group_data$participant_id == "a02c67", ] 
-plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 60))
-abline(v = 113, col = "red", lty = 2)
 
