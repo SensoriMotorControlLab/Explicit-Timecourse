@@ -39,14 +39,17 @@ hist2d <- function(x, y=NA, nbins=c(25,25), edges=NA) {
 
 #create data frame
 
+
 last_8_aligned <- total_learners_data[
   (total_learners_data$cutrial_no %in% 85:88 & total_learners_data$group == 'Group 1') |
     (total_learners_data$cutrial_no %in% 109:112 & total_learners_data$group == 'Group 2'),]
 
 last_8_aligned <- last_8_aligned %>%
-  group_by(group, participant_id) %>%  # adjust 'participant_id' to your actual column name
-  mutate(time = -4:-1) %>%
+  group_by(group, participant_id) %>%
+  arrange(cutrial_no) %>%
+  mutate(time = seq(-n(), -1)) %>%
   ungroup()
+
 
 last_8_aligned_learners <- last_8_aligned %>%
   semi_join(  learner_id , by = c("rotation", "participant_id"))
@@ -65,8 +68,10 @@ first_32_rotated <- total_learners_data[
 
 first_32_rotated <- first_32_rotated %>%
   group_by(group, participant_id) %>%
-  mutate(time = 0:31) %>%
+  arrange(cutrial_no) %>%
+  mutate(time = seq(0, n()-1)) %>%
   ungroup()
+
 
 first_32_rotated_learners <- first_32_rotated %>%
   semi_join(  learner_id , by = c("rotation", "participant_id"))
