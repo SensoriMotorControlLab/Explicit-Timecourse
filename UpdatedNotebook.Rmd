@@ -76,7 +76,7 @@ Did all participants learn to counter the perturbation at least 50% of
 the time?
 
 ```{r}
-getLearners()
+getLearners(total_group_data)
 ```
 
 This is determined by ensuring the reachadeviation_deg median of the
@@ -86,8 +86,7 @@ recieved.
 Filter out non-learners
 
 ```{r}
-learner_id <- getLearners()
-total_learners_data <- LearnerCSV(learner_id)
+LearnerCSV(total_group_data)
 ```
 
 We can plot participant reach deviations to show the magnitude of
@@ -106,8 +105,8 @@ plotREACH(total_learners_data)
 Did all learners have a strategy (ie, deviate their aim)?
 
 ```{r}
-getStrategies()
-strategySummary()
+getStrategies(total_learners_data)
+strategySummary(ci_compare)
 ```
 
 We can use a 95% CI approach to determine strategy-users. A strategy
