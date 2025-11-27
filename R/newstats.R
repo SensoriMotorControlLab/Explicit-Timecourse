@@ -28,7 +28,7 @@ getStep <- function(strat_data) {
   
   return(result_table)
 }
-
+result_table <- getStep(strat_data)
 
 
 meanStep <- function(result_table = getStep(strat_data)) {
@@ -144,6 +144,7 @@ startTrialAOV <- function(result_table) {
 
 #does final aligned and first rotated differ from 0 (or -5 to 5 threshold)?
 zeroT <- function(strat_data) {
+  strat_data <- read.csv("data/strategy_only_participants.csv")
   results <- list()
   
   last_aligned <- strat_data %>%
@@ -170,7 +171,7 @@ zeroT <- function(strat_data) {
 #does rotated differ from ideal angle?
 
   idealT <- function(strat_data) {
-    
+    strat_data <- read.csv("data/strategy_only_participants.csv")
     final_aligned <- strat_data %>%
       filter(trial_type.x == "aligned") %>%
       group_by(participant_id, rotation) %>%
