@@ -44,13 +44,6 @@ if ('Reach' %in% ip[,'Package']) {
 }
 ```
 
-Download Files
-
-```{r}
-downloadData()
-getData()
-```
-
 Source project code:
 
 ```{r}
@@ -61,12 +54,18 @@ source("R/AimHistograms.R")
 source("R/AimDevPlot.R") 
 source("R/newstats.R") 
 source("R/Modeling/EXPvsSTEP.R") 
-source("R/Modeling/originalmodelplots.R") 
 source("R/Clustering/UnsuperTrial.R") 
 source("R/Clustering/SupervisedClassification.R") 
 source("R/Clustering/InformedFits.R") 
 source("R/Reach Data/ReachDevPlot.R")
 source("R/Reach Data/IndividualReaches.R")
+```
+
+Download Files
+
+```{r}
+downloadData()
+getData()
 ```
 
 ## Analysis
