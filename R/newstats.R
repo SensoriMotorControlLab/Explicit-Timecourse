@@ -1,38 +1,37 @@
 library(tidyr)
+#load data
+strat_data <- read.csv("data/strategy_only_participants.csv")
 
-getStep <- function () {
-  strat_data <- read.csv("data/strategy_only_participants.csv")
-  
-  aligned_trials <- subset(strat_data, 
+
+getStep <- function(strat_data) {
+  aligned_trials <- subset(strat_data,
                            (group == "Group 1" & cutrial_no >= 81 & cutrial_no <= 88) |
                              (group == "Group 2" & cutrial_no >= 101 & cutrial_no <= 112))
   
-  
-  
-  rotated_trials <- subset(strat_data, 
+  rotated_trials <- subset(strat_data,
                            (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
                              (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
-  
   
   first_50_rotated <- rotated_trials %>%
     group_by(participant_id) %>%
     arrange(cutrial_no) %>%
     slice_head(n = 50) %>%
-    mutate(cutrial_no = row_number())  # Count trial numbers 1 to 50 within participant
+    mutate(cutrial_no = row_number())
   
   first_step_over_10 <- first_50_rotated %>%
     filter(aimdeviation_deg > 10) %>%
     group_by(participant_id) %>%
     slice_min(order_by = cutrial_no, n = 1)
   
-  
-  result_table <- dplyr::select(first_step_over_10, 
+  result_table <- dplyr::select(first_step_over_10,
                                 participant_id, rotation, cutrial_no, aimdeviation_deg)
   
-  print(result_table)
+  return(result_table)
 }
 
-meanStep <- function () { 
+
+
+meanStep <- function(result_table = getStep(strat_data)) {
   mean_transitions <- result_table %>%
     group_by(rotation) %>%
     summarise(
@@ -48,9 +47,11 @@ meanStep <- function () {
       aim_deviation = list(ifelse(-8:50 < mean_cut, 0, mean_aim))
     ) %>%
     unnest(c(trial, aim_deviation))
-}  
+  
+  return(mean_step_data)
+}
 
-
+meanStep(result_table)
 
 
 #log reg
@@ -131,8 +132,10 @@ aimvarAOV <- function () {
 
 
 #Is the average trial number where participants start using a strategy different across the rotation groups?
-summary(aov(cutrial_no ~ factor(rotation), data = result_table))
-
+startTrialAOV <- function(result_table) {
+  anova_result <- aov(cutrial_no ~ factor(rotation), data = result_table)
+  return(summary(anova_result))
+}
 
 #Descriptive Stats for aiming deviation of strategy-users (last 16 rotated trials)
 
@@ -140,78 +143,61 @@ summary(aov(cutrial_no ~ factor(rotation), data = result_table))
 ########T-tests
 
 
-#does final aligned differ from 0 (or -5 to 5 threshold)?
-zeroT <- function () {
+#does final aligned and first rotated differ from 0 (or -5 to 5 threshold)?
+zeroT <- function(strat_data) {
   results <- list()
+  
   last_aligned <- strat_data %>%
-    filter(trial_type.x == "aligned") %>% 
-    group_by(participant_id) %>%      
-    arrange(cutrial_no, .by_group = TRUE) %>%  
-    slice_tail(n = 16) %>%            # take last 16 per participant
+    filter(trial_type.x == "aligned") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 16) %>%
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
   
   results[["aligned"]] <- t.test(last_aligned$mean_aim, mu = -1)
-  
-  
-  #does first rotated differ from 0?
-  first_rotated <-  subset(strat_data, 
-                           (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
-                             (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163))
-  
+
   first_rotated <- strat_data %>%
-    filter(trial_type.x == "rotated") %>% 
-    group_by(participant_id) %>%      
-    arrange(cutrial_no, .by_group = TRUE) %>%  
-    slice_head(n = 16) %>%            
+    filter(trial_type.x == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_head(n = 16) %>%
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
   
-  results[["rotated"]] <- t.test(first_rotated$mean_aim, mu=-0.88)
+  results[["rotated"]] <- t.test(first_rotated$mean_aim, mu = 0)
   
   return(results)
 }
-
 
 #does rotated differ from ideal angle?
 
-idealT <- function() {
+  idealT <- function(strat_data) {
+    
+    final_aligned <- strat_data %>%
+      filter(trial_type.x == "aligned") %>%
+      group_by(participant_id, rotation) %>%
+      arrange(cutrial_no, .by_group = TRUE) %>%
+      slice_tail(n = 8) %>%
+      summarise(mean_aligned = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
+    
+    
+    final_rotated <- strat_data %>%
+      filter(trial_type.x == "rotated") %>%
+      group_by(participant_id, rotation) %>%
+      arrange(cutrial_no, .by_group = TRUE) %>%
+      slice_tail(n = 8) %>%
+      summarise(mean_rotated = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
+    
+    combined <- inner_join(final_aligned, final_rotated,
+                           by = c("participant_id", "rotation"))
   
-  # get final 8 ALIGNED means per participant
-  final_aligned <- strat_data %>%
-    filter(trial_type.x == "aligned") %>%
-    group_by(participant_id, rotation) %>%
-    arrange(cutrial_no, .by_group = TRUE) %>%
-    slice_tail(n = 8) %>%
-    summarise(mean_aligned = mean(aimdeviation_deg, na.rm = TRUE),
-              .groups = "drop")
-  
-  # get final 8 ROTATED means per participant
-  final_rotated <- strat_data %>%
-    filter(trial_type.x == "rotated") %>%
-    group_by(participant_id, rotation) %>%
-    arrange(cutrial_no, .by_group = TRUE) %>%
-    slice_tail(n = 8) %>%
-    summarise(mean_rotated = mean(aimdeviation_deg, na.rm = TRUE),
-              .groups = "drop")
-  
-
-  combined <- inner_join(final_aligned, final_rotated,
-                         by = c("participant_id", "rotation"))
-  
-#paired t. test
-  results <- combined %>%
-    group_by(rotation) %>%
-    summarise(
-      ttest = list(t.test(mean_rotated, mean_aligned, paired = TRUE)),
-      .groups = "drop"
-    )
-  
-  return(results)
-}
-
-results <- idealT()
-
-for (i in 1:nrow(results)) {
-  cat("\n\n===== Rotation", results$rotation[i], "=====\n")
-  print(results$ttest[[i]])
-}
-
+    results <- combined %>%
+      group_by(rotation) %>%
+      summarise(
+        t_stat = t.test(mean_rotated, mean_aligned, paired = TRUE)$statistic,
+        df = t.test(mean_rotated, mean_aligned, paired = TRUE)$parameter,
+        p_value = t.test(mean_rotated, mean_aligned, paired = TRUE)$p.value,
+        .groups = "drop"
+      )
+    
+    return(results)
+  }
