@@ -50,6 +50,7 @@ summarizeAIM <- function() {
 
 
 plotAIM <- function() {
+  clean_data <- setupAIM()
   summary_data <- summarizeAIM()
   hline_data <- data.frame(rotation = c(20, 30, 40, 50, 60),
                            yintercept = c(20, 30, 40, 50, 60))
