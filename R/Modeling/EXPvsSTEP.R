@@ -179,7 +179,8 @@ compute_aic <- function(mse, k, n){
 }
 
 ##fit all models and find lowest aic
-fitAllModels <- function(strat_data){
+fitAllModels <- function(){
+  strat_data <- read.csv("data/strategy_only_participants.csv")
   results <- data.frame(
     participant = character(),
     group = character(),
