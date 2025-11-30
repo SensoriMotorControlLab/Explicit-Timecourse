@@ -39,54 +39,61 @@ hist2d <- function(x, y=NA, nbins=c(25,25), edges=NA) {
 
 #create data frame
 
-
-last_8_aligned <- total_learners_data[
+df <- function () {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  learner_id <- suppressMessages(getLearners())
+  
+  
+  
+   last_8_aligned <- total_learners_data[
   (total_learners_data$cutrial_no %in% 85:88 & total_learners_data$group == 'Group 1') |
     (total_learners_data$cutrial_no %in% 109:112 & total_learners_data$group == 'Group 2'),]
 
-last_8_aligned <- last_8_aligned %>%
+  last_8_aligned <- last_8_aligned %>%
   group_by(group, participant_id) %>%
   arrange(cutrial_no) %>%
   mutate(time = seq(-n(), -1)) %>%
   ungroup()
 
 
-last_8_aligned_learners <- last_8_aligned %>%
-  semi_join(  learner_id , by = c("rotation", "participant_id"))
+  last_8_aligned_learners <- last_8_aligned %>%
+  semi_join(learner_id , by = c("rotation", "participant_id"))
 
-dfAligned <- data.frame(
+  dfAligned <- data.frame(
   x = last_8_aligned_learners$time,
   y = last_8_aligned_learners$aimdeviation_deg,
   rotation_group = last_8_aligned_learners$rotation
-)
+  )
 
 
-first_32_rotated <- total_learners_data[
+  first_32_rotated <- total_learners_data[
   (total_learners_data$cutrial_no %in% 89:120 & total_learners_data$group == 'Group 1') |
     (total_learners_data$cutrial_no %in% 105:136 & total_learners_data$group == 'Group 2'),]
 
 
-first_32_rotated <- first_32_rotated %>%
+  first_32_rotated <- first_32_rotated %>%
   group_by(group, participant_id) %>%
   arrange(cutrial_no) %>%
   mutate(time = seq(0, n()-1)) %>%
   ungroup()
 
 
-first_32_rotated_learners <- first_32_rotated %>%
+  first_32_rotated_learners <- first_32_rotated %>%
   semi_join(  learner_id , by = c("rotation", "participant_id"))
 
-dfRotated <- data.frame(
+  dfRotated <- data.frame(
   x = first_32_rotated_learners$time,
   y= first_32_rotated_learners$aimdeviation_deg,
   rotation_group = first_32_rotated_learners$rotation
-)
+  )
 
-all_hist_data <- rbind(dfAligned, dfRotated)
-
+  all_hist_data <- rbind(dfAligned, dfRotated)
+  return(all_hist_data)
+}
 
 #60 aiming histogram
 plot60aim <- function () {
+  all_hist_data <- df ()
   aim_60_hist <- all_hist_data %>%
     filter(rotation_group == '60')
   
@@ -131,6 +138,7 @@ plot60aim <- function () {
 
 #50 aiming histogram
 plot50aim <- function () {
+  all_hist_data <- df ()
   aim_50_hist <- all_hist_data %>%
     filter(rotation_group == '50')
   
@@ -168,6 +176,7 @@ plot50aim <- function () {
 #40 aiming histogram
 
 plot40aim <- function () {
+  all_hist_data <- df ()
   aim_40_hist <- all_hist_data %>%
     filter(rotation_group == '40')
   
@@ -204,6 +213,7 @@ plot40aim <- function () {
 
 
 plot30aim <- function () {
+  all_hist_data <- df ()
   aim_30_hist <- all_hist_data %>%
     filter(rotation_group == '30')
   
@@ -240,6 +250,7 @@ plot30aim <- function () {
 
 
 plot20aim <- function () {
+  all_hist_data <- df ()
   aim_20_hist <- all_hist_data %>%
     filter(rotation_group == '20')
   
@@ -282,33 +293,6 @@ plot20aim <- function () {
 
 ####Simulations
 
-plot_step_histogram <- function(sim_data) {
-  plot(NA,
-       # main = 'Step-like Explicit Learning (60°)',
-       xlab = 'Trial', ylab = 'Aim Deviation (°)',
-       xlim = c(-8, 32), ylim = c(-15, 65),
-       ax = FALSE, bty = 'n',
-       cex.lab = 1.5,     # Axis titles (xlab, ylab)
-       cex.axis = 4,  # Axis numbers
-       cex.main = 2)
-  
-  img_info <- hist2d(x = sim_data[, c("time", "aimdeviation_deg")],
-                     edges = list(seq(-8, 31.5, 1), seq(-15, 65, 2.5)))
-  
-  img <- log(img_info$freq2D + 1)
-  
-  image(x = img_info$x.edges,
-        y = img_info$y.edges,
-        col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
-        z = img,
-        add = TRUE)
-  
-  axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
-  axis(side = 2, at = seq(-10, 60, 10))
-  lines(x = c(-8, 0, 0, 32), y = c(-0.5, -0.5, 64.5, 64.5),
-        col = 'navy', lty = 3, lwd = 2)
-}
-
 simulate_step_function_variable_jump <- function(n_participants = 50,
                                                  jump_range = c(5, 20),
                                                  pre_mean = 0, post_mean = 60,
@@ -339,13 +323,6 @@ simulate_step_function_variable_jump <- function(n_participants = 50,
 }
 
 
-step_data_var_jump <- simulate_step_function_variable_jump(n_participants = 80)
-plot_step_histogram(step_data_var_jump)
-
-
-
-
-
 
 simulate_exponential_learning <- function(n_participants = 50,
                                           start_mean = 0,
@@ -359,7 +336,6 @@ simulate_exponential_learning <- function(n_participants = 50,
   for (i in 1:n_participants) {
     pid <- paste0("sim_", i)
     
-    # Aligned phase: stable baseline
     aligned <- data.frame(
       participant_id = pid,
       time = -n_pre:-1,
@@ -368,7 +344,7 @@ simulate_exponential_learning <- function(n_participants = 50,
     
     time_post <- 0:(n_post - 1)
     exp_vals <- end_mean * (1 - exp(-rate * time_post))
-    exp_means <- start_mean + exp_vals  # shifted so start near start_mean
+    exp_means <- start_mean + exp_vals
     
     rotated <- data.frame(
       participant_id = pid,
@@ -385,220 +361,44 @@ simulate_exponential_learning <- function(n_participants = 50,
 }
 
 
+
+
+plot_step_histogram <- function(sim_data) {
+  plot(NA,
+       xlab = 'Trial', ylab = 'Aim Deviation (°)',
+       xlim = c(-8, 32), ylim = c(-15, 65),
+       ax = FALSE, bty = 'n',
+       cex.lab = 1.5,
+       cex.axis = 1.2)
+  
+  img_info <- hist2d(x = sim_data[, c("time", "aimdeviation_deg")],
+                     edges = list(seq(-8, 31.5, 1), seq(-15, 65, 2.5)))
+  
+  img <- log(img_info$freq2D + 1)
+  
+  image(x = img_info$x.edges,
+        y = img_info$y.edges,
+        col = colorRampPalette(c("white", "#FFB281", "#F5546E", "#7D1D67"))(100),
+        z = img,
+        add = TRUE)
+  
+  axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
+  axis(side = 2, at = seq(-10, 60, 10))
+  lines(x = c(-8, 0, 0, 32), y = c(-0.5, -0.5, 64.5, 64.5),
+        col = 'navy', lty = 3, lwd = 2)
+}
+
+
+# Simulate step learners
+step_data_var_jump <- simulate_step_function_variable_jump(n_participants = 80)
+
+# Simulate exponential learners
 exp_data <- simulate_exponential_learning(n_participants = 80)
-plot_step_histogram(exp_data)
 
 
 
 
 #take each participants mean aim dev for the last 16 trials, 
 #find the mean of all that, and the sd and plot those group-level parameters to the histogram to see
-
-
-#simulate with the 60 group
-fake60 <- function () {
-  set.seed(42)
-  n_fake <- 500
-  trials <- 0:31  # same as your plotting range
-  
-  fake_data <- do.call(rbind, lapply(1:n_fake, function(id) {
-    step_trial <- sample(3:10, 1)  # where the jump happens
-    data.frame(
-      x = trials,
-      y = ifelse(trials < step_trial, 
-                 rnorm(length(trials), -0.6, 1.2),   
-                 rnorm(length(trials), 17.73, 15.19)), ##group level parameters
-      participant = paste0("fake_", id),
-      rotation_group = 60
-    )
-  }))
-  
-  fake_data <- fake_data %>%
-    mutate(rotation_group = as.numeric(rotation_group))
-  
-  all_hist_data <- all_hist_data %>%
-    mutate(rotation_group = as.numeric(rotation_group))
-  
-  aim_60_hist <- all_hist_data %>%
-    filter(rotation_group == "60") %>%
-    bind_rows(fake_data)
-  
-  
-  plot(NA,
-       #main = 'Explicit Learning With a 60° Rotation',
-       xlab = 'Trial', ylab = 'Aim Deviation (°)',
-       xlim = c(-8, 32), ylim = c(-15, 100), 
-       ax = FALSE, bty = 'n')
-  
-  # Create 2D histogram
-  img_info <- hist2d(
-    x = aim_60_hist,
-    nbins = NA,
-    edges = list(seq(-8, 31.5, 1), seq(-15, 87, 2.5))
-  )
-  
-  # Log-transform frequency counts for better color contrast
-  img <- log(img_info$freq2D + 1)
-  
-  # Plot heatmap
-  image(
-    x = img_info$x.edges,
-    y = img_info$y.edges,
-    col = colorRampPalette(c("white", "#E09B33", "#A4443F", "#4B112D"))(100),
-    z = img,
-    add = TRUE
-  )
-  
-  # Axis formatting
-  axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
-  axis(side = 2, at = seq(-10, 100, 10))
-  
-  # Add bounding box for rotated phase
-  lines(
-    x = c(-8, 0, 0, 32), 
-    y = c(-0.5, -0.5, 59.5, 59.5), 
-    col = 'navy', lty = 3, lwd = 2
-  )
-}
-
-
-####
-
-
-fake50 <- function () {
-  set.seed(42)
-  n_fake <- 500
-  trials <- 0:31  # same as your plotting range
-  
-  fake_data <- do.call(rbind, lapply(1:n_fake, function(id) {
-    step_trial <- sample(22, 1)  # where the jump happens
-    data.frame(
-      x = trials,
-      y = ifelse(trials < step_trial, 
-                 rnorm(length(trials), -0.7, 1.3),   
-                 rnorm(length(trials), 10.72, 9.80)), 
-      participant = paste0("fake_", id),
-      rotation_group = 50
-    )
-  }))
-  
-  fake_data <- fake_data %>%
-    mutate(rotation_group = as.numeric(rotation_group))
-  
-  all_hist_data <- all_hist_data %>%
-    mutate(rotation_group = as.numeric(rotation_group))
-  
-  aim_50_hist <- all_hist_data %>%
-    filter(rotation_group == "50") %>%
-    bind_rows(fake_data)
-  
-  
-  plot(NA,
-       #main = 'Explicit Learning With a 60° Rotation',
-       xlab = 'Trial', ylab = 'Aim Deviation (°)',
-       xlim = c(-8, 32), ylim = c(-15, 70), 
-       ax = FALSE, bty = 'n')
-  
-  # Create 2D histogram
-  img_info <- hist2d(
-    x = aim_50_hist,
-    nbins = NA,
-    edges = list(seq(-8, 31.5, 1), seq(-15, 87, 2.5))
-  )
-  
-  # Log-transform frequency counts for better color contrast
-  img <- log(img_info$freq2D + 1)
-  
-  # Plot heatmap
-  image(
-    x = img_info$x.edges,
-    y = img_info$y.edges,
-    col = colorRampPalette(c("white", "#E09B33", "#A4443F", "#4B112D"))(100),
-    z = img,
-    add = TRUE
-  )
-  
-  # Axis formatting
-  axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
-  axis(side = 2, at = seq(-10, 80, 10))
-  
-  # Add bounding box for rotated phase
-  lines(
-    x = c(-8, 0, 0, 32), 
-    y = c(-0.5, -0.5, 49.5, 49.5), 
-    col = 'navy', lty = 3, lwd = 2
-  )
-}
-
-
-
-
-fake40 <- function () {
-  set.seed(42)
-  n_fake <- 500
-  trials <- 0:31  # same as your plotting range
-  
-  fake_data <- do.call(rbind, lapply(1:n_fake, function(id) {
-    step_trial <- sample(24, 1)  # where the jump happens
-    data.frame(
-      x = trials,
-      y = ifelse(trials < step_trial, 
-                 rnorm(length(trials), -0.69, 1.36),   
-                 rnorm(length(trials), 7.1, 7.4)), 
-      participant = paste0("fake_", id),
-      rotation_group = 40
-    )
-  }))
-  
-  fake_data <- fake_data %>%
-    mutate(rotation_group = as.numeric(rotation_group))
-  
-  all_hist_data <- all_hist_data %>%
-    mutate(rotation_group = as.numeric(rotation_group))
-  
-  aim_40_hist <- all_hist_data %>%
-    filter(rotation_group == "40") %>%
-    bind_rows(fake_data)
-  
-  
-  plot(NA,
-       #main = 'Explicit Learning With a 60° Rotation',
-       xlab = 'Trial', ylab = 'Aim Deviation (°)',
-       xlim = c(-8, 32), ylim = c(-15, 70), 
-       ax = FALSE, bty = 'n')
-  
-  # Create 2D histogram
-  img_info <- hist2d(
-    x = aim_40_hist,
-    nbins = NA,
-    edges = list(seq(-8, 31.5, 1), seq(-15, 87, 2.5))
-  )
-  
-  # Log-transform frequency counts for better color contrast
-  img <- log(img_info$freq2D + 1)
-  
-  # Plot heatmap
-  image(
-    x = img_info$x.edges,
-    y = img_info$y.edges,
-    col = colorRampPalette(c("white", "#E09B33", "#A4443F", "#4B112D"))(100),
-    z = img,
-    add = TRUE
-  )
-  
-  # Axis formatting
-  axis(side = 1, at = c(-8, 0, 8, 16, 24, 32))
-  axis(side = 2, at = seq(-10, 80, 10))
-  
-  # Add bounding box for rotated phase
-  lines(
-    x = c(-8, 0, 0, 32), 
-    y = c(-0.5, -0.5, 39.5, 39.5), 
-    col = 'navy', lty = 3, lwd = 2
-  )
-}
-
-
-
 
 
