@@ -3,7 +3,8 @@ library(dplyr)
 library(ggplot2)
 library(Reach)
 
-setupREACH <- function(total_learners_data) {
+setupREACH <- function() {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   clean_data <- total_learners_data %>%
     filter(trial_type %in% c("aligned", "rotated")) %>%
@@ -40,8 +41,10 @@ setupREACH <- function(total_learners_data) {
 }
 
 
-plotREACH <- function(total_learners_data) {
-  summary_data <- setupREACH(total_learners_data)
+plotREACH <- function() {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  
+  summary_data <- setupREACH()
   rotation_levels <- sort(unique(summary_data$rotation))
   
   ggplot(summary_data, aes(
