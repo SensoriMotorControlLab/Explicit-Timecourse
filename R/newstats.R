@@ -60,10 +60,10 @@ meanStep <- function(result_table = getStep()) { #this is fine
 #log reg
 logAnalysis <- function () {  
   #LOAD CI COMPARE HERE FROM GET STRATEGIES
-  
-   ci_compare <- getStrategies()
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+   strategy_df <- getStrategies()
    
-   strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
+   strategy_ids <- strategy_df$participant_id[strategy_df$strategy %in% c("Yes")]
   
   
   total_learners_data <- total_learners_data %>%
@@ -116,8 +116,8 @@ aimAOV <- function () {
 
 aimvarAOV <- function () {
   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
-  ci_compare <- getStrategies()
-  strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
+  strategy_df <- getStrategies()
+  strategy_ids <- strategy_df$participant_id[strategy_df$strategy %in% c("Yes")]
   
   
   total_learners_data <- total_learners_data %>%
