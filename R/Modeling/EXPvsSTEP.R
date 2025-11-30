@@ -241,7 +241,7 @@ fitAllModels <- function(){
 
 
 ModelChi <- function () {
-model_results <- fitAllModels(strat_data)
+model_results <- fitAllModels()
 model_results$summary_overall
 best_model_counts <- model_results$summary_overall
 chisq_test <- chisq.test(best_model_counts$count)
@@ -251,7 +251,7 @@ chisq_test
 
 
 ModelRotChi <- function () {
-  model_results <- fitAllModels(strat_data)
+  model_results <- fitAllModels()
   rotation_summary <- strat_data %>%
     group_by(participant_id) %>%
     summarize(rotation_size = unique(rotation)[1])  
