@@ -1,24 +1,50 @@
 ###visualization: histograms
 
-
-dfAlignedReach <- data.frame(
+dfreach <- function () {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  learner_id <- suppressMessages(getLearners())
+  
+  last_8_aligned <- total_learners_data[
+    (total_learners_data$cutrial_no %in% 85:88 & total_learners_data$group == 'Group 1') |
+      (total_learners_data$cutrial_no %in% 109:112 & total_learners_data$group == 'Group 2'),]
+  
+  last_8_aligned <- last_8_aligned %>%
+    group_by(group, participant_id) %>%
+    arrange(cutrial_no) %>%
+    mutate(time = seq(-n(), -1)) %>%
+    ungroup()
+  
+  dfAlignedReach <- data.frame(
   x = last_8_aligned$time,
   y = last_8_aligned$reachdeviation_deg,
   rotation_group = last_8_aligned$rotation
-)
+  )
 
-dfRotatedReach <- data.frame(
+  
+  first_32_rotated <- total_learners_data[
+    (total_learners_data$cutrial_no %in% 89:120 & total_learners_data$group == 'Group 1') |
+      (total_learners_data$cutrial_no %in% 105:136 & total_learners_data$group == 'Group 2'),]
+  
+  
+  first_32_rotated <- first_32_rotated %>%
+    group_by(group, participant_id) %>%
+    arrange(cutrial_no) %>%
+    mutate(time = seq(0, n()-1)) %>%
+    ungroup()
+  
+  dfRotatedReach <- data.frame(
   x = first_32_rotated$time,
   y= first_32_rotated$reachdeviation_deg ,
   rotation_group = first_32_rotated$rotation
-)
+  )
 
 all_hist_data_reach <- rbind(dfAlignedReach, dfRotatedReach)
-
+}
 
 #60 reach histogram
 plot60reach <- function () {
-  aim_60_hist_reach <- all_hist_data_reach %>%
+  all_hist_data_reach  <- dfreach ()
+   aim_60_hist_reach <- all_hist_data_reach %>%
     filter(rotation_group == '60')
   
   plot(NA,
@@ -49,6 +75,7 @@ plot60reach <- function () {
 
 #reach 50
 plot50reach <- function () {
+  all_hist_data_reach  <- dfreach ()
   aim_50_hist_reach <- all_hist_data_reach %>%
     filter(rotation_group == '50')
   
@@ -80,6 +107,7 @@ plot50reach <- function () {
 
 #reach 40
 plot40reach <- function() {
+  all_hist_data_reach  <- dfreach ()
   aim_40_hist_reach <- all_hist_data_reach %>%
     filter(rotation_group == '40')
   
@@ -110,6 +138,7 @@ plot40reach <- function() {
 }
 
 plot30reach <- function() {
+  all_hist_data_reach  <- dfreach ()
   aim_30_hist_reach <- all_hist_data_reach %>%
     filter(rotation_group == '30')
   
@@ -140,6 +169,7 @@ plot30reach <- function() {
 }
 
 plot20reach <- function() {
+  all_hist_data_reach  <- dfreach ()
   aim_20_hist_reach <- all_hist_data_reach %>%
     filter(rotation_group == '20')
   
@@ -174,7 +204,9 @@ par(cex.axis = 1.5)
 
 ##model fits
 
-fitReachModels <- function(strat_data) {
+fitReachModels <- function() {
+  strat_data <- read.csv("data/strategy_only_participants.csv")
+  
   results <- data.frame(
     participant = character(),
     group = character(),
