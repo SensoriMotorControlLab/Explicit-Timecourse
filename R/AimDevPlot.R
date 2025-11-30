@@ -1,12 +1,13 @@
 library(ggplot2)
-strat_data <- read.csv("data/strategy_only_participants.csv")
 
 library(dplyr)
 library(ggplot2)
 library(Reach)
 
 
-setupAIM <- function(strat_data) {
+setupAIM <- function() {
+  strat_data <- read.csv("data/strategy_only_participants.csv")
+  
   clean_data <- strat_data %>%
     filter(trial_type.x %in% c("aligned", "rotated")) %>%
     group_by(participant_id, rotation) %>%
@@ -27,9 +28,10 @@ setupAIM <- function(strat_data) {
   
   return(clean_data)
 }
-clean_data <- setupAIM(strat_data)
 
-summarizeAIM <- function(clean_data) {
+summarizeAIM <- function() {
+  clean_data <- setupAIM()
+  
   summary_data <- clean_data %>%
     group_by(rotation, norm_trial) %>%
     summarise(
@@ -46,9 +48,9 @@ summarizeAIM <- function(clean_data) {
   return(summary_data)
 }
 
-summary_data <- summarizeAIM(clean_data)
 
-plotAIM <- function(summary_data) {
+plotAIM <- function() {
+  summary_data <- summarizeAIM()
   hline_data <- data.frame(rotation = c(20, 30, 40, 50, 60),
                            yintercept = c(20, 30, 40, 50, 60))
   
