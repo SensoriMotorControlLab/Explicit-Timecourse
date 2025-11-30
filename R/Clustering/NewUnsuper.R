@@ -6,6 +6,7 @@ library(knitr)
 library(kableExtra)
 library(tidyr)
 library(gt)
+library(cluster)
 
 #Features
 # (1) look at SD between the trial at which people start changing their aimdeviation_deg 
@@ -127,7 +128,7 @@ getFeatures <- function() {
     learning_trials <- which(trials >= onset & trials <= stable)
     learning_aim <- aim[learning_trials]
     
-    if(length(learning_aim) < 2) next  # need at least 2 trials to compute diff
+    if(length(learning_trials) < 2) next  # need at least 2 trials to compute diff
     
 
     
@@ -291,7 +292,7 @@ compare <- function () {
                      "d9ff04", "0b1dca", "0c7728", "13cb04", "13d986", "14893b", "1896cb",
                      "19e7ed", "33e532", "4093e8", "54c6f3", "622518",
                      "7cd1bd","7eec53","811eae","98e5cb","9db7b0","9eabc1","a23b35","a5310d","abf95a",
-                     "bdb042","d0d19c","f275ca", "19187c"),
+                     "bdb042","d0d19c","f275ca", "a02c67"),
   
   label = c("step", "step", "step", "step", "step", 
             "step", "step", "erratic", "step", "step", "erratic", "step",
@@ -313,6 +314,8 @@ compare <- function () {
     inner_join(classification, by = "participant_id")
 conf_mat <- table(comparison$cluster_label, comparison$label)
 print(conf_mat)
+chi_res <- chisq.test(conf_mat)
+print(chi_res)
 }
 
 
