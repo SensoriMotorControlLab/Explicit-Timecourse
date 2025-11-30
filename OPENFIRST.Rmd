@@ -252,8 +252,9 @@ fitAllModels()
 ```
 
 ```{r}
-#chi-sq test
+#chi-sq test to see if more participants fit for a step
 ModelChi()
+#does rotation size predictmodel?
 ModelRotChi()
 ```
 
@@ -384,8 +385,18 @@ function?
 ```{r}
 plot60reach()
 ```
-
-
+```{r}
+plot50reach()
+```
+```{r}
+plot40reach()
+```
+```{r}
+plot30reach()
+```
+```{r}
+plot20reach()
+```
 
 
 
