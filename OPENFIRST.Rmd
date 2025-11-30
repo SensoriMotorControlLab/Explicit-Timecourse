@@ -292,6 +292,8 @@ getFeatures()
 
 We can conduct a PCA, and run kmeans on the top two informative PCA components
 ```{r}
+install.packages('cluster')
+library(cluster)
 kMeans()
 ```
 
