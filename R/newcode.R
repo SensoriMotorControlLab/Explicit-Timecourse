@@ -165,15 +165,17 @@ getStrategies <- function() {
 
 
 countStrategies <- function() {
-  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  strategy_df <- getStrategies()
+   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
 
-   strategy_users <- sum(ci_compare$strategy == "Yes", na.rm = TRUE)
+   strategy_users <- sum(  strategy_df$strategy == "Yes", na.rm = TRUE)
   print(strategy_users)
 }
 
 
 strategySummary <- function () {
-  ci_compare %>% 
+   strategy_df <- getStrategies()
+  strategy_df %>% 
     group_by(rotation) %>%
     summarise(
       total_n = n(),
@@ -187,10 +189,11 @@ strategySummary <- function () {
 
 Strategyfile <- function() {
 
-  total_group_data <- load_total_group_data("data/Instructed_summary/")
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
+  strategy_df <- getStrategies()
   
-  strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
+  strategy_ids <-   strategy_df$participant_id[  strategy_df$strategy %in% c("Yes")]
   
   strategy_data <- total_learners_data %>%
     filter(participant_id %in% strategy_ids)
