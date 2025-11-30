@@ -114,8 +114,7 @@ plotREACH()
 Did all learners have a strategy (ie, deviate their aim)?
 
 ```{r}
-#getStrategies(total_learners_data)
-#strategySummary(ci_compare)
+strategySummary()
 ```
 
 We can use a 95% CI approach to determine strategy-users. A strategy
