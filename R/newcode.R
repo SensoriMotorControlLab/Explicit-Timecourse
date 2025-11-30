@@ -70,10 +70,10 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
 
 
 ####LEARNERS
-total_group_data <- load_total_group_data("data/Instructed_summary/")
-
-getLearners <- function(total_group_data) {
-  learner_df <- total_group_data %>%
+getLearners <- function() {
+  total_group_data <- load_total_group_data("data/Instructed_summary/")
+  
+   learner_df <- total_group_data %>%
     filter(
       (group == "Group 1" & cutrial_no %in% 193:208) |
         (group == "Group 2" & cutrial_no %in% 217:232)
@@ -97,9 +97,10 @@ getLearners <- function(total_group_data) {
   
 }
 
-LearnerCSV <- function(total_group_data) {
+LearnerCSV <- function() {
+  total_group_data <- load_total_group_data("data/Instructed_summary/")
 
-  learner_id <- getLearners(total_group_data) %>%
+  learner_id <- getLearners() %>%
     distinct(participant_id, rotation, group, .keep_all = TRUE)
 
   
@@ -109,17 +110,18 @@ LearnerCSV <- function(total_group_data) {
       by = c("participant_id", "rotation", "group")
     )
   
-  write.csv(total_learners_data, "total_learners_data.csv", row.names = FALSE)
-  total_learners_data
+  write.csv(total_learners_data, "data/total_learners_data.csv", row.names = FALSE)
 }
-learner_id <- getLearners(total_group_data)
-total_learners_data <- LearnerCSV(total_group_data)
+#learner_id <- getLearners(total_group_data)
+#total_learners_data <- LearnerCSV(total_group_data)
 
 ####STRATEGY
 
 #use last 16 rotated trials which represents where strategies are most consistent
 
-getCI <- function (total_learners_data) {
+getCI <- function () {
+  
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   last_16_rotated_learners <- total_learners_data[
     (total_learners_data$cutrial_no %in% 193:208 & total_learners_data$group == 'Group 1') |
@@ -136,9 +138,10 @@ getCI <- function (total_learners_data) {
 }
 
 #using CI function, we can now use a 95% interval approach to figure out strategy-users
-getStrategies <- function(total_learners_data) {
+getStrategies <- function() {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
-  ci_result <- getCI(total_learners_data)
+  ci_result <- getCI()
   last_16 <- ci_result$data
   
   strategy_df <- last_16 %>%
@@ -159,15 +162,17 @@ getStrategies <- function(total_learners_data) {
   return(strategy_df)
 }
 
-ci_compare <- getStrategies(total_learners_data)
 
-countStrategies <- function(ci_compare) {
-  strategy_users <- sum(ci_compare$strategy == "Yes", na.rm = TRUE)
+
+countStrategies <- function() {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+
+   strategy_users <- sum(ci_compare$strategy == "Yes", na.rm = TRUE)
   print(strategy_users)
 }
 
 
-strategySummary <- function (ci_compare) {
+strategySummary <- function () {
   ci_compare %>% 
     group_by(rotation) %>%
     summarise(
@@ -180,8 +185,11 @@ strategySummary <- function (ci_compare) {
 
 #make new strategy file
 
-Strategyfile <- function(total_learners_data, ci_compare) {
+Strategyfile <- function() {
 
+  total_group_data <- load_total_group_data("data/Instructed_summary/")
+  
+  
   strategy_ids <- ci_compare$participant_id[ci_compare$strategy %in% c("Yes")]
   
   strategy_data <- total_learners_data %>%
