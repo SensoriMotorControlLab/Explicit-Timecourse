@@ -1,7 +1,7 @@
 library(readr)
 library(dplyr)
 
-load_total_group_data <- function(dir = "data/Instructed_summary/") {
+load_total_group_data <- function(dir = "data/Instructed_summary /") {
   
   rotations <- c(20, 30, 40, 50, 60)
   all_data <- list()
@@ -13,9 +13,16 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
     for (file in csv_files) {
       df <- read_csv(file, show_col_types = FALSE)
       
-
+      # Check required columns
+      if (!all(c("task_idx", "cutrial_no") %in% names(df))) {
+        warning(paste("Missing task_idx or cutrial_no in file:", file))
+        next
+      }
+      
+      # Extract participant ID
       participant_id <- gsub(paste0("SUMMARY_aiming", rot, "_(.*)\\.csv"), "\\1", basename(file))
       
+      # Assign group based on max task_idx
       max_idx <- max(df$task_idx, na.rm = TRUE)
       group <- if (max_idx <= 10) {
         "Group 1"
@@ -25,10 +32,39 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
         "Unknown"
       }
       
+      # Add participant info
       df <- df %>%
         mutate(participant_id = participant_id,
                group = group,
                rotation = rot)
+      
+      # Assign trial_type safely
+      df <- df %>%
+        mutate(trial_type = case_when(
+          # Group 1
+          group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+          group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
+          group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
+          group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
+          group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
+          group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
+          group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
+          group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamp_rotated",
+          group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthand_rotated",
+          # Group 2
+          group == "Group 2" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+          group == "Group 2" & cutrial_no >= 25  & cutrial_no <= 40   ~ "nocursor",
+          group == "Group 2" & cutrial_no >= 41  & cutrial_no <= 56   ~ "aligned",
+          group == "Group 2" & cutrial_no >= 57  & cutrial_no <= 64   ~ "errorclamp",
+          group == "Group 2" & cutrial_no >= 65  & cutrial_no <= 72   ~ "aligned",
+          group == "Group 2" & cutrial_no >= 73  & cutrial_no <= 80   ~ "nocursor",
+          group == "Group 2" & cutrial_no >= 81  & cutrial_no <= 88   ~ "aligned",
+          group == "Group 2" & cutrial_no >= 89  & cutrial_no <= 96   ~ "nocursor",
+          group == "Group 2" & cutrial_no >= 97  & cutrial_no <= 112  ~ "aligned",
+          group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 232  ~ "rotated",
+          group == "Group 2" & cutrial_no >= 233 & cutrial_no <= 256  ~ "nocursor",
+          TRUE ~ NA_character_
+        ))
       
       all_data[[length(all_data) + 1]] <- df
     }
@@ -36,33 +72,7 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
   
   total_group_data <- bind_rows(all_data)
   
-  total_group_data <- total_group_data %>%
-    mutate(trial_type = case_when(
-      group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
-      group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
-      group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
-      group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
-      group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
-      group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
-      group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
-      group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamprotated",
-      group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthandrotated",
-      
-      group == "Group 2" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
-      group == "Group 2" & cutrial_no >= 25  & cutrial_no <= 40   ~ "nocursor",
-      group == "Group 2" & cutrial_no >= 41  & cutrial_no <= 56   ~ "aligned",
-      group == "Group 2" & cutrial_no >= 57  & cutrial_no <= 64   ~ "errorclamp",
-      group == "Group 2" & cutrial_no >= 65  & cutrial_no <= 72   ~ "aligned",
-      group == "Group 2" & cutrial_no >= 73  & cutrial_no <= 80   ~ "nocursor",
-      group == "Group 2" & cutrial_no >= 81  & cutrial_no <= 88   ~ "aligned",
-      group == "Group 2" & cutrial_no >= 89  & cutrial_no <= 96   ~ "nocursor",
-      group == "Group 2" & cutrial_no >= 97  & cutrial_no <= 112  ~ "aligned",
-      group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 232  ~ "rotated",
-      group == "Group 2" & cutrial_no >= 233 & cutrial_no <= 256  ~ "nocursor",
-      
-      TRUE ~ NA_character_
-    ))
-
+  # Save to CSV
   write_csv(total_group_data, file.path(dir, "total_group_data.csv"))
   
   return(total_group_data)
@@ -71,7 +81,7 @@ load_total_group_data <- function(dir = "data/Instructed_summary/") {
 
 ####LEARNERS
 getLearners <- function() {
-  total_group_data <- load_total_group_data("data/Instructed_summary/")
+  total_group_data <- load_total_group_data("data/Instructed_summary /")
   
    learner_df <- total_group_data %>%
     filter(
@@ -98,7 +108,7 @@ getLearners <- function() {
 }
 
 LearnerCSV <- function() {
-  total_group_data <- load_total_group_data("data/Instructed_summary/")
+  total_group_data <- load_total_group_data("data/Instructed_summary /")
 
   learner_id <- getLearners() %>%
     distinct(participant_id, rotation, group, .keep_all = TRUE)
@@ -173,8 +183,16 @@ countStrategies <- function() {
 }
 
 
-strategySummary <- function () {
-   strategy_df <- getStrategies()
+strategySummary <- function() {
+  
+  
+  # Get strategies
+  strategy_df <- getStrategies()
+  
+  # Set strategy = "No" for the specified participants
+ # strategy_df$strategy[strategy_df$participant_id %in% force_no_ids] <- "No"
+  
+  # Summarise
   strategy_df %>% 
     group_by(rotation) %>%
     summarise(
@@ -184,6 +202,8 @@ strategySummary <- function () {
       .groups = "drop"
     )
 }
+
+
 
 #make new strategy file
 
@@ -211,8 +231,55 @@ Strategyfile <- function() {
                                          ifelse(total_learners_data$strategy == "No", 0, NA))
   write.csv(strategy_data, "data/strategy_only_participants.csv", row.names = FALSE)
   
-  return(list(strategy_data = strategy_data, total_learners_data = total_learners_data))
+  return(invisible(list(strategy_data = strategy_data, 
+                        total_learners_data = total_learners_data)))
+  
 }
+
+#add sanity check
+getTargets <- function () {
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+
+target_check <- strategy_data %>%
+  distinct(participant_id, aimdeviation_deg, targetangle_deg, cutrial_no, trial_type.x=="rotated", as.factor=TRUE)
+#print(target_check)
+
+
+#compare aim to previous trial target location
+
+reldifference <- strategy_data %>%
+  filter(trial_type.x == "rotated") %>%
+  distinct(participant_id, cutrial_no, aim_deg, aimdeviation_deg, targetangle_deg) %>%
+  arrange(participant_id, cutrial_no) %>%
+  group_by(participant_id) %>%
+  mutate(
+    # aim deviation relative to current target
+    aim_dev_current = aimdeviation_deg,
+   
+    prev_targetangle = lag(targetangle_deg),
+  
+    aim_dev_prev_target = aim_deg - prev_targetangle
+  ) %>%
+  ungroup()
+
+participants <- unique(reldifference$participant_id)
+
+for(pid in participants){
+  df <- reldifference[reldifference$participant_id == pid, ]
+  
+  plot(df$cutrial_no, df$aim_dev_current, type="l", col="blue", ylim=range(c(df$aim_dev_current, df$aim_dev_prev_target), na.rm = TRUE),
+       xlab="Trial", ylab="Aim Deviation (deg)", main=paste("Participant:", pid))
+  lines(df$cutrial_no, df$aim_dev_prev_target, col="red")
+  legend("topright", legend=c("Recorded Aim Dev", "Aim Dev from Prev Target"), col=c("blue","red"), lty=1)
+  
+  readline(prompt="Press [Enter] to view next participant...")
+}
+
+
+
+}
+
+
 
 
 
