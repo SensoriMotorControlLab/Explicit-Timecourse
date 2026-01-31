@@ -11,16 +11,22 @@ getFeaturesFromModel <- function() {
     learning_length = numeric(),
     learning_abs_diff = numeric(),
     num_negative_aims = numeric(),
+    incrementality = numeric(),
     num_sign_flips = numeric(),
-    diff_sd = numeric(), 
+    jump_ratio = numeric(),
+    largest_jump_frac = numeric(),
+    lin_r2 = numeric(),
+    early_jump_frac = numeric(),
+    max_jump_norm = numeric(),
+    smoothness = numeric(),
     stringsAsFactors = FALSE
   )
   
   for (i in 1:nrow(model_df)) {
     
     id <- model_df$participant_id[i]
-    onset  <- model_df$trial.start[i]
-    stable <- model_df$trial.end[i]
+    onset  <- model_df$pred_start[i]
+    stable <- model_df$pred_end[i]
     
     if (is.na(onset) | is.na(stable)) next
     
@@ -34,22 +40,32 @@ getFeaturesFromModel <- function() {
     
     if (length(learning_aim) < 2) next  
     
+    
     # features
     learning_sd       <- sd(learning_aim)
     learning_length   <- length(learning_trials)
     learning_abs_diff <- mean(abs(diff(learning_aim)))
-    num_negative_aims <- sum(learning_aim < 0)
+    num_negative_aims <- mean(learning_aim < 0)
     diffs             <- diff(learning_aim)
     num_sign_flips    <- sum(diff(sign(diffs)) != 0)
     
+    #step feature 
+    max_jump <- max(abs(diffs))
+    mean_jump <- mean(abs(diffs))
+    jump_ratio <- max_jump / mean_jump
+    max_jump_norm <- max(abs(diffs)) / (max(learning_aim) - min(learning_aim) + 1e-6)
+    
+    smoothness <- sum(abs(diffs)) / (max(abs(diffs)) * length(diffs) + 1e-6)
+    
+    abs_diffs <- abs(diff(learning_aim))
+    largest_jump_frac <- max(abs_diffs) / (sum(abs_diffs) + 1e-6)
+    step_index <- largest_jump_frac / (smoothness + 1e-6)
 
-    # Smoothness feature via rolling SD
-    if(length(learning_aim) >= window_size){
-      rolling_sd <- rollapply(learning_aim, width = window_size, FUN = sd, fill = NA, align = "right")
-      smoothness <- mean(rolling_sd, na.rm = TRUE)
-    } else {
-      smoothness <- 0  # assign 0 if too few trials
-    }
+
+    t <- seq_along(learning_aim)
+    lin_r2 <- summary(lm(learning_aim ~ t))$r.squared
+    
+    
     
     # Erraticness feature: SD of trial-to-trial changes
     diff_sd <- sd(diffs)
@@ -59,9 +75,16 @@ getFeaturesFromModel <- function() {
     learning_abs_diff <- ifelse(is.na(learning_abs_diff), 0, learning_abs_diff)
     num_negative_aims <- ifelse(is.na(num_negative_aims), 0, num_negative_aims)
     num_sign_flips    <- ifelse(is.na(num_sign_flips), 0, num_sign_flips)
-    smoothness        <- ifelse(is.na(smoothness), 0, smoothness)
-    diff_sd           <- ifelse(is.na(diff_sd), 0, diff_sd)
+    #diff_sd           <- ifelse(is.na(diff_sd), 0, diff_sd)
+    cumulative_change <- abs(sum(diffs))
     
+    incrementality <- cumulative_change / (max_jump + 1e-6)
+    diffs <- diff(learning_aim)
+    n <- length(diffs)
+    early_n <- ceiling(0.3 * n)  # first 30% of trials
+    early_jump_frac <- sum(abs(diffs[1:early_n])) / (sum(abs(diffs)) + 1e-6)
+    
+  
    
     features <- rbind(
       features,
@@ -71,16 +94,30 @@ getFeaturesFromModel <- function() {
         learning_length = learning_length,
         learning_abs_diff = learning_abs_diff,
         num_negative_aims = num_negative_aims,
+        incrementality = incrementality,
         num_sign_flips = num_sign_flips,
-        diff_sd = diff_sd,
+        jump_ratio=jump_ratio,
+        largest_jump_frac = largest_jump_frac,
+        lin_r2 = lin_r2,
+        early_jump_frac = early_jump_frac,
+        max_jump_norm = max_jump_norm,
+        smoothness = smoothness,
         stringsAsFactors = FALSE
       )
     )
   }
   
-
-  numeric_cols <- c("learning_sd","learning_length","learning_abs_diff",
-                    "num_negative_aims","num_sign_flips","diff_sd")
+  numeric_cols <- c(
+    "learning_sd",
+    "learning_abs_diff",
+    "learning_length",
+    "num_negative_aims",
+    "largest_jump_frac",
+    "jump_ratio",
+    "max_jump_norm",
+    "smoothness"
+  )
+  
   
   list(
     features_df = features,
@@ -102,6 +139,8 @@ k_scaled <- scale(k_input)
 # -------------------------------
 # PCA 
 pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
+pca$rotation <- pca$rotation*-1
+pca$x<- pca$x*-1
 
 pca_df <- as.data.frame(pca$x[,1:2])
 colnames(pca_df) <- c("PC1","PC2")
@@ -123,23 +162,64 @@ return(pca_df)
 # Cluster separation along x-axis (PC1) mostly reflects stability vs erratic learning.
 # Separation along y-axis (PC2) mostly reflects short vs long learning periods.
 
-plotComponents <- function () {
-  
+
+##NOTE: multiplied values by -1 (to be positive)
+#       so higher the pca load, more variability, or longer the duration/more signflip
+
+plotComponents <- function() {
   pca_df <- kPCA()
   
-  ggplot(pca_df,
-         aes(x = PC1, y = PC2, color = cluster_label, label = participant_id)) +
+  pca_df <- pca_df %>%
+    mutate(
+      cluster_label = factor(
+        cluster_label,
+        levels = c(1, 2, 3),
+        labels = c("Gradual", "Stepwise", "Exploratory")
+      )
+    )
+  
+  hulls <- pca_df %>%
+    group_by(cluster_label) %>%
+    slice(chull(PC1, PC2))
+  
+  library(scales)
+  ggplot(pca_df, aes(x = PC2, y = PC1, color = cluster_label)) +
     geom_point(size = 3, alpha = 0.8) +
-    geom_text(vjust = -1, size = 2.5, check_overlap = TRUE) +
-    labs(
-      x = "Principal Component 1",
-      y = "Principal Component 2",
-      color = "Cluster",
-      title = "PCA of Learning Features with K-means Clusters"
+    geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
+    labs(x = "", y = "", color = "Cluster", fill = "Cluster") +
+    scale_x_continuous(
+      expand = expansion(mult = 0.1),
+      labels = scales::label_number(accuracy = 0.1)
     ) +
+    scale_y_continuous(
+      expand = expansion(mult = 0.1),
+      labels = scales::label_number(accuracy = 0.1)
+    ) +
+    scale_fill_manual(values = c(
+      "Exploratory" = "#c495c9",
+      "Gradual"     = "#3dcad4",
+      "Stepwise"    = "#d16483"
+    )) +
+    scale_color_manual(values = c(
+      "Exploratory" = "#c495c9",
+      "Gradual"     = "#3dcad4",
+      "Stepwise"    = "#d16483"
+    )) +
     theme_minimal(base_size = 14) +
-    scale_color_brewer(palette = "Set1")
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.text.x  = element_text(size = 24),
+      axis.text.y  = element_text(size = 24),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      legend.title = element_text(size = 17),
+      legend.text  = element_text(size = 16) 
+    )
 }
+
+
 
 
 ##plot 
@@ -191,7 +271,16 @@ classification <- data.frame(
                      "d9ff04", "0b1dca", "0c7728", "13cb04", "13d986", "14893b", "1896cb",
                      "19e7ed", "33e532", "4093e8", "54c6f3", "622518",
                      "7cd1bd","7eec53","811eae","98e5cb","9db7b0","9eabc1","a23b35","a5310d","abf95a",
-                     "bdb042","d0d19c","f275ca", "a02c67", "396716", "15f2a1"),
+                     "bdb042","d0d19c","f275ca", "a02c67", "396716", "15f2a1", 
+                     "19187c", "3091de", "654648",
+                     
+                     "fecce7", "feb484", "fd3e77", "ef7c34", "d0a134", 
+                     "b7804c", "b5edb9", "b3fac9", "ac4304", "9d628e",
+                     "9c8da7", "9b1b25","98abcb","977304","8bc9fd",
+                     "85592d","822948","803175","7ddb15","73230b",
+                     "71ea32","6442f3","6387a3","514daa","5129de",
+                     "4ff32b","4cbb11","4b9fad","4b701d","30035a",
+                     "2ff26d","27edd0","24c273","1cce80","1cc592","1c10b9"),
   
   label = c("step", "step", "step", "step", "step", 
             "step", "step", "erratic", "step", "step", "erratic", "step",
@@ -202,8 +291,20 @@ classification <- data.frame(
             "step", "step", "erratic", "step", "step", "step", "erratic",
             "erratic", "gradual", "erratic", "step", "step",
             "step",  "step","gradual", "erratic", "step", "step", "gradual",
-            "erratic", "step","erratic", "gradual", "erratic", "erratic", "erratic", "step")
+            "erratic", "step","erratic", "gradual", "erratic", "erratic", "erratic", "step",
+            "erratic", "erratic", "erratic",
+            
+            "gradual", "step", "erratic", "step", "step",
+            "step", "erratic", "step", "erratic", "step",
+            "gradual","step","step","step","step",
+            "gradual","erratic","erratic","step","erratic",
+            "gradual","erratic","erratic","erratic","gradual",
+            "step","step","step","step","step",
+            "erratic","erratic","step","step","step", "step")
 )
+
+classification$label[classification$participant_id == "13d986"] <- "gradual"
+
 
 
 #CONFUSION TABLE
@@ -229,7 +330,6 @@ table(model_df_labeled$label, model_df_labeled$cluster_aligned)
 
 
 
-
 ###bar plot
 pcaBar <- function() {
 strategy_data_clustered <- plotRaw()$data
@@ -244,9 +344,6 @@ proportions_df$cluster_label <- factor(proportions_df$cluster_label, levels = so
   
 
 strategy_df <- getStrategies()
-
-force_no_ids <- c("15f2a1", "19187c", "396716", "3091de", "654648")
-strategy_df$strategy[strategy_df$participant_id %in% force_no_ids] <- "No"
 
 total_per_rotation <- strategy_df %>%
   group_by(rotation) %>%
@@ -274,21 +371,59 @@ proportions_combined <- proportions_combined %>%
   filter(!is.na(cluster_label))
 proportions_combined$cluster_label <- factor(
   proportions_combined$cluster_label,
-  levels = c("Non-strategy", "1", "2", "3")
+  levels = c("Non-strategy", "1", "2", "3"),
+  labels = c("Non-Strategy", "Gradual","Exploratory", "Stepwise")
 )
 
-ggplot(proportions_combined, aes(x = factor(rotation), y = n_participants, fill = cluster_label)) +
+##find percentages
+rotation_totals <- proportions_combined %>%
+  group_by(rotation) %>%
+  summarise(total_n = sum(n_participants), .groups = "drop")
+
+proportions_plot <- proportions_combined %>%
+  group_by(rotation) %>%
+  mutate(
+    total_n = sum(n_participants),
+    percent = n_participants / total_n * 100
+  ) %>%
+  ungroup() %>%
+  filter(cluster_label != "Non-Strategy")
+
+
+ggplot(
+  proportions_plot,
+  aes(x = factor(rotation), y = percent, fill = cluster_label)
+) +
   geom_bar(stat = "identity", color = "black", width = 0.7) +
   scale_fill_manual(
-    values = c("1" = "hotpink", "2" = "#d95f02", "3" = "#7570b3", "Non-strategy" = "white"),
-    name = "Cluster / Non-strategy"
+    values = c(
+      "Stepwise"     = "#d16483",
+      "Exploratory" = "#c495c9",
+      "Gradual"    = "#3dcad4"
+    ),
+    labels = c("Gradual n = 9", "Exploratory n = 26", "Stepwise n = 76"),
+    name = "Phenotype"
+  ) +
+  scale_y_continuous(limits = c(0, 100)
   ) +
   labs(
-    x = "Rotation Size (degrees)",
-    y = "Number of Participants",
-    title = "Distribution of Learning Clusters Across Rotation Sizes"
+    x = "",
+    y = "",
+    title = ""
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text.x  = element_text(size = 24),
+    axis.text.y  = element_text(size = 24),
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.title = element_text(size = 17),
+    legend.text  = element_text(size = 16)
+  ) 
+
 }
 
 
