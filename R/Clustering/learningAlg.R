@@ -17,41 +17,40 @@ library(xgboost)
 #   slice_sample(n = 75) %>%
 #   pull(participant_id)
 # 
-# 
-# plot_rotated_phase_all_trials <- function(pid = "98e5cb", data_file = "data/strategy_only_participants.csv") {
-#   
-#   strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
-# 
-#   strategy_data$trial_idx <- as.numeric(as.character(strategy_data$trial_idx))
-#   strategy_data$aimdeviation_deg <- as.numeric(as.character(strategy_data$aimdeviation_deg))
-# 
-#   d <- strategy_data %>%
-#     filter(participant_id == pid,
-#            trial_type.x == "rotated")
-#   
-#   if (nrow(d) == 0) stop("No rotated phase data for this participant.")
-#   
-#   p <- ggplot(d, aes(
-#     x = trial_idx,
-#     y = aimdeviation_deg,
-#     text = paste("Trial:", trial_idx, "<br>Aim:", round(aimdeviation_deg, 2))
-#   )) +
-#     geom_line(size = 1, alpha = 0.8, color = "steelblue") +  # line connecting trials
-#     geom_point(size = 2, alpha = 0.9, color = "darkred") +    # points for each trial
-#     scale_x_continuous(breaks = d$trial_idx) +               # force every trial on X-axis
-#     labs(
-#       title = paste("Rotated Phase - Participant", pid),
-#       x = "Trial",
-#       y = "Aim Deviation (deg)"
-#     ) +
-#     coord_cartesian(xlim = c(0, 120), ylim = c(-100, 100)) +
-#     theme_minimal(base_size = 14)
-#   
-#   # 5️⃣ Make interactive
-#   ggplotly(p, tooltip = "text")
-# }
-# 
-# plot_rotated_phase_all_trials("98e5cb")
+plot_rotated_phase_all_trials <- function(pid = "1c10b9", data_file = "data/strategy_only_participants.csv") {
+
+  strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
+
+  strategy_data$trial_idx <- as.numeric(as.character(strategy_data$trial_idx))
+  strategy_data$aimdeviation_deg <- as.numeric(as.character(strategy_data$aimdeviation_deg))
+
+  d <- strategy_data %>%
+    filter(participant_id == pid,
+           trial_type.x == "rotated")
+
+  if (nrow(d) == 0) stop("No rotated phase data for this participant.")
+
+  p <- ggplot(d, aes(
+    x = trial_idx,
+    y = aimdeviation_deg,
+    text = paste("Trial:", trial_idx, "<br>Aim:", round(aimdeviation_deg, 2))
+  )) +
+    geom_line(size = 1, alpha = 0.8, color = "steelblue") +  # line connecting trials
+    geom_point(size = 2, alpha = 0.9, color = "darkred") +    # points for each trial
+    scale_x_continuous(breaks = d$trial_idx) +               # force every trial on X-axis
+    labs(
+      title = paste("Rotated Phase - Participant", pid),
+      x = "Trial",
+      y = "Aim Deviation (deg)"
+    ) +
+    coord_cartesian(xlim = c(0, 120), ylim = c(-100, 100)) +
+    theme_minimal(base_size = 14)
+
+  # 5️⃣ Make interactive
+  ggplotly(p, tooltip = "text")
+}
+
+plot_rotated_phase_all_trials("1c10b9")
 
 
 
@@ -63,7 +62,7 @@ library(xgboost)
 
 # Model 1:  XGBoost Regressor
 xgSetup <- function () {
-annotations <- read.csv("~/Desktop/ElysaClassifier.csv", stringsAsFactors = FALSE)
+annotations <- read.csv("~/Desktop/m.sc/project/ElysaClassifier.csv", stringsAsFactors = FALSE)
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_data <- strategy_data %>% 
@@ -102,9 +101,9 @@ xgFeatures <- function () {
   group_by(participant_id) %>%
   arrange(trial_idx, .by_group = TRUE) %>%
   mutate(
-    roll_mean   = rollapply(aimdeviation_deg, width = 6, FUN = mean, fill = NA, align = "right", partial = TRUE),
-    roll_sd     = rollapply(aimdeviation_deg, width = 6, FUN = sd, fill = NA, align = "right", partial = TRUE),
-    roll_mad   = rollapply(aimdeviation_deg, width = 6, FUN = function(x) mad(x, constant = 1), fill = NA, align = "right")
+    roll_mean   = rollapply(aimdeviation_deg, width = 12, FUN = mean, fill = NA, align = "right", partial = TRUE),
+    roll_sd     = rollapply(aimdeviation_deg, width = 12, FUN = sd, fill = NA, align = "right", partial = TRUE),
+    roll_mad   = rollapply(aimdeviation_deg, width = 12, FUN = function(x) mad(x, constant = 1), fill = NA, align = "right")
   ) %>%
   ungroup()
 
@@ -126,7 +125,7 @@ final_sd <- strategy_annot %>%
   )
 
 delta <- 1.9  # tolerance for SD similarity
-N     <- 8 # consecutive trials for stability
+N     <- 4 # consecutive trials for stability
 
 min_sd_trials <- strategy_annot %>%
   left_join(start_sd_trials, by = "participant_id") %>%
@@ -216,7 +215,7 @@ xgRun <- function () {
   model_start <- xgb.train(
     params = params,
     data = dtrain_start,
-    nrounds = 250
+    nrounds = 500
   )
 
   model_df$pred_start <- predict(model_start, as.matrix(features_start))
@@ -238,6 +237,7 @@ xgRun <- function () {
   )
 
   model_df$pred_end <- predict(model_end, as.matrix(features_end))
+  model_df$pred_end <- pmax(model_df$pred_end, model_df$pred_start + 3)
 
 # -----------------------------
 # Compare predicted vs actual
@@ -262,57 +262,109 @@ return(model_df)
 # take trial - end value (from 16 trials)- how much you deviate
 
 
-plotStart <- function () {
+plotStart <- function(target = "inline", main = NULL) {
+  
+  setupFigureFile(
+    target = target,
+    width = 3,
+    height = 3,
+    dpi = 300,
+    sprintf("images/plotsteps.%s", target)
+  )
   annotations <- xgSetup()
   model_df <- xgRun()
+  correlation <- cor(model_df$starttrial, model_df$pred_start, use = "complete.obs")
 
-ggplot(model_df, aes(x = starttrial, y = pred_start, label = participant_id)) +
-  geom_point(size = 3, alpha = 0.75) +
-  geom_text(nudge_y = 1, size = 3, alpha = 0.7) +
+  ggplot(model_df, aes(x = starttrial, y = pred_start, label = participant_id)) +
+  geom_point(size = 3, alpha = 0.75, colour="#ff713d") +
   geom_abline(intercept = 0, slope = 1, 
-              color = "salmon", linetype = "dashed", linewidth = 1) +
+              color = "grey", linetype = "solid", linewidth = 1) +
+  geom_abline(intercept = 0, slope = correlation, 
+              color = "#ff713d", linetype = "dashed", linewidth = 1) +
   labs(
-    title = "Model vs Human Start Trial",
-    x = "Human classified start",
-    y = "XGBoost predicted start"
+    title = "",
+    x = "",
+    y = ""
   ) +
+  coord_cartesian(xlim = c(0, 125), ylim=c(0,90)) +
   annotate(
     "text", 
     x = max(model_df$starttrial)*0.2, 
-    y = max(model_df$pred_start)*0.9, 
-    label = "r = 0.98", 
-    size = 5, 
+    y = max(model_df$pred_start)*1.08, 
+    label = "r = 0.95", 
+    size = 7, 
     color = "black"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    #axis.line = element_line(),
+    axis.text.x  = element_text(size = 21),
+    axis.text.y  = element_text(size = 21),
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.title = element_text(size = 17),
+    legend.text  = element_text(size = 16),
+    plot.title   = element_text(size = 19, hjust = 0),
+    legend.position = "inside",
+    legend.position.inside = c(0.08, 0.5)
+  )
 
-#correlation <- cor(model_df$starttrial, model_df$pred_start, use = "complete.obs")
+
 }
 
-plotEnd <- function() {
+plotEnd <- function(target = "inline", main = NULL) {
+    
+    setupFigureFile(
+      target = target,
+      width = 6,
+      height = 3,
+      dpi = 300,
+      sprintf("images/plotsteps.%s", target)
+    )
   annotations <- xgSetup()
   model_df <- xgRun()
-  
+  correlation <- cor(model_df$endtrial, model_df$pred_end)
   
 ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
-  geom_point(size = 3, alpha = 0.75) +
-  geom_text(nudge_y = 1, size = 3, alpha = 0.7) +
+  geom_point(size = 3, alpha = 0.75, color="#5C1675") +
   geom_abline(intercept = 0, slope = 1, 
-              color = "salmon", linetype = "dashed", linewidth = 1) +
+              color = "grey", linetype = "solid", linewidth = 1) +
+  geom_abline(intercept = 0, slope = correlation, 
+              color = "#5C1675", linetype = "dashed", linewidth = 1) +
   labs(
-    title = "Model vs Human End Trial",
-    x = "Human classified end",
-    y = "XGBoost predicted end"
+    title = "",
+    x = "",
+    y = ""
   ) +
+  coord_cartesian(xlim = c(0, 125), ylim=c(0,90)) +
   annotate(
-    "text", 
-    x = max(model_df$endtrial)*0.2, 
-    y = max(model_df$pred_end)*0.9, 
-    label = "r = 0.61", 
-    size = 5, 
+    "text",
+    x = 0.1 * 125,
+    y = 0.9 * 100,
+    label = "",
+    size = 7,
     color = "black"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    #axis.line = element_line(),
+    axis.text.x  = element_text(size = 21),
+    axis.text.y  = element_text(size = 21),
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.title = element_text(size = 17),
+    legend.text  = element_text(size = 16),
+    plot.title   = element_text(size = 19, hjust = 0),
+    legend.position = "inside",
+    legend.position.inside = c(0.08, 0.5)
+  )
 
-#correlation <- cor(model_df$endtrial, model_df$pred_end)
+
 }
+
