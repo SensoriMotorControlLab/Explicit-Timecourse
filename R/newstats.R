@@ -213,4 +213,81 @@ idealT <- function() {
       )
     
     return(results)
-  }
+}
+
+
+
+
+## clusters
+
+rotationEffect <- function () {
+  propotions_plot <- pcaBar()
+
+  
+  proportions_plot$cluster_label <- droplevels(proportions_plot$cluster_label)
+  
+  table_data <- xtabs(n_participants ~ rotation + cluster_label, 
+                      data = proportions_plot)
+  
+  #monte carlo simulation?? bc some cells are less than 5 and fishers is hard to use on a big contigency table
+  
+  fisher.test(table_data, simulate.p.value = TRUE, B = 100000)
+
+} # p-value = 0.00018
+
+#more specific than just cluster type: stats that are good to have
+
+## does learning phase length differ by rotation group?
+
+lengthStats <- function () {
+  strat_data <- read.csv("data/strategy_only_participants.csv")
+  model_df <- xgRun()
+  rotation_lookup <- unique(strat_data[, c("participant_id", "rotation.x")])
+  model_df <- merge(model_df, rotation_lookup, by = "participant_id", all.x = TRUE)
+  
+  model_df$learning_length <- model_df$pred_end - model_df$pred_start
+  anova_result <- aov(learning_length ~ factor(rotation), data = model_df)
+  summary(anova_result)
+} #yes p =0.038
+
+# Compute means and standard errors
+
+summary_df <- model_df %>%
+  group_by(rotation) %>%
+  summarise(
+    mean_length = mean(learning_length, na.rm = TRUE),
+    se_length = sd(learning_length, na.rm = TRUE)/sqrt(n())
+  )
+
+# Bar plot with error bars
+ggplot(summary_df, aes(x = rotation, y = mean_length, fill = rotation)) +
+  geom_bar(stat = "identity", color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean_length - se_length, ymax = mean_length + se_length),
+                width = 0.2) +
+  labs(
+    title = "Learning Phase Length by Rotation Group",
+    x = "Rotation Group",
+    y = "Mean Learning Length (trials)"
+  ) +
+  coord_cartesian(ylim = c(0, 35)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+
+
+
+
+
+## does learning phase sd differ by rotation group?
+varStats <- function () {
+  strat_data <- read.csv("data/strategy_only_participants.csv")
+  model_df <- xgRun()
+  rotation_lookup <- unique(strat_data[, c("participant_id", "rotation.x")])
+  model_df <- merge(model_df, rotation_lookup, by = "participant_id", all.x = TRUE)
+  
+
+  anova_result <- aov(sd_dev ~ factor(rotation), data = model_df)
+  summary(anova_result)
+} #yes p<0.001
+
+
