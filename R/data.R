@@ -15,7 +15,7 @@ getData <- function() {
   Reach::downloadOSFdata(
     repository = '6g3h7',
     filelist = list(
-      'data' = c(
+      'data/' = c(
         'demographics.zip',
         'Instructed_summary.zip',
        'pilot_all.zip',
