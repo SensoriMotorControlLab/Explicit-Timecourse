@@ -1,3 +1,5 @@
+total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+
 total_learners_data <- total_group_data %>%
   semi_join(learner_id, by = c("rotation", "participant_id")) %>%
   select(participant_id, cutrial_no, aimdeviation_deg, reachdeviation_deg, rotation, trial_type, group)
@@ -82,7 +84,7 @@ polygon(
 
 ###30###
 reach30_summary <- cleaned_data %>%
-  filter(rotation == 30) %>%
+  filter(rotation== 30) %>%
   group_by(cutrial_no) %>%
   summarise(mean_reach_deviation = mean(reachdeviation_deg, na.rm = TRUE))
 
@@ -110,7 +112,7 @@ baseline30_mean <- cleaned_data %>%
 t_low  <- t.test(baseline30_mean$mean_reach_dev, mu = 0)
 
 washout30_g1 <- cleaned_data %>%
-  filter(rotation == 30,
+  filter(rotation== 30,
          trial_type == "zero-clamp rotated",
          cutrial_no >= 209 & cutrial_no <= 216) %>%
   group_by(participant_id) %>%
@@ -118,7 +120,7 @@ washout30_g1 <- cleaned_data %>%
 
 washout30_g2 <- cleaned_data %>%
   filter(group == "Group 2",
-         rotation == 30,
+         rotation== 30,
          trial_type == "no cursor",
          cutrial_no >= 233 & cutrial_no <= 240) %>%
   group_by(participant_id) %>%
@@ -130,7 +132,7 @@ t_result <- t.test(washout60_combined$mean_reach_dev, mu = 0)
 
 #plot
 reachci_30 <- cleaned_data %>% 
-  filter(rotation == 30) %>%
+  filter(rotation== 30) %>%
   group_by(cutrial_no) %>%
   summarise(
     n = n(),
@@ -155,13 +157,13 @@ polygon(
 
 ###40###
 reach40_summary <- cleaned_data %>%
-  filter(rotation == 40) %>%
+  filter(rotation== 40) %>%
   group_by(cutrial_no) %>%
   summarise(mean_reach_deviation = mean(reachdeviation_deg, na.rm = TRUE))
 
 #compare rotated trials to 40
 rotated40_mean <- cleaned_data %>%
-  filter(rotation == 40, trial_type == "rotated") %>%
+  filter(rotation== 40, trial_type == "rotated") %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   slice_tail(n = 16) %>%  # last 8 trials for each participant
@@ -172,7 +174,7 @@ t_high <- t.test(rotated40_mean$mean_reach_dev, mu = 40)
 
 #compare aligned trials to 0
 baseline40_mean <- cleaned_data %>%
-  filter(rotation == 40) %>%
+  filter(rotation== 40) %>%
   filter(trial_type == "aligned") %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
@@ -181,9 +183,9 @@ baseline40_mean <- cleaned_data %>%
 
 t_low  <- t.test(baseline40_mean$mean_reach_dev, mu = 0)
 
-#compare after-rotation trials to 0
+#compare after-rotationtrials to 0
 washout40_g1 <- cleaned_data %>%
-  filter(rotation == 40,
+  filter(rotation== 40,
          trial_type == "zero-clamp rotated",
          cutrial_no >= 209 & cutrial_no <= 216) %>%
   group_by(participant_id) %>%
@@ -191,7 +193,7 @@ washout40_g1 <- cleaned_data %>%
 
 washout40_g2 <- cleaned_data %>%
   filter(group == "Group 2",
-         rotation == 40,
+         rotation== 40,
          trial_type == "no cursor",
          cutrial_no >= 233 & cutrial_no <= 240) %>%
   group_by(participant_id) %>%
@@ -205,7 +207,7 @@ t_result
 
 #plot
 reachci_40 <- cleaned_data %>% 
-  filter(rotation == 40) %>%  
+  filter(rotation== 40) %>%  
   group_by(cutrial_no) %>% 
   summarise(
     mean_dev = mean(reachdeviation_deg, na.rm = TRUE),
@@ -231,13 +233,13 @@ polygon(
 ###50###
 
 reach50_summary <- cleaned_data %>%
-  filter(rotation == 50) %>%
+  filter(rotation== 50) %>%
   group_by(cutrial_no) %>%
   summarise(mean_reach_deviation = mean(reachdeviation_deg, na.rm = TRUE))
 
 #compare rotated reach to 50
 rotated50_mean <- cleaned_data %>%
-  filter(rotation == 50, trial_type == "rotated") %>%
+  filter(rotation== 50, trial_type == "rotated") %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   slice_tail(n = 16) %>%  # last 8 trials for each participant
@@ -248,7 +250,7 @@ t_high <- t.test(rotated50_mean$mean_reach_dev, mu = 50)
 
 #compare aligned reaches to 0
 baseline50_mean <- cleaned_data %>%
-  filter(rotation == 50) %>%
+  filter(rotation== 50) %>%
   filter(trial_type == "aligned") %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
@@ -259,7 +261,7 @@ t_low  <- t.test(baseline50_mean$mean_reach_dev, mu = 0)
 
 #compare reaches to 0 (after rotation)
 washout50_g1 <- cleaned_data %>%
-  filter(rotation == 50,
+  filter(rotation== 50,
          trial_type == "zero-clamp rotated",
          cutrial_no >= 209 & cutrial_no <= 216) %>%
   group_by(participant_id) %>%
@@ -267,7 +269,7 @@ washout50_g1 <- cleaned_data %>%
 
 washout50_g2 <- cleaned_data %>%
   filter(group == "Group 2",
-         rotation == 50,
+         rotation== 50,
          trial_type == "no cursor",
          cutrial_no >= 233 & cutrial_no <= 240) %>%
   group_by(participant_id) %>%
@@ -297,7 +299,7 @@ paired_data %>%
 
 #plot
 reachci_50 <- cleaned_data %>% 
-  filter(rotation == 50) %>%  
+  filter(rotation== 50) %>%  
   group_by(cutrial_no) %>% 
   summarise(
     mean_dev = mean(reachdeviation_deg, na.rm = TRUE),
@@ -323,12 +325,12 @@ polygon(
 
 #compare rotated reaches to 60
 reach60_summary <- cleaned_data %>%
-  filter(rotation == 60) %>%
+  filter(rotation== 60) %>%
   group_by(cutrial_no) %>%
   summarise(mean_reach_deviation = mean(reachdeviation_deg, na.rm = TRUE))
 
 rotated60_mean <- cleaned_data %>%
-  filter(rotation == 60, trial_type == "rotated") %>%
+  filter(rotation== 60, trial_type == "rotated") %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   slice_tail(n = 16) %>%  # last 8 trials for each participant
@@ -338,7 +340,7 @@ t_low  <- t.test(rotated60_mean$mean_reach_dev, mu = 60)
 
 #compare baseline reaches to 0
 baseline60_mean <- cleaned_data %>%
-  filter(rotation == 60) %>%
+  filter(rotation== 60) %>%
   filter(trial_type == "aligned") %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
@@ -349,14 +351,14 @@ t_low  <- t.test(baseline60_mean$mean_reach_dev, mu = 0)
 
 #compare washout reaches to 0
 washout60_g1 <- cleaned_data %>%
-  filter(rotation == 60,
+  filter(rotation== 60,
     cleaned_data$trial_type == "zero-clamp rotated",
          cutrial_no >= 209 & cutrial_no <= 216) %>%
   group_by(participant_id) %>%
   summarise(mean_reach_dev = mean(reachdeviation_deg, na.rm = TRUE))
 
 washout60_g2 <- cleaned_data %>%
-  filter(rotation == 60,
+  filter(rotation== 60,
          trial_type == "no cursor",
          cutrial_no >= 233 & cutrial_no <= 240) %>%
   group_by(participant_id) %>%
@@ -388,7 +390,7 @@ paired_data %>%
 
 #plot
 reachci_60 <- cleaned_data %>% 
-  filter(rotation == 60) %>%  
+  filter(rotation== 60) %>%  
   group_by(cutrial_no) %>% 
   summarise(
     mean_dev = mean(reachdeviation_deg, na.rm = TRUE),
@@ -412,7 +414,7 @@ polygon(
 
 
 
-#####anova 1####
+#####anova 1#### do asymptotic reaches differ depending on rotation size?
 rotated_means <- cleaned_data %>%
   filter(trial_type == "rotated") %>%
   group_by(rotation, participant_id) %>%
@@ -425,7 +427,7 @@ summary(anova_res)
 TukeyHSD(anova_res)
 
 
-####anova 2#####
+####anova 2##### Do participants detect and start compensating earlier for small rotations than large ones?”
 
 baseline_means <- cleaned_data %>%
   filter(trial_type == "aligned") %>%
