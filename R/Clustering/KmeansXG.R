@@ -174,7 +174,7 @@ plotComponents <- function() {
       cluster_label = factor(
         cluster_label,
         levels = c(1, 2, 3),
-        labels = c("Gradual", "Stepwise", "Exploratory")
+        labels = c("Stepwise", "Gradual", "Exploratory")
       )
     )
   
@@ -182,19 +182,10 @@ plotComponents <- function() {
     group_by(cluster_label) %>%
     slice(chull(PC1, PC2))
   
-  library(scales)
   ggplot(pca_df, aes(x = PC2, y = PC1, color = cluster_label)) +
     geom_point(size = 3, alpha = 0.8) +
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
-    labs(x = "", y = "", color = "Cluster", fill = "Cluster") +
-    scale_x_continuous(
-      expand = expansion(mult = 0.1),
-      labels = scales::label_number(accuracy = 0.1)
-    ) +
-    scale_y_continuous(
-      expand = expansion(mult = 0.1),
-      labels = scales::label_number(accuracy = 0.1)
-    ) +
+    labs(x = "(PC2): Learning Variance", y = "(PC1): Duration and Re-aim Magnitude", color = "Cluster", fill = "Cluster") +
     scale_fill_manual(values = c(
       "Exploratory" = "#c495c9",
       "Gradual"     = "#3dcad4",
@@ -210,6 +201,7 @@ plotComponents <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
+      axis.line = element_line(),
       axis.text.x  = element_text(size = 24),
       axis.text.y  = element_text(size = 24),
       axis.title.x = element_text(size = 17),
@@ -280,7 +272,16 @@ classification <- data.frame(
                      "85592d","822948","803175","7ddb15","73230b",
                      "71ea32","6442f3","6387a3","514daa","5129de",
                      "4ff32b","4cbb11","4b9fad","4b701d","30035a",
-                     "2ff26d","27edd0","24c273","1cce80","1cc592","1c10b9"),
+                     "2ff26d","27edd0","24c273","1cce80","1cc592","1c10b9",
+                     
+                     
+                     
+                     "9b5b71","7454c1","a16f97","a7178b","d53112",
+                     "ad1dea", "afaaf4", "dfe4d5", "fa0f1a", "fe59c4",
+                     "d1d7c3","d10bdf","03fd31","49e772","56968f"),
+  
+  
+    
   
   label = c("step", "step", "step", "step", "step", 
             "step", "step", "erratic", "step", "step", "erratic", "step",
@@ -300,7 +301,12 @@ classification <- data.frame(
             "gradual","erratic","erratic","step","erratic",
             "gradual","erratic","erratic","erratic","gradual",
             "step","step","step","step","step",
-            "erratic","erratic","step","step","step", "step")
+            "erratic","erratic","step","step","step", "step",
+            
+            
+            "step", "erratic", "erratic", "gradual", "step", 
+            "step", "gradual", "step", "step","erratic",
+            "gradual","step","erratic","erratic","step")
 )
 
 classification$label[classification$participant_id == "13d986"] <- "gradual"
@@ -371,8 +377,8 @@ proportions_combined <- proportions_combined %>%
   filter(!is.na(cluster_label))
 proportions_combined$cluster_label <- factor(
   proportions_combined$cluster_label,
-  levels = c("Non-strategy", "1", "2", "3"),
-  labels = c("Non-Strategy", "Gradual","Exploratory", "Stepwise")
+  levels = c("Non-strategy", "2", "3", "1"),
+  labels = c("Non-Strategy", "Gradual","Exploratory","Stepwise")
 )
 
 ##find percentages
@@ -397,18 +403,19 @@ ggplot(
   geom_bar(stat = "identity", color = "black", width = 0.7) +
   scale_fill_manual(
     values = c(
-      "Stepwise"     = "#d16483",
+      "Gradual"    = "#3dcad4",
       "Exploratory" = "#c495c9",
-      "Gradual"    = "#3dcad4"
+      "Stepwise"     = "#d16483"
     ),
-    labels = c("Gradual n = 9", "Exploratory n = 26", "Stepwise n = 76"),
+    labels = c("Gradual n = 21", "Exploratory n = 36", "Stepwise n = 69\nNon-strategy n = 86"),
     name = "Phenotype"
   ) +
+
   scale_y_continuous(limits = c(0, 100)
   ) +
   labs(
-    x = "",
-    y = "",
+    x = "Rotation Group",
+    y = "Percentage of Participants (%)",
     title = ""
   ) +
   theme_minimal(base_size = 14) +
@@ -416,14 +423,15 @@ ggplot(
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    axis.text.x  = element_text(size = 24),
-    axis.text.y  = element_text(size = 24),
+    axis.line = element_line(),
+    axis.text.x  = element_text(size = 17),
+    axis.text.y  = element_text(size = 17),
     axis.title.x = element_text(size = 17),
     axis.title.y = element_text(size = 17),
     legend.title = element_text(size = 17),
     legend.text  = element_text(size = 16)
   ) 
-
+return(proportions_plot)
 }
 
 
