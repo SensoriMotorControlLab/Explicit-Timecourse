@@ -83,24 +83,73 @@ load_total_group_data <- function(dir = "data/Instructed_summary /") {
 getLearners <- function() {
   total_group_data <- load_total_group_data("data/Instructed_summary /")
   
-   learner_df <- total_group_data %>%
-    filter(
-      (group == "Group 1" & cutrial_no %in% 193:208) |
-        (group == "Group 2" & cutrial_no %in% 217:232)
-    ) %>%
-    group_by(participant_id, rotation, group) %>%
-    reframe(
-      is_learner = median(reachdeviation_deg, na.rm = TRUE) > (rotation / 2)
-    ) %>%
-    distinct(participant_id, rotation, group, .keep_all = TRUE)
+  total_group_data %>%
+    group_by(participant_id) %>%
+    summarise(n_rot = n_distinct(rotation)) %>%
+    filter(n_rot > 1)
+  
+learner_df <- total_group_data %>%
+  group_by(participant_id, group) %>%
+  group_modify(~{
+
+    df <- .x
+    group_name <- .y$group
+
+    # ----- DEFINE TASK STRUCTURE -----
+    if(group_name == "Group 1"){
+      rot_task <- 8
+      baseline_trials <- df %>%
+        filter(task_idx == 7)   # final baseline before rotation
+    } else {
+      rot_task <- 12
+      baseline_trials <- df %>%
+        filter(
+          (task_idx == 2 & trial_idx > 16) |
+          (task_idx == 4 & trial_idx > 4) |
+          task_idx %in% c(6, 8, 10)
+        )
+    }
+
+
+    baseline <- median(baseline_trials$reachdeviation_deg, na.rm = TRUE)
+
+    rotated <- df %>%
+      filter(task_idx == rot_task) %>%
+      arrange(trial_idx) %>%
+      slice_tail(n = 16)
+
+    rotated_median <- median(rotated$reachdeviation_deg, na.rm = TRUE)
+    rotation <- unique(rotated$rotation_deg)[1]
+
+    # ----- BASELINE CORRECTION -----
+    meandev <- rotated_median - baseline
+
+    # ----- DIRECTION NORMALIZE -----
+    meandev <- -sign(rotation) * meandev
+
+
+    is_learner <- meandev > (abs(rotation) / 2)
+
+    tibble(
+      rotation = rotation,
+      baseline = baseline,
+      rotated_median = rotated_median,
+      adjusted_dev = meandev,
+      is_learner = is_learner
+    )
+  }) %>%
+  ungroup()
+
+  
   
   learner_summary <- learner_df %>%
     group_by(rotation) %>%
-    reframe(
+    summarise(
       total_n = n(),
       n_learners = sum(is_learner),
-      percent_learners = round(100 * n_learners / total_n, 1)
+      percent_learners = 100 * n_learners / total_n
     )
+  
   
   print(learner_summary)
   return(learner_df)
@@ -112,7 +161,8 @@ LearnerCSV <- function() {
 
   learner_id <- getLearners() %>%
     distinct(participant_id, rotation, group, .keep_all = TRUE)
-
+  learner_id <- learner_id %>%
+    mutate(rotation = abs(rotation))
   
   total_learners_data <- total_group_data %>%
     inner_join(
