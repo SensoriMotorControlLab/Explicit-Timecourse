@@ -11,22 +11,29 @@ setupAIM <- function() {
   clean_data <- strat_data %>%
     filter(trial_type.x %in% c("aligned", "rotated")) %>%
     group_by(participant_id, rotation) %>%
+    # find the first rotated trial
     mutate(rotation_onset = min(cutrial_no[trial_type.x == "rotated"])) %>%
     mutate(norm_trial = cutrial_no - rotation_onset) %>%
     ungroup() %>%
     group_by(participant_id) %>%
+    # compute baseline stats for trials before rotation
     mutate(
-      mean_p = mean(aimdeviation_deg, na.rm = TRUE),
-      sd_p   = sd(aimdeviation_deg, na.rm = TRUE)
+      mean_baseline = mean(aimdeviation_deg[norm_trial < 0], na.rm = TRUE),
+      sd_baseline   = sd(aimdeviation_deg[norm_trial < 0], na.rm = TRUE),
+      mean_rotated  = mean(aimdeviation_deg[norm_trial >= 0], na.rm = TRUE),
+      sd_rotated    = sd(aimdeviation_deg[norm_trial >= 0], na.rm = TRUE)
     ) %>%
-    #outliers
+    # filter outliers separately for pre- and post-rotation
     filter(
-      aimdeviation_deg <= mean_p + 3 * sd_p,
-      aimdeviation_deg >= mean_p - 3 * sd_p
-    ) %>%
-    ungroup()
-  
-  return(clean_data)
+      (norm_trial < 0 &
+         aimdeviation_deg >= mean_baseline - 0.5 * sd_baseline &
+         aimdeviation_deg <= mean_baseline + 0.5 * sd_baseline) |
+        (norm_trial >= 0 &
+           aimdeviation_deg >= mean_rotated - 3 * sd_rotated &
+           aimdeviation_deg <= mean_rotated + 3 * sd_rotated)
+    )%>%
+    ungroup() %>%
+    select(-mean_baseline, -sd_baseline, -mean_rotated, -sd_rotated)
 }
 
 summarizeAIM <- function() {
@@ -80,22 +87,22 @@ plotAIM <- function() {
       ~ rotation,
       ncol = 2,
       labeller = as_labeller(c(
-        "20" = "20° Rotation",
-        "30" = "30° Rotation",
-        "40" = "40° Rotation",
-        "50" = "50° Rotation",
-        "60" = "60° Rotation"
+        "20" = "20° Rotation (n = 8)",
+        "30" = "30° Rotation (n = 19)",
+        "40" = "40° Rotation (n = 27)",
+        "50" = "50° Rotation (n = 32)",
+        "60" = "60° Rotation (n = 40)"
       ))
     ) +
     
     scale_y_continuous(limits = c(-15, 60)) +
     
     scale_color_manual(values = c(
-      "20"="#B9D3EE","30"="#85adf3","40"="#87CEEB","50"="#4682B4","60"="#271716"
+      "20"="#FFBBFF","30"="#DA70D6","40"="#AB82FF","50"="#5D4784","60"="#271716"
     )) +
     
     labs(
-      x = "Trial (aligned to rotation onset)",
+      x = "Trial Number",
       y = "Aim deviation (°)",
       color = "Rotation (°)"
     ) +
