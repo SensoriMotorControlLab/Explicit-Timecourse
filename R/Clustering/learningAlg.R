@@ -17,7 +17,7 @@ library(xgboost)
 #   slice_sample(n = 75) %>%
 #   pull(participant_id)
 # 
-plot_rotated_phase_all_trials <- function(pid = "1c10b9", data_file = "data/strategy_only_participants.csv") {
+plot_rotated_phase_all_trials <- function(pid = "56968f", data_file = "data/strategy_only_participants.csv") {
 
   strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
 
@@ -50,7 +50,7 @@ plot_rotated_phase_all_trials <- function(pid = "1c10b9", data_file = "data/stra
   ggplotly(p, tooltip = "text")
 }
 
-plot_rotated_phase_all_trials("1c10b9")
+plot_rotated_phase_all_trials("56968f")
 
 
 
@@ -62,7 +62,7 @@ plot_rotated_phase_all_trials("1c10b9")
 
 # Model 1:  XGBoost Regressor
 xgSetup <- function () {
-annotations <- read.csv("~/Desktop/m.sc/project/ElysaClassifier.csv", stringsAsFactors = FALSE)
+annotations <- read.csv("~/Desktop//ElysaClassifier.csv", stringsAsFactors = FALSE)
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_data <- strategy_data %>% 
@@ -283,10 +283,10 @@ plotStart <- function(target = "inline", main = NULL) {
               color = "#ff713d", linetype = "dashed", linewidth = 1) +
   labs(
     title = "",
-    x = "",
-    y = ""
+    x = "Human Classifier Prediction (Trial)",
+    y = "xgBoost Model Prediction (Trial)"
   ) +
-  coord_cartesian(xlim = c(0, 125), ylim=c(0,90)) +
+  coord_cartesian(xlim = c(0, 125), ylim=c(0,125)) +
   annotate(
     "text", 
     x = max(model_df$starttrial)*0.2, 
@@ -300,7 +300,7 @@ plotStart <- function(target = "inline", main = NULL) {
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    #axis.line = element_line(),
+    axis.line = element_line(),
     axis.text.x  = element_text(size = 21),
     axis.text.y  = element_text(size = 21),
     axis.title.x = element_text(size = 17),
@@ -336,15 +336,15 @@ ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
               color = "#5C1675", linetype = "dashed", linewidth = 1) +
   labs(
     title = "",
-    x = "",
-    y = ""
+    x = "Human Classifier Prediction (Trial)",
+    y = "xgBoost Model Prediction (Trial)"
   ) +
-  coord_cartesian(xlim = c(0, 125), ylim=c(0,90)) +
+  coord_cartesian(xlim = c(0, 125), ylim=c(0,125)) +
   annotate(
     "text",
     x = 0.1 * 125,
     y = 0.9 * 100,
-    label = "",
+    label = "r = 0.71",
     size = 7,
     color = "black"
   ) +
@@ -353,7 +353,7 @@ ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
-    #axis.line = element_line(),
+    axis.line = element_line(),
     axis.text.x  = element_text(size = 21),
     axis.text.y  = element_text(size = 21),
     axis.title.x = element_text(size = 17),
