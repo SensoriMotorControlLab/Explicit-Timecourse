@@ -48,6 +48,8 @@ facetCluster <- function () {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
+      strip.background = element_blank(),
+      strip.text = element_text(size = 14, face = "bold"),
       axis.line = element_line(),
       axis.text.x  = element_text(size = 17),
       axis.text.y  = element_text(size = 17),
