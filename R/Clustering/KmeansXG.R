@@ -182,15 +182,19 @@ plotComponents <- function() {
     group_by(cluster_label) %>%
     slice(chull(PC1, PC2))
   
-  ggplot(pca_df, aes(x = PC2, y = PC1, color = cluster_label)) +
+  ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster_label)) +
     geom_point(size = 3, alpha = 0.8) +
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
-    labs(x = "(PC2): Learning Variance", y = "(PC1): Duration and Re-aim Magnitude", color = "Cluster", fill = "Cluster") +
+    labs(x = "(PC1): Duration and Re-aim Magnitude", y = "(PC2): Learning Variance", color = "Cluster", fill = "Cluster") +
     scale_fill_manual(values = c(
       "Exploratory" = "#c495c9",
       "Gradual"     = "#3dcad4",
       "Stepwise"    = "#d16483"
     )) +
+    coord_equal() +
+    scale_x_continuous(breaks = seq(-2, 10, by = 2)) +
+    scale_y_continuous(breaks = seq(-2, 10, by = 2)) +
+    
     scale_color_manual(values = c(
       "Exploratory" = "#c495c9",
       "Gradual"     = "#3dcad4",
@@ -206,8 +210,8 @@ plotComponents <- function() {
       axis.text.y  = element_text(size = 24),
       axis.title.x = element_text(size = 17),
       axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 17),
-      legend.text  = element_text(size = 16) 
+      legend.title = element_text(size = 18),
+      legend.text  = element_text(size = 17) 
     )
 }
 
