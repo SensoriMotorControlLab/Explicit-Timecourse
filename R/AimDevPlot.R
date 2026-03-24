@@ -74,18 +74,18 @@ plotAIM <- function() {
       aes(x = norm_trial, y = mean_aim, color = factor(rotation)),
       size = 1
     ) +
-    
+    coord_cartesian(xlim = c(-8, 120)) +
     geom_hline(
       data = hline_data,
       aes(yintercept = yintercept),
-      color = "grey80", linewidth = 0.6
+      color = "grey",linetype="dashed", linewidth = 0.6
     ) +
     
     geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
     
     facet_wrap(
       ~ rotation,
-      ncol = 2,
+      ncol = 3,
       labeller = as_labeller(c(
         "20" = "20° Rotation (n = 8)",
         "30" = "30° Rotation (n = 19)",
@@ -111,8 +111,153 @@ plotAIM <- function() {
     theme(
       panel.grid = element_blank(),
       legend.position = "none",
-      strip.background = element_rect(fill = "grey95", color = NA),
+      strip.background = element_blank(),
       strip.text = element_text(size = 14, face = "bold"),
-      axis.line = element_line(color = "black")
+      axis.line = element_line(color = "black"),
+      axis.text.x  = element_text(size = 15),
+      axis.text.y  = element_text(size = 15),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      legend.title = element_text(size = 18),
+      legend.text  = element_text(size = 17) 
     )
 }
+
+
+
+
+
+
+
+
+## non-startegy
+non <- function () {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors = FALSE)
+  
+  strategy_df <- getStrategies()
+  
+  no_strategy_ids <- strategy_df %>%
+    filter(strategy == "No") %>%
+    pull(participant_id)
+    
+  clean_data <- total_learners_data %>%
+    filter(participant_id %in% no_strategy_ids) %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    filter(
+      (trial_type == "aligned" & row_number() %in% tail(which(trial_type == "aligned"), 8)) |
+        trial_type == "rotated"
+    ) %>%
+    ungroup()
+    
+  clean_data <- clean_data %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    mutate(cutrial_no = row_number() - 9) %>%  # makes aligned = -8:-1, rotated = 1:120
+    ungroup()
+  
+  summary_data <- clean_data %>%
+    group_by(rotation, cutrial_no) %>%
+    summarise(
+      mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+      ci = list(Reach::getConfidenceInterval(aimdeviation_deg)),
+      .groups = "drop"
+    ) 
+  
+
+  mean_df <- clean_data %>%
+    group_by(rotation, cutrial_no) %>%
+    summarise(
+      mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  ggplot(mean_df, aes(x = cutrial_no, y = mean_aim)) +
+    geom_line(size = 1, color = "salmon") +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+   # geom_hline(yintercept = 0, linetype = "dashed") +
+    geom_hline(yintercept = 5, linetype = "dashed", col="grey2") +
+    coord_cartesian(ylim = c(-20, 80), xlim= c(-8,120)) +
+    facet_wrap(~rotation) +
+    labs(
+      x = "Trial",
+      y = "Mean Aim Deviation (deg)",
+      title = ""
+    ) +
+    theme_classic() +
+    theme(
+      panel.grid.major = element_blank(),
+      strip.background = element_blank(),
+      strip.text = element_text(size = 14, face = "bold"),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(),
+      axis.text.x  = element_text(size = 17),
+      axis.text.y  = element_text(size = 17),
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15)
+    )
+}
+
+ci <- function () {
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors = FALSE)
+  
+  no_strategy_ids <- non()
+# Step 1: align trials relative to rotation onset
+plot_df <- total_learners_data %>%
+  filter(participant_id %in% no_strategy_ids) %>%
+  mutate(
+    rotation_onset = ifelse(rotation %in% c(20,30,40), 90, 113),
+    rel_trial = cutrial_no - rotation_onset
+  ) %>%
+  filter(rel_trial >= -8)
+
+# Step 2: compute mean across all participants and all rotations
+overall_mean <- plot_df %>%
+  group_by(rel_trial) %>%
+  summarise(
+    mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+# Step 3: plot
+overall_ci <-clean_data %>%
+  group_by(cutrial_no) %>%
+  summarise(
+    mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+    se = sd(aimdeviation_deg, na.rm = TRUE) / sqrt(n()),      # standard error
+    lower = mean_aim - 1.96 * se,                             # 95% CI
+    upper = mean_aim + 1.96 * se,
+    .groups = "drop"
+  )
+
+# Step 2: plot with CI ribbon
+
+ggplot(overall_ci, aes(x = cutrial_no, y = mean_aim)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "red") +
+  geom_line(size = 1.5, color = "red") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+ # geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 5, linetype = "dashed", col="grey2") +
+  coord_cartesian(ylim = c(-20, 80), xlim=c(-8,120)) +
+  labs(
+    x = "Trial (relative to rotation onset)",
+    y = "Mean Aim Deviation (deg)",
+    title = ""
+  ) +
+  theme_classic() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(),
+    axis.text.x  = element_text(size = 21),
+    axis.text.y  = element_text(size = 21),
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17)
+  )
+}
+
+
+
