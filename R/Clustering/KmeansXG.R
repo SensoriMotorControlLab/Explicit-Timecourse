@@ -2,7 +2,7 @@
 getFeaturesFromModel <- function() {
   model_df <- xgRun()
   strategy_data <- read.csv("data/strategy_only_participants.csv")
-  window_size = 3
+  window_size = 4
   
   
   features <- data.frame(
@@ -66,7 +66,7 @@ getFeaturesFromModel <- function() {
     lin_r2 <- summary(lm(learning_aim ~ t))$r.squared
     
     
-    
+    aim_trend_cor <- cor(seq_along(learning_aim), learning_aim)
     # Erraticness feature: SD of trial-to-trial changes
     diff_sd <- sd(diffs)
     
@@ -115,7 +115,9 @@ getFeaturesFromModel <- function() {
     "largest_jump_frac",
     "jump_ratio",
     "max_jump_norm",
-    "smoothness"
+    "num_sign_flips",
+    "smoothness",
+    "lin_r2"
   )
   
   
@@ -142,14 +144,14 @@ pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
 pca$rotation <- pca$rotation*-1
 pca$x<- pca$x*-1
 
-pca_df <- as.data.frame(pca$x[,1:2])
-colnames(pca_df) <- c("PC1","PC2")
+pca_df <- as.data.frame(pca$x[,1:4])
+colnames(pca_df) <- c("PC1","PC2","PC3","PC4")
 pca_df$participant_id <- features_df$participant_id
 
 # -------------------------------
 # 3. K-means clustering
 set.seed(123)
-km_res <- kmeans(pca_df[,c("PC1","PC2")], centers = 3, nstart = 50)
+km_res <- kmeans(pca_df[,c("PC1","PC2","PC3","PC4")], centers = 3, nstart = 50)
 
 pca_df$cluster <- km_res$cluster
 pca_df$cluster_label <- as.factor(km_res$cluster)
@@ -174,7 +176,7 @@ plotComponents <- function() {
       cluster_label = factor(
         cluster_label,
         levels = c(1, 2, 3),
-        labels = c("Stepwise", "Gradual", "Exploratory")
+        labels = c("Gradual", "Exploratory", "Stepwise")
       )
     )
   
@@ -185,7 +187,7 @@ plotComponents <- function() {
   ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster_label)) +
     geom_point(size = 3, alpha = 0.8) +
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
-    labs(x = "(PC1): Duration and Re-aim Magnitude", y = "(PC2): Learning Variance", color = "Cluster", fill = "Cluster") +
+    labs(x = "(PC1): Duration and Eratticness", y = "(PC2): Learning Variance", color = "Cluster", fill = "Cluster") +
     scale_fill_manual(values = c(
       "Exploratory" = "#c495c9",
       "Gradual"     = "#3dcad4",
@@ -215,40 +217,6 @@ plotComponents <- function() {
     )
 }
 
-
-
-
-##plot 
-plotRaw <- function () {
-  pca_df <- kPCA()
-  model_df <- xgRun()
-  strategy_data <- read.csv("data/strategy_only_participants.csv")
-  
-  model_df_with_clusters <- model_df %>%
-    left_join(pca_df[,c("participant_id", "cluster_label")], by = "participant_id")
-
-  strategy_data_clustered <- strategy_data %>%
-    inner_join(model_df_with_clusters %>% select(participant_id, cluster_label),
-             by = "participant_id") %>%
-  filter(!is.na(cluster_label))  
-
-
-ggplot(strategy_data_clustered, 
-       aes(x = trial_idx, y = aimdeviation_deg, group = participant_id)) +
-  
-  geom_line(alpha = 0.5, color = "steelblue") +
-  geom_hline(yintercept = 0, color = "black", size = 0.8) +
-  facet_wrap(~ cluster_label, ncol = 1) +
-  
-  labs(
-    x = "Trial",
-    y = "Aim Deviation (deg)",
-    title = "Aiming Trajectories by Cluster"
-  ) +
-  
-  theme_minimal(base_size = 14) +
-  ylim(-100, 100)
-}
 
 
 confMatrix <- function () {
@@ -282,7 +250,8 @@ classification <- data.frame(
                      
                      "9b5b71","7454c1","a16f97","a7178b","d53112",
                      "ad1dea", "afaaf4", "dfe4d5", "fa0f1a", "fe59c4",
-                     "d1d7c3","d10bdf","03fd31","49e772","56968f"),
+                     "d1d7c3","d10bdf","03fd31","49e772","56968f", "bd8518", "139857", "657fba",
+                     "a4cf19","2c82f8","2f40e0" ),
   
   
     
@@ -310,7 +279,8 @@ classification <- data.frame(
             
             "step", "erratic", "erratic", "gradual", "step", 
             "step", "gradual", "step", "step","erratic",
-            "gradual","step","erratic","erratic","step")
+            "gradual","step","erratic","erratic","step", "gradual", "step", "erratic",
+            "erratic","step","step")
 )
 
 classification$label[classification$participant_id == "13d986"] <- "gradual"
@@ -381,7 +351,7 @@ proportions_combined <- proportions_combined %>%
   filter(!is.na(cluster_label))
 proportions_combined$cluster_label <- factor(
   proportions_combined$cluster_label,
-  levels = c("Non-strategy", "2", "3", "1"),
+  levels = c("Non-strategy", "1", "2", "3"),
   labels = c("Non-Strategy", "Gradual","Exploratory","Stepwise")
 )
 
@@ -400,7 +370,7 @@ proportions_plot <- proportions_combined %>%
   filter(cluster_label != "Non-Strategy")
 
 
-ggplot(
+ p <- ggplot(
   proportions_plot,
   aes(x = factor(rotation), y = percent, fill = cluster_label)
 ) +
@@ -411,7 +381,7 @@ ggplot(
       "Exploratory" = "#c495c9",
       "Stepwise"     = "#d16483"
     ),
-    labels = c("Gradual n = 21", "Exploratory n = 36", "Stepwise n = 69\nNon-strategy n = 86"),
+    labels = c("Gradual n = 20", "Exploratory n = 34", "Stepwise n = 58"),
     name = "Phenotype"
   ) +
 
@@ -435,6 +405,7 @@ ggplot(
     legend.title = element_text(size = 17),
     legend.text  = element_text(size = 16)
   ) 
+print(p)
 return(proportions_plot)
 }
 
