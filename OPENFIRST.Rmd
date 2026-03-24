@@ -1,8 +1,8 @@
 ---
 title: "Explicit Timecourse"
 output: html_notebook
-editor_options: 
-  markdown: 
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -64,13 +64,13 @@ Source project code:
 # load sources for this project
 source("R/data.R") 
 source("R/newcode.R") 
-source("R/AimHistograms.R") 
 source("R/AimDevPlot.R") 
-source("R/newstats.R") 
-source("R/Modeling/EXPvsSTEP.R") 
-source("R/Clustering/NewUnsuper.R") 
+source("R/Clustering/learningAlg.R") 
+source("R/Clustering/KmeansXG.R") 
+source("R/Clustering/clusterBehaviours.R")
 source("R/Reach Data/ReachDevPlot.R")
-source("R/Reach Data/IndividualReaches.R")
+source("R/Reach Data/nocursorReaches.R")
+source("R/newstats.R") 
 ```
 
 Download Files
@@ -86,18 +86,15 @@ Did all participants learn to counter the perturbation at least 50% of
 the time?
 
 ```{r}
-getLearners()
-```
-
-This is determined by ensuring the reachadeviation_deg median of the
-final 16 rotated trials is greater than 50% of the rotation magnitude
-recieved.
-
-Filter out non-learners
-
-```{r}
 LearnerCSV()
 ```
+
+This is determined by ensuring the baseline-corrected reachadeviation_deg median of the
+final 16 rotated trials is greater than 50% of the rotation magnitude
+received.
+
+Then we can filter out non-learners
+
 
 We can plot participant reach deviations to show the magnitude of
 learning per rotation group
@@ -145,13 +142,13 @@ Here we took the mean final 8 aligned and mean final 8 rotated per
 participant and ran 5 paired T-tests per rotation group. All tests
 reveal significance.
 
-2)  Is strategy enagagement predicted by rotation size?
+2)  Is likelihood of strategy development predicted by rotation size?
 
 ```{r}
 logAnalysis()
 ```
 
-The odds of using an explicit strategy are much higher in the 40°, 50°,
+The odds of using an explicit strategy are higher in the 40°, 50°,
 and 60° rotation groups compared to the 20° group.
 
 3)  Does aim magnitude vary across rotation sizes?
@@ -175,7 +172,7 @@ rotation size. Post-hoc tukey shows that participants in the 60°
 rotation group show significantly greater variability in their final
 performance than participants in the 20°, 30°, and 40° groups.
 
-5)  Is there an effect of rotation size on strategy-onset?
+5)  Is there an effect of rotation size for the timepoint of strategy-onset?
 
 ```{r}
 startTrialAOV()
@@ -189,84 +186,6 @@ startTrialAOV()
 plotAIM()
 ```
 
-Next, we can look at all aim data across individuals to predict visually
-if explicit learning follows and exponential vs stepwise process
-
-**Simulated Data:**
-
-```{r}
-plot_step_histogram(step_data_var_jump)
-```
-
-```{r}
-plot_step_histogram(exp_data)
-```
-
-**Observed Data:**
-
-```{r}
-plot60aim()
-```
-
-```{r}
-plot50aim()
-```
-
-```{r}
-plot40aim()
-```
-
-```{r}
-plot30aim()
-```
-
-```{r}
-plot20aim()
-```
-
-Aiming Onset
-
-### Is explicit learning an exponential process?
-
-[Model Fits script](EXPvsSTEP.R)
-
-First, we can fit models to aimdeviation_deg data of each participant.
-Three models we can use are
-
-1)  Step model - Do participant deviate their aim in 1 step and does
-    this aim stay stable?
-
-2)  Two-step model - Do participants deviate their aim once (ie, around
-    15 degrees) and modify their step again (ie, around their rotation
-    size)?
-
-3)  Exponential - Do particpants deviate their aim in small incremental
-    steps till it reaches their max aim deviation?
-
-For protocol see: [Open data analysis
-notebook](modelfittingprotocol.Rmd)
-
-```{r}
-fitAllModels()
-
-```
-
-```{r}
-#chi-sq test to see if more participants fit for a step
-ModelChi()
-#does rotation size predictmodel?
-ModelRotChi()
-```
-
-54 participants do not fit with the exponential model (n=42 for
-one-step). A chi-squared test revealed that significantly more
-participants were classified as one-step than exponential (p \<0.001)
-
-![](R/Figures/ExponentialFit.png)
-
-![](R/Figures/onestepFit.png)
-
-![](R/Figures/twostepFit.png){width="360"}
 
 ### Are there 'patterns' in strategy development among participants?
 
@@ -274,145 +193,105 @@ Inspired by Tsay et al. 2024 which suggested distinct classifications of
 strategies. We can thus implement a similar cluster analysis to
 determine if we can observe similar patterns through three methods
 
-**1) Unsupervised k-means algorithm using particiant-based  features**
+**1) Predicting individual participant learning phases**
 
-- First, we need to define a 'learning phase' finding the point of strategy onset to  when a strategy becomes stable. Using a rolling window   analysis approach, we can conduct a t.test analysis to see when a participant's strategy deviates from 0, to when a startegy deviates from   the average of the final 16 rotated trials
+- First, we need to define a 'learning phase' finding the point of strategy onset to  when a strategy becomes stable,       using a rolling window  analysis approach, 
+- Trial start: when a participants aim deviation exceeds the motor noise thresholf of 5 degrees.
+- Trial end: when the SD of a participants aim deviation closely matches the SD of the final 16 aiming trials and 
+  remains within an SD of 1.9.
 
 ```{r}
-getLearningPhase()
+xgRun()
 ```
-- Now we can establish features that captures the variance in strategy development.
-- FEATURE 1: SD of of aim within the learning phase
-- FEATURE 2: length of learning phase
-- FEATURE 3: mean absolute difference of each trial in the learning phase
+We can also visually assign these timepoints and compare these classifcations to the XgBoost model's predictions.
 
 ```{r}
-getFeatures()
-```
-
-We can conduct a PCA, and run kmeans on the top two informative PCA components
-```{r}
-install.packages('cluster')
-library(cluster)
-kMeans()
-```
-
-Visualize Clusters!!
-```{r}
-plotCluster()
+plotStart()
 ```
 ```{r}
-PCAPlot()
-```
-
-We can see patterns of a step, gradual, and erratic strategy type
-```{r}
-#visualize count in stacked bar plot
-stackedPlot()
+plotEnd()
 ```
 
 
-Manually label participants and compare via confusion matrix
-```{r}
-compare()
-```
 
-## Strategy type per rotation group
-```{r}
-learning_phase_table()
-##note: a lot is being output here but there are 3 tables for erratic, gradual, and step.
-```
-#Density plots
+**2) Run a PCA participant features to capture aim heterogeneity**
 
-```{r}
-#Density of step onset for step-learners
-plotStepOnsetDensity()
-```
+FEATURES:
+1) SD of learning phase
+2) Length of learning phase
+3) Absolute trial to trial changes
+4) Number of clockwise aims
+5) Highest aim jump
+6) Highest aim jump / mean of jump magnitudes
+7) Number of sign flips (erraticness)
+8) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
+9) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
 
+Run PCA to determine most informative components:
 ```{r}
-#Density of strategy onset for erratic-learners
-plotExplorationDensity()
-```
+extract <- getFeaturesFromModel() 
+  
+model_df <- xgRun()
+strategy_data <- read.csv("data/strategy_only_participants.csv")
 
-```{r}
-#When stable strategy is reached for step-learned
-stepStableDensity()
-```
+features_df <- extract$features_df        
+k_input     <- extract$kmeans_input     
+k_scaled <- scale(k_input)
 
-```{r}
-#When stable strategy is reached for all-learners
-plotAllStable()
+# -------------------------------
+# PCA 
+pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
+pca
 ```
-
-#Stats
-```{r}
-#Correlation of step size and magnitude (with normalized rotation)
-lmStats()
-```
-Both predictors are highly significantm meaning:
-  (1) step size still matters, even when controlling for rotation.
-  (2) rotation size also independently drives final strategy.
+HIGHEST FEATURE LOADINGS:
+- PC1 - length duration & eratticness (num of sign flips)
+- PC2 - variance & jump magnitude (absolute difference, SD, max jump)
+- PC3 & 4- gradualness (smoothness & linearity)
 
 
-```{r}
-# Does aim magnitude depend on rotation size for step users?
-aimStep()
-```
-- Yes! F-test:p=0.001. 
-- 60 group differs with 50,30,30, but not 20 (p=0.053)
+**2) Run an unsupervised kMeans clustering analysis on four most informative components**
 
+Compare clusters to visually predicted clusters
 ```{r}
-#For all strategy-users is time till stable strategy predicted by rotation size?
-allStableTime()
-```
-No. p= 0.76
-
-```{r}
-#For all strategy-users is magnitude of stable strategy predicted by rotation size?
-allStableAim()
-```
-Yes! 
-
-We can visualize finaly strategy across rotation sizes
-```{r}
-allFinalBar()
+confMatrix()
 ```
 
+We can see which centres closely match participants' behavioural features by plotting the two most informative components
+```{r}
+plotComponents()
+```
+Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. Theres some overlap.. these particpants can be showing both!
 
-### Final Analysis - Individual reaches
-
-Visually, do cursor reaches resemble an exponential or stepwise
-function?
+Is cluster predicted by rotation size?
 
 ```{r}
-plot60reach()
+rotationEffect() 
+```
+
+####Investigating the overlap
+
+#### What do group averages pr cluster look like? Do we still find an inverted exponential decay function?
+
+
+
+### No cursor reaches
+####1) Do aftereffects differ across non-strategy and strategy users?
+
+```{r}
+getWashoutStrategy()
 ```
 ```{r}
-plot50reach()
+washoutStats()
+```
+
+####2) Do aftereffects differ across strategy types?
+```{r}
+getWashoutCluster()
 ```
 ```{r}
-plot40reach()
-```
-```{r}
-plot30reach()
-```
-```{r}
-plot20reach()
+washoutClusterStats()
 ```
 
 
 
 
-
-
-
--   Definitely resembles an exponential function, but lets do model fits
-    with reachdeviation_deg
-
--   Same code for aiming
-
-    ```{r}
-    fitReachModels()
-    ```
-
--   Most participants' cursor reaches fit the exponential model (59/75)
