@@ -1,7 +1,7 @@
 library(readr)
 library(dplyr)
 
-load_total_group_data <- function(dir = "data/Instructed_summary /") {
+load_total_group_data <- function(dir = "data/Group_two_summary/") {
   
   rotations <- c(20, 30, 40, 50, 60)
   all_data <- list()
@@ -42,15 +42,15 @@ load_total_group_data <- function(dir = "data/Instructed_summary /") {
       df <- df %>%
         mutate(trial_type = case_when(
           # Group 1
-          group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
-          group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
-          group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
-          group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
-          group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
-          group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
-          group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
-          group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamp_rotated",
-          group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthand_rotated",
+          # group == "Group 1" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
+          # group == "Group 1" & cutrial_no >= 25  & cutrial_no <= 40   ~ "zeroclamp",
+          # group == "Group 1" & cutrial_no >= 41  & cutrial_no <= 48   ~ "aligned",
+          # group == "Group 1" & cutrial_no >= 49  & cutrial_no <= 65   ~ "lefthand",
+          # group == "Group 1" & cutrial_no >= 66  & cutrial_no <= 80   ~ "aligned",
+          # group == "Group 1" & cutrial_no >= 81  & cutrial_no <= 88   ~ "zeroclamp",
+          # group == "Group 1" & cutrial_no >= 89  & cutrial_no <= 208  ~ "rotated",
+          # group == "Group 1" & cutrial_no >= 209 & cutrial_no <= 232  ~ "zeroclamp_rotated",
+          # group == "Group 1" & cutrial_no >= 233 & cutrial_no <= 256  ~ "lefthand_rotated",
           # Group 2
           group == "Group 2" & cutrial_no >= 1   & cutrial_no <= 24   ~ "aligned",
           group == "Group 2" & cutrial_no >= 25  & cutrial_no <= 40   ~ "nocursor",
@@ -81,7 +81,9 @@ load_total_group_data <- function(dir = "data/Instructed_summary /") {
 
 ####LEARNERS
 getLearners <- function() {
-  total_group_data <- load_total_group_data("data/Instructed_summary /")
+  total_group_data <- load_total_group_data("data/Group_two_summary/")
+ # total_group_data <- total_group_data %>%
+   # filter(group != "Group 1")
   
   total_group_data %>%
     group_by(participant_id) %>%
@@ -114,9 +116,7 @@ learner_df <- total_group_data %>%
     baseline <- median(baseline_trials$reachdeviation_deg, na.rm = TRUE)
 
     rotated <- df %>%
-      filter(task_idx == rot_task) %>%
-      arrange(trial_idx) %>%
-      slice_tail(n = 16)
+      filter(task_idx == rot_task, trial_idx > 104)
 
     rotated_median <- median(rotated$reachdeviation_deg, na.rm = TRUE)
     rotation <- unique(rotated$rotation_deg)[1]
@@ -141,7 +141,7 @@ learner_df <- total_group_data %>%
   ungroup()
 
   
-  
+
   learner_summary <- learner_df %>%
     group_by(rotation) %>%
     summarise(
@@ -158,8 +158,8 @@ learner_df <- total_group_data %>%
 
 LearnerCSV <- function() {
   total_group_data <- load_total_group_data("data/Instructed_summary /")
-
-  learner_id <- getLearners() %>%
+ 
+   learner_id <- getLearners() %>%
     distinct(participant_id, rotation, group, .keep_all = TRUE)
   learner_id <- learner_id %>%
     mutate(rotation = abs(rotation))
@@ -202,22 +202,25 @@ getStrategies <- function() {
   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   ci_result <- getCI()
-  last_16 <- ci_result$data
+  CI_df <- ci_result$CI
   
-  strategy_df <- last_16 %>%
-    group_by(participant_id, rotation) %>%
-    summarise(
-      final_trials = list(tail(aimdeviation_deg, 8)),
-      .groups = "drop"
-    ) %>%
-    rowwise() %>%  
+  ##force erratic nos for entirely erratic individuals
+  erratic_participants <- c("d6de5e")
+ 
+  strategy_df <- CI_df %>%
+    rowwise() %>%
     mutate(
-      strategy = ifelse(
-        length(final_trials) == 8 & all(final_trials >= 4.5),
-        "Yes", "No"
+      lower = aimdeviation_deg[1],
+      upper = aimdeviation_deg[2],
+      strategy = case_when(
+        participant_id %in% erratic_participants ~ "No",
+        lower > 4.5                              ~ "Yes",
+        TRUE                                     ~ "No"
       )
     ) %>%
-    ungroup()
+    ungroup() %>%
+    select(participant_id, rotation, lower, upper, strategy)
+  
   
   return(strategy_df)
 }
@@ -328,8 +331,6 @@ for(pid in participants){
 
 
 }
-
-
 
 
 
