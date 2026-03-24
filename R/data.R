@@ -18,8 +18,8 @@ getData <- function() {
       'data/' = c(
         'demographics.zip',
         'Instructed_summary.zip',
-       'pilot_all.zip',
-        'pilot_summary.zip')),
+       'Group_two_summary.zip'
+        )),
     folder = 'data/',
     overwrite = TRUE,
     unzip = TRUE,
