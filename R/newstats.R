@@ -221,7 +221,7 @@ idealT <- function() {
 ## clusters
 
 rotationEffect <- function () {
-  propotions_plot <- pcaBar()
+  proportions_plot <- pcaBar()
 
   
   proportions_plot$cluster_label <- droplevels(proportions_plot$cluster_label)
@@ -242,36 +242,37 @@ rotationEffect <- function () {
 lengthStats <- function () {
   strat_data <- read.csv("data/strategy_only_participants.csv")
   model_df <- xgRun()
-  rotation_lookup <- unique(strat_data[, c("participant_id", "rotation.x")])
+  rotation_lookup <- unique(strat_data[, c("participant_id", "rotation")])
   model_df <- merge(model_df, rotation_lookup, by = "participant_id", all.x = TRUE)
   
   model_df$learning_length <- model_df$pred_end - model_df$pred_start
   anova_result <- aov(learning_length ~ factor(rotation), data = model_df)
   summary(anova_result)
+  
+  
+  summary_df <- model_df %>%
+    group_by(rotation.x) %>%
+    summarise(
+      mean_length = mean(learning_length, na.rm = TRUE),
+      se_length = sd(learning_length, na.rm = TRUE)/sqrt(n())
+    )
+  
+  # Bar plot with error bars
+  ggplot(summary_df, aes(x = rotation.x, y = mean_length, fill = rotation.x)) +
+    geom_bar(stat = "identity", color = "black", width = 0.6) +
+    geom_errorbar(aes(ymin = mean_length - se_length, ymax = mean_length + se_length),
+                  width = 0.2) +
+    labs(
+      title = "Learning Phase Length by Rotation Group",
+      x = "Rotation Group",
+      y = "Mean Learning Length (trials)"
+    ) +
+    coord_cartesian(ylim = c(0, 35)) +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
 } #yes p =0.038
 
-# Compute means and standard errors
-
-summary_df <- model_df %>%
-  group_by(rotation) %>%
-  summarise(
-    mean_length = mean(learning_length, na.rm = TRUE),
-    se_length = sd(learning_length, na.rm = TRUE)/sqrt(n())
-  )
-
-# Bar plot with error bars
-ggplot(summary_df, aes(x = rotation, y = mean_length, fill = rotation)) +
-  geom_bar(stat = "identity", color = "black", width = 0.6) +
-  geom_errorbar(aes(ymin = mean_length - se_length, ymax = mean_length + se_length),
-                width = 0.2) +
-  labs(
-    title = "Learning Phase Length by Rotation Group",
-    x = "Rotation Group",
-    y = "Mean Learning Length (trials)"
-  ) +
-  coord_cartesian(ylim = c(0, 35)) +
-  theme_minimal() +
-  theme(legend.position = "none")
 
 
 
