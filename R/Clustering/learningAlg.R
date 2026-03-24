@@ -17,40 +17,40 @@ library(xgboost)
 #   slice_sample(n = 75) %>%
 #   pull(participant_id)
 # 
-plot_rotated_phase_all_trials <- function(pid = "56968f", data_file = "data/strategy_only_participants.csv") {
-
-  strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
-
-  strategy_data$trial_idx <- as.numeric(as.character(strategy_data$trial_idx))
-  strategy_data$aimdeviation_deg <- as.numeric(as.character(strategy_data$aimdeviation_deg))
-
-  d <- strategy_data %>%
-    filter(participant_id == pid,
-           trial_type.x == "rotated")
-
-  if (nrow(d) == 0) stop("No rotated phase data for this participant.")
-
-  p <- ggplot(d, aes(
-    x = trial_idx,
-    y = aimdeviation_deg,
-    text = paste("Trial:", trial_idx, "<br>Aim:", round(aimdeviation_deg, 2))
-  )) +
-    geom_line(size = 1, alpha = 0.8, color = "steelblue") +  # line connecting trials
-    geom_point(size = 2, alpha = 0.9, color = "darkred") +    # points for each trial
-    scale_x_continuous(breaks = d$trial_idx) +               # force every trial on X-axis
-    labs(
-      title = paste("Rotated Phase - Participant", pid),
-      x = "Trial",
-      y = "Aim Deviation (deg)"
-    ) +
-    coord_cartesian(xlim = c(0, 120), ylim = c(-100, 100)) +
-    theme_minimal(base_size = 14)
-
-  # 5️⃣ Make interactive
-  ggplotly(p, tooltip = "text")
-}
-
-plot_rotated_phase_all_trials("56968f")
+# plot_rotated_phase_all_trials <- function(pid = "bd8518", data_file = "data/strategy_only_participants.csv") {
+# 
+#   strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
+# 
+#   strategy_data$trial_idx <- as.numeric(as.character(strategy_data$trial_idx))
+#   strategy_data$aimdeviation_deg <- as.numeric(as.character(strategy_data$aimdeviation_deg))
+# 
+#   d <- strategy_data %>%
+#     filter(participant_id == pid,
+#            trial_type.x == "rotated")
+# 
+#   if (nrow(d) == 0) stop("No rotated phase data for this participant.")
+# 
+#   p <- ggplot(d, aes(
+#     x = trial_idx,
+#     y = aimdeviation_deg,
+#     text = paste("Trial:", trial_idx, "<br>Aim:", round(aimdeviation_deg, 2))
+#   )) +
+#     geom_line(size = 1, alpha = 0.8, color = "steelblue") +  # line connecting trials
+#     geom_point(size = 2, alpha = 0.9, color = "darkred") +    # points for each trial
+#     scale_x_continuous(breaks = d$trial_idx) +               # force every trial on X-axis
+#     labs(
+#       title = paste("Rotated Phase - Participant", pid),
+#       x = "Trial",
+#       y = "Aim Deviation (deg)"
+#     ) +
+#     coord_cartesian(xlim = c(0, 120), ylim = c(-100, 100)) +
+#     theme_minimal(base_size = 14)
+# 
+#   # 5️⃣ Make interactive
+#   ggplotly(p, tooltip = "text")
+# }
+# 
+# plot_rotated_phase_all_trials("bd8518")
 
 
 
@@ -62,11 +62,13 @@ plot_rotated_phase_all_trials("56968f")
 
 # Model 1:  XGBoost Regressor
 xgSetup <- function () {
-annotations <- read.csv("~/Desktop//ElysaClassifier.csv", stringsAsFactors = FALSE)
+annotations <- read.csv("~/Desktop//ElysaClassifier2.csv", stringsAsFactors = FALSE)
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_data <- strategy_data %>% 
   filter(trial_type.x == "rotated")
+strategy_data <- strategy_data %>% 
+  filter(trial_type.x == "rotated", group == "Group 2")
 
 annotated_pids <- annotations$pid  
 
@@ -111,7 +113,7 @@ xgFeatures <- function () {
 # determine trial.start (first trial where abs deviation exceeds threshold)
 start_sd_trials <- strategy_annot %>%
   group_by(participant_id) %>%
-  filter(!is.na(roll_mean) & abs(roll_mean) > 6) %>%  
+  filter(!is.na(roll_mean) & abs(roll_mean) > 5) %>%  
   slice(1) %>%
   ungroup() %>%
   select(participant_id, trial.start = trial_idx)
@@ -138,7 +140,13 @@ min_sd_trials <- strategy_annot %>%
   ) %>%
   summarise(
     trial.end = case_when(
-      any(stable_run, na.rm = TRUE) ~ trial_idx[which(stable_run)[1]],
+      # must be stable AND aims are positive at that window
+      any(stable_run & roll_mean > 0, na.rm = TRUE) ~ 
+        trial_idx[which(stable_run & roll_mean > 0)[1]],
+      # fallback: closest SD match where aim is still positive
+      any(roll_mean > 0, na.rm = TRUE) ~
+        trial_idx[which.min(abs(roll_sd[roll_mean > 0] - final_sd[roll_mean > 0]))],
+      # last resort: original behavior
       TRUE ~ trial_idx[which.min(abs(roll_sd - final_sd))]
     )
   ) %>%
@@ -291,7 +299,7 @@ plotStart <- function(target = "inline", main = NULL) {
     "text", 
     x = max(model_df$starttrial)*0.2, 
     y = max(model_df$pred_start)*1.08, 
-    label = "r = 0.95", 
+    label = correlation, 
     size = 7, 
     color = "black"
   ) +
@@ -342,10 +350,10 @@ ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
   coord_cartesian(xlim = c(0, 125), ylim=c(0,125)) +
   annotate(
     "text",
-    x = 0.1 * 125,
+    x = 0.1 * 127,
     y = 0.9 * 100,
-    label = "r = 0.71",
-    size = 7,
+    label = correlation,
+    size =4,
     color = "black"
   ) +
   theme_minimal() +
