@@ -8,7 +8,7 @@ setupREACH <- function() {
   
   clean_data <- total_learners_data %>%
     filter(trial_type %in% c("aligned", "rotated")) %>%
-    group_by(participant_id, rotation.x) %>%
+    group_by(participant_id, rotation) %>%
     mutate(rotation_onset = min(cutrial_no[trial_type == "rotated"])) %>%
     
    ##normalize trials bc two groups experience rotation at different times points
@@ -16,7 +16,7 @@ setupREACH <- function() {
     ungroup() %>%
     
     # remove outliers that are 3 +/- from sd
-    group_by(rotation.x) %>%
+    group_by(rotation) %>%
     mutate(
       mean_rot = mean(reachdeviation_deg, na.rm = TRUE),
       sd_rot   = sd(reachdeviation_deg, na.rm = TRUE)
@@ -28,7 +28,7 @@ setupREACH <- function() {
     ungroup()
   
   summary_data <- clean_data %>%
-    group_by(rotation.x, norm_trial) %>%
+    group_by(rotation, norm_trial) %>%
     summarise(
       mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
       ci = Reach::getConfidenceInterval(reachdeviation_deg),
@@ -45,13 +45,13 @@ plotREACH <- function() {
   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   summary_data <- setupREACH()
-  rotation_levels <- sort(unique(summary_data$rotation.x))
+  rotation_levels <- sort(unique(summary_data$rotation))
   
   ggplot(summary_data, aes(
     x = norm_trial,
     y = mean_reach,
-    color = factor(rotation.x),
-    fill = factor(rotation.x)
+    color = factor(rotation),
+    fill = factor(rotation)
   )) +
     geom_hline(
       yintercept = rotation_levels,
@@ -61,7 +61,7 @@ plotREACH <- function() {
     geom_line(size = 1) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
                 alpha = 0.2, color = NA) +
-    
+    coord_cartesian(xlim = c(-24, 120)) +
     scale_color_manual(
       values = c(
         "20"="#B9D3EE","30"="#85adf3","40"="#87CEEB",
@@ -99,9 +99,16 @@ plotREACH <- function() {
     ) +
     theme_minimal(base_size = 14) +
     theme(
-      panel.grid = element_blank(),
-      legend.position = "right",
-      axis.line = element_line(color = "black")
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(),
+      axis.text.x  = element_text(size = 24),
+      axis.text.y  = element_text(size = 24),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      legend.title = element_text(size = 18),
+      legend.text  = element_text(size = 17) 
     )
 }
 
