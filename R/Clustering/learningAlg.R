@@ -300,7 +300,7 @@ plotStart <- function(target = "inline", main = NULL) {
     x = max(model_df$starttrial)*0.2, 
     y = max(model_df$pred_start)*1.08, 
     label = correlation, 
-    size = 7, 
+    size = 4, 
     color = "black"
   ) +
   theme_minimal() +
