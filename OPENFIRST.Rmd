@@ -24,9 +24,7 @@ Rotation sizes introduced were 20, 30, 40, 50, and 60 degrees
 
 We will be exploring: <br>1. The proportion of learners within each
 perturbation condition. <br>2. The proportion of aiming strategies as a
-function of rotation size. <br>3. The onset of an aiming strategy as a
-function of rotation size. <br>4. The magnitude of the aiming strategy
-as a function of rotation size.
+function of rotation size. <br>3.The Emergence of distinct patterns across strategy-users.
 
 # Setup
 
@@ -130,7 +128,7 @@ strat_data <- read.csv("data/strategy_only_participants.csv")
 
 [Aiming stats script](newstats.R)
 
-1)  Does final aligned and first rotated differ from \~0
+**1) Does final aligned and first rotated differ from \~0**
 
 ```{r}
 zeroT()
@@ -142,8 +140,8 @@ Here we took the mean final 8 aligned and mean final 8 rotated per
 participant and ran 5 paired T-tests per rotation group. All tests
 reveal significance.
 
-2)  Is likelihood of strategy development predicted by rotation size?
-
+**2) Is likelihood of strategy development predicted by rotation size?**
+- Logistic regression analysis to predict probability of developing a strategy.
 ```{r}
 logAnalysis()
 ```
@@ -151,29 +149,30 @@ logAnalysis()
 The odds of using an explicit strategy are higher in the 40°, 50°,
 and 60° rotation groups compared to the 20° group.
 
-3)  Does aim magnitude vary across rotation sizes?
+**3)Does aim magnitude vary across rotation sizes?**
 
 ```{r}
 aimAOV()
 ```
 
 Taking the mean from the last 16 trials, One way anova shows an effect
-of rotation size. Post-hoc tukey shows that the 60 degree group produces
-a higher aim strategy than all other groups.
+of rotation size (p<0.0001). Post-hoc tukey shows that the 60 degree group produces
+a higher aim strategy than all other groups. 50 degree is higher than 30 and 20 group. 40 degree is higher than the 20 group. 
 
-4)  Does aim variance vary across rotation sizes?
+**4) Does aim variance vary across rotation sizes?**
+<br> - One way ANOVA (IV: Rotation, DV: final SD of aim) with Tukey test
 
 ```{r}
 aimvarAOV()
 ```
 
 Taking the sd from the last 16 trials, one way anova shows an effect of
-rotation size. Post-hoc tukey shows that participants in the 60°
+rotation size (p=0.0005). Post-hoc tukey shows that participants in the 60°
 rotation group show significantly greater variability in their final
 performance than participants in the 20°, 30°, and 40° groups.
 
-5)  Is there an effect of rotation size for the timepoint of strategy-onset?
-
+**5) Is there an effect of rotation size for the timepoint of strategy-onset?**
+<br> - One-way ANOVA (IV: rotation, DV: trial)
 ```{r}
 startTrialAOV()
 ```
@@ -181,9 +180,8 @@ startTrialAOV()
 #### Visualization
 
 **Aiming Behaviour**
-
 ```{r}
-plotAIM()
+plotAIM2()
 ```
 
 
@@ -203,7 +201,8 @@ determine if we can observe similar patterns through three methods
 ```{r}
 xgRun()
 ```
-We can also visually assign these timepoints and compare these classifcations to the XgBoost model's predictions.
+
+**We can also visually assign these timepoints and compare these classifcations to the XgBoost model's predictions:**
 
 ```{r}
 plotStart()
@@ -217,15 +216,15 @@ plotEnd()
 **2) Run a PCA participant features to capture aim heterogeneity**
 
 FEATURES:
-1) SD of learning phase
-2) Length of learning phase
-3) Absolute trial to trial changes
-4) Number of clockwise aims
-5) Highest aim jump
-6) Highest aim jump / mean of jump magnitudes
-7) Number of sign flips (erraticness)
-8) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
-9) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
+<br> 1) SD of learning phase
+<br> 2) Length of learning phase
+<br> 3) Absolute trial to trial changes
+<br> 4) Number of clockwise aims
+<br> 5) Highest aim jump
+<br> 6) Highest aim jump / mean of jump magnitudes
+<br> 7) Number of sign flips (erraticness)
+<br> 8) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
+<br> 9) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
 
 Run PCA to determine most informative components:
 ```{r}
@@ -241,12 +240,11 @@ k_scaled <- scale(k_input)
 # -------------------------------
 # PCA 
 pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
-pca
 ```
 HIGHEST FEATURE LOADINGS:
-- PC1 - length duration & eratticness (num of sign flips)
-- PC2 - variance & jump magnitude (absolute difference, SD, max jump)
-- PC3 & 4- gradualness (smoothness & linearity)
+<br> - PC1 - length duration & eratticness (num of sign flips) N
+<br> - PC2 - variance & jump magnitude (absolute difference, SD, max jump)
+<br> - PC3 & 4 - gradualness (smoothess & linearity)
 
 
 **2) Run an unsupervised kMeans clustering analysis on four most informative components**
@@ -256,42 +254,62 @@ Compare clusters to visually predicted clusters
 confMatrix()
 ```
 
-We can see which centres closely match participants' behavioural features by plotting the two most informative components
+We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
+<br> t-SNE takes a high dimensional data set and reduces it to a low dimensional graph while retaining information. So t-SNE takes the PCA-reduced data (4 dimensions) and compresses it into 2D for visualization. 
 ```{r}
-plotComponents()
+plotTSNE()
 ```
-Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. Theres some overlap.. these particpants can be showing both!
+Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. Theres some overlap...these participants can be showing both!
 
-Is cluster predicted by rotation size?
+**Is cluster predicted by rotation size?**
+<br> - We can run a fisher's exact test with a monte carlo simulation to account for small cell count and large table frequency.
 
 ```{r}
 rotationEffect() 
 ```
 
-####Investigating the overlap
 
-#### What do group averages pr cluster look like? Do we still find an inverted exponential decay function?
+
+#### What do group averages per cluster look like? Do we still find an inverted exponential decay function?
+```{r}
+normalizeClusters()
+```
+
+To determine whether asymptotic magnitude trial of reached asymptotic, variability of slope differ across cluster groups:
+```{r}
+clusterMetrics()
+```
 
 
 
 ### No cursor reaches
+
+After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. We can use these trials to assess aftereffects and whether it changes across strategy/non-strategy-users and strategy phenotype.
+
 ####1) Do aftereffects differ across non-strategy and strategy users?
 
 ```{r}
-getWashoutStrategy()
+strategyWashout()
 ```
+
+Bayesian anova to compare first nocursor reach trial across strategy DEVELOPMENT and rotation size: 
 ```{r}
 washoutStats()
 ```
 
 ####2) Do aftereffects differ across strategy types?
+
 ```{r}
 getWashoutCluster()
 ```
+Bayesian anova to compare first nocursor reach trial across strategy PHENOTYPE and rotation size: 
+
 ```{r}
 washoutClusterStats()
 ```
-
+Implicit aftereffects do not show strong evidence of differences across participants (BF = 1.39 for strategy engagement, BF = 0.40 for strategy type), suggesting only weak or inconclusive support for differences. 
+<br> 
+This finding also aligns with a recent study assessing whether engaging in a cached vs parametric (mental rotation) strategy affects implicit learning captured by strategy exclusion trials. Wang & Taylor (2026) found that strategy type does not change how much implicit learning happens, but it affects the generalization across space with algorithmic strategy users (more variability in aiming) showing more implicit generalization.y 
 
 
 
