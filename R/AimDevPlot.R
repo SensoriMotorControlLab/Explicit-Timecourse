@@ -29,8 +29,8 @@ setupAIM <- function() {
          aimdeviation_deg >= mean_baseline - 0.5 * sd_baseline &
          aimdeviation_deg <= mean_baseline + 0.5 * sd_baseline) |
         (norm_trial >= 0 &
-           aimdeviation_deg >= mean_rotated - 3 * sd_rotated &
-           aimdeviation_deg <= mean_rotated + 3 * sd_rotated)
+           aimdeviation_deg >= mean_rotated - 4 * sd_rotated &
+           aimdeviation_deg <= mean_rotated + 4 * sd_rotated)
     )%>%
     ungroup() %>%
     select(-mean_baseline, -sd_baseline, -mean_rotated, -sd_rotated)
@@ -87,18 +87,19 @@ plotAIM <- function() {
       ~ rotation,
       ncol = 3,
       labeller = as_labeller(c(
-        "20" = "20° Rotation (n = 8)",
-        "30" = "30° Rotation (n = 19)",
-        "40" = "40° Rotation (n = 27)",
-        "50" = "50° Rotation (n = 32)",
-        "60" = "60° Rotation (n = 40)"
+        "20" = "20° Rotation (n = 9)",
+        "30" = "30° Rotation (n = 21)",
+        "40" = "40° Rotation (n = 22)",
+        "50" = "50° Rotation (n = 28)",
+        "60" = "60° Rotation (n = 32)"
       ))
     ) +
     
     scale_y_continuous(limits = c(-15, 60)) +
     
     scale_color_manual(values = c(
-      "20"="#FFBBFF","30"="#DA70D6","40"="#AB82FF","50"="#5D4784","60"="#271716"
+      "60"="grey4", "50"="#87ae73","40"="#e89c7b",
+      "30"="hotpink", "20"="#a2bffe"
     )) +
     
     labs(
@@ -125,6 +126,82 @@ plotAIM <- function() {
 
 
 
+
+plotAIM2 <- function() {
+  strat_data <- read.csv("data/strategy_only_participants.csv")
+  
+  clean_data <- setupAIM()
+  summary_data <- summarizeAIM()
+  hline_data <- data.frame(rotation = c(20, 30, 40, 50, 60),
+                           yintercept = c(20, 30, 40, 50, 60))
+  rotation_levels <- sort(unique(summary_data$rotation))
+ 
+   
+  ggplot(summary_data, aes(
+    x = norm_trial,
+    y = mean_aim,
+    color = factor(rotation),
+    fill = factor(rotation)
+  )) +
+    geom_hline(
+      yintercept = rotation_levels,
+      color = "grey85", linetype = "solid", linewidth = 0.5
+    ) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+    geom_line(size = 1) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
+                alpha = 0.2, color = NA) +
+    coord_cartesian(xlim = c(-24, 120)) +
+    scale_color_manual(
+      values = c(
+        "60"="#5f6182", "50"="#9fcbe6","40"="#af89b6",
+        "30"="#fbc5b0", "20"="#e7c485"
+      ),
+      breaks = c("60","50","40","30","20"),
+      labels = c(
+        "60° (n = 9)",
+        "50° (n = 21)",
+        "40° (n = 22)",
+        "30° (n = 28)",
+        "20° (n = 32)"
+      ) 
+    ) +
+    scale_fill_manual(
+      values = c(
+        "60"="grey1", "50"="#9fcbe6","40"="#B19CD7",
+        "30"="#fcb0c6", "20"="#e7c485"
+      ),
+      breaks = c("60","50","40","30","20"),
+      labels = c(
+        "60° (n = 9)",
+        "50° (n = 21)",
+        "40° (n = 22)",
+        "30° (n = 28)",
+        "20° (n = 32)"
+      )
+      
+    )+
+    
+    labs(
+      x = "Trial Number",
+      y = "Aim deviation (°)",
+      color = "Rotation (°)",
+      fill = "Rotation (°)"
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(),
+      axis.text.x  = element_text(size = 24),
+      axis.text.y  = element_text(size = 24),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17),
+      legend.title = element_text(size = 18),
+      legend.text  = element_text(size = 17) 
+    )
+}
 
 
 
@@ -258,6 +335,10 @@ ggplot(overall_ci, aes(x = cutrial_no, y = mean_aim)) +
     axis.title.y = element_text(size = 17)
   )
 }
+
+
+
+
 
 
 
