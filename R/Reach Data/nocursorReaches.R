@@ -255,8 +255,8 @@ getWashoutCluster <- function() {
     geom_vline(xintercept = 233, linetype = "dashed", colour = "black") +
     geom_hline(yintercept = 0, linetype = "dashed", colour = "blue") +
     coord_cartesian(ylim = c(-15, 70)) +
-    scale_color_manual(values = c("1" = "hotpink", "2" = "#3A86C8", "3" = "black")) +
-    scale_fill_manual(values = c("1" = "hotpink", "2" = "#3A86C8", "3" = "black")) +
+    scale_color_manual(values = c("1" = "#3dcad4", "2" = "#c495c9", "3" = "#d16483")) +
+    scale_fill_manual(values = c("1" = "#3dcad4", "2" = "#c495c9", "3" = "#d16483")) +
     labs(
       x     = "Trial",
       y     = "Reach Deviation (°)",
@@ -305,4 +305,113 @@ washoutClusterStats <- function () {
 }
 
 
+strategyWashout <- function () {
+    
+    learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors = FALSE)
+    ci_result <- getCI()
+    CI_df <- ci_result$CI
+    strategy_df <- getStrategies()
+    
+    
+    # strategy_df has participant_id and strategy
+    yes_participants <- strategy_df %>% filter(strategy == "Yes") %>% pull(participant_id)
+    no_participants  <- strategy_df %>% filter(strategy == "No") %>% pull(participant_id)
+    
+    
+    
+    washout <- learners_data %>%
+      filter(trial_type == "nocursor") %>% 
+      #  !rotation %in% c(20, 30)) %>% 
+      group_by(participant_id) %>%
+      slice_tail(n = 24) %>%
+      ungroup() %>%
+      mutate(strategy = case_when(
+        participant_id %in% yes_participants ~ "Yes",
+        participant_id %in% no_participants  ~ "No"
+      ))
+    
+    rotated <- learners_data %>%
+      filter(trial_type == "rotated") %>% 
+      #    !rotation %in% c(20, 30)) %>% 
+      group_by(participant_id) %>%
+      slice_tail(n = 8) %>%
+      ungroup() %>%
+      mutate(strategy = case_when(
+        participant_id %in% yes_participants ~ "Yes",
+        participant_id %in% no_participants  ~ "No"
+      ))
+    
+    total <- bind_rows(washout,rotated)
+    
+    total_clean <- total %>%
+      group_by(rotation) %>%  # group by rotation
+      mutate(
+        mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
+        sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
+      ) %>%
+      ungroup() %>%
+      filter(
+        reachdeviation_deg >= (mean_reach - 3*sd_reach) &
+          reachdeviation_deg <= (mean_reach + 3*sd_reach)
+      ) %>%
+      select(-mean_reach, -sd_reach) 
+    
+    summary_df <-   total_clean %>%
+      group_by(cutrial_no, strategy, rotation) %>%
+      summarise(
+        mean_reach = mean(reachdeviation_deg, na.rm = TRUE),  # use reach deviation from learners_data
+        sd_reach   = sd(reachdeviation_deg, na.rm = TRUE),
+        n          = n(),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        se = sd_reach / sqrt(n),
+        ci_lower = mean_reach - 1.96 * se,
+        ci_upper = mean_reach + 1.96 * se
+      )
 
+rotation_colors <- c(
+  "20"  = "#a2bffe",
+  "30" = "hotpink",
+  "40" = "#e89c7b",
+  "50" = "#87ae73",
+  "60" = "#999999"
+)
+
+summary_df <- summary_df %>%
+  mutate(strategy = factor(strategy, levels = c("Yes", "No")),
+         rotation = factor(rotation))  # ensure rotation is factor
+
+p <- ggplot(summary_df, aes(x = cutrial_no, y = mean_reach,
+                            color = rotation, fill = rotation)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  geom_vline(xintercept = 233, linetype = "dashed", colour = "black") +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "black") +
+  coord_cartesian(ylim = c(-20, 70)) +
+  scale_color_manual(values = rotation_colors, name = "Rotation (°)") +
+  scale_fill_manual(values = rotation_colors, name = "Rotation (°)") +
+  labs(
+    x     = "Trial",
+    y     = "Reach Deviation (°)",
+    title = "No cursor reaches following the rotation phase"
+  ) +
+  facet_wrap(~ strategy, ncol = 1) +  # facet by strategy
+  theme_minimal() +
+  theme(legend.position = "right") +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(),
+    axis.text.x  = element_text(size = 24),
+    axis.text.y  = element_text(size = 24),
+    axis.title.x = element_text(size = 17),
+    axis.title.y = element_text(size = 17),
+    legend.title = element_text(size = 18),
+    legend.text  = element_text(size = 17),
+    strip.text = element_text(size = 17)
+  )
+
+p
+}
