@@ -136,7 +136,7 @@ p <- ggplot(clusterMeans,
     "3" = "#d16483"
   )) +
   
-  coord_cartesian(ylim = c(0, 1)) +
+  coord_cartesian(ylim = c(0, 1), xlim=c(-8,45)) +
   
   geom_hline(yintercept = 0, color = "black", size = 0.2) +
   geom_vline(xintercept = 0, color = "black", size = 0.2) +
