@@ -157,7 +157,7 @@ learner_df <- total_group_data %>%
 }
 
 LearnerCSV <- function() {
-  total_group_data <- load_total_group_data("data/Instructed_summary /")
+  total_group_data <- load_total_group_data("data/Group_two_summary/")
  
    learner_id <- getLearners() %>%
     distinct(participant_id, rotation, group, .keep_all = TRUE)
