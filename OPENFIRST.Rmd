@@ -137,8 +137,7 @@ zeroT()
 ```
 
 Here we took the mean final 8 aligned and mean final 8 rotated per
-participant and ran 5 paired T-tests per rotation group. All tests
-reveal significance.
+participant and ran 5 paired T-tests per rotation group. Aligned to 0 is not significant (p=0.08), but rotated to 0 is significant (p < 0.001).
 
 **2) Is likelihood of strategy development predicted by rotation size?**
 - Logistic regression analysis to predict probability of developing a strategy.
