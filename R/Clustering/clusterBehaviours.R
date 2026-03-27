@@ -122,17 +122,17 @@ p <- ggplot(clusterMeans,
   geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
               alpha = 0.2, colour = NA) +
   
-  labs(x = "Trial Number", y = "Mean Aim Deviation") +
+  labs(x = "Trial Number", y = "Size-normalized Aim Deviation") +
   
   scale_color_manual(values = c(
-    "1" = "#3dcad4",
-    "2" = "#c495c9",
+    "1" = "#c495c9",
+    "2" = "#3dcad4",
     "3" = "#d16483"
   )) +
   
   scale_fill_manual(values = c(
-    "1" = "#3dcad4",
-    "2" = "#c495c9",
+    "1" = "#c495c9",
+    "2" = "#3dcad4",
     "3" = "#d16483"
   )) +
   
