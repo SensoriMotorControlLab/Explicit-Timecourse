@@ -388,15 +388,25 @@ p <- ggplot(summary_df, aes(x = cutrial_no, y = mean_reach,
   geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
   geom_vline(xintercept = 233, linetype = "dashed", colour = "black") +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "black") +
-  coord_cartesian(ylim = c(-20, 70)) +
+  coord_cartesian(ylim = c(-20, 70), xlim= c(224,243)) +
   scale_color_manual(values = rotation_colors, name = "Rotation (°)") +
   scale_fill_manual(values = rotation_colors, name = "Rotation (°)") +
+  scale_color_manual(
+    values = rotation_colors,
+    name = "Rotation (°)",
+    labels = c("20° (n = 9/30)", "30° (n = 21/17)", "40° (n = 22/17)", "50° (n = 28/11)", "60° (n = 32/6)")  # <- your custom labels
+  ) +
+  scale_fill_manual(
+    values = rotation_colors,
+    name = "Rotation (°)",
+    labels = c("20° (n = 9/30)", "30° (n = 21/17)", "40° (n = 22/17)", "50° (n = 28/11)", "60° (n = 32/6)") 
+  ) +
   labs(
     x     = "Trial",
     y     = "Reach Deviation (°)",
-    title = "No cursor reaches following the rotation phase"
+    title = ""
   ) +
-  facet_wrap(~ strategy, ncol = 1) +  # facet by strategy
+  facet_wrap(~ strategy, nrow = 1) +  
   theme_minimal() +
   theme(legend.position = "right") +
   theme(
