@@ -154,8 +154,8 @@ plotAIM2 <- function() {
     coord_cartesian(xlim = c(-24, 120)) +
     scale_color_manual(
       values = c(
-        "60"="#5f6182", "50"="#9fcbe6","40"="#af89b6",
-        "30"="#fbc5b0", "20"="#e7c485"
+        "60"="#999999", "50"="#87ae73","40"="#e89c7b",
+        "30"="hotpink", "20"="#a2bffe"
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
@@ -168,8 +168,8 @@ plotAIM2 <- function() {
     ) +
     scale_fill_manual(
       values = c(
-        "60"="grey1", "50"="#9fcbe6","40"="#B19CD7",
-        "30"="#fcb0c6", "20"="#e7c485"
+        "60"="#999999", "50"="#87ae73","40"="#e89c7b",
+        "30"="hotpink", "20"="#a2bffe"
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
@@ -190,6 +190,7 @@ plotAIM2 <- function() {
     ) +
     theme_minimal(base_size = 14) +
     theme(
+      legend.position = "none",
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
@@ -198,8 +199,6 @@ plotAIM2 <- function() {
       axis.text.y  = element_text(size = 24),
       axis.title.x = element_text(size = 17),
       axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 18),
-      legend.text  = element_text(size = 17) 
     )
 }
 
