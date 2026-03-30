@@ -172,6 +172,24 @@ LearnerCSV <- function() {
   
   write.csv(total_learners_data, "data/total_learners_data.csv", row.names = FALSE)
 }
+
+nonCSV <- function () {
+total_group_data <- load_total_group_data("data/Group_two_summary/")
+
+  learner_id <- getLearners() %>%
+  distinct(participant_id, rotation, group, .keep_all = TRUE)
+  learner_id <- learner_id %>%
+  mutate(rotation = abs(rotation))
+
+  nonlearners_data <- total_group_data %>%
+  inner_join(
+    learner_id %>% filter(is_learner == FALSE),
+    by = c("participant_id", "rotation", "group")
+  )
+
+write.csv(nonlearners_data, "data/nonlearners_data.csv", row.names = FALSE)
+
+}
 #learner_id <- getLearners(total_group_data)
 #total_learners_data <- LearnerCSV(total_group_data)
 
