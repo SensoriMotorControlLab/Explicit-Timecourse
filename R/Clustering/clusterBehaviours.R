@@ -33,11 +33,11 @@ facetCluster <- function () {
   )
   
   
-  cluster_labels <- c("1" = "Gradual", "2" = "Exploratory", "3" = "Stepwise")
+  cluster_labels <- c("1" = "Exploratory", "2" = "Exploratory", "3" = "Gradual")
   clusterMeans$cluster_label <- recode(clusterMeans$cluster_label,
-                                       "1" = "Gradual",
-                                       "2" = "Exploratory",
-                                       "3" = "Stepwise"
+                                       "1" = "Exploratory",
+                                       "2" = "Stepwise",
+                                       "3" = "Gradual"
   )
    ggplot(clusterMeans,
          aes(x = cutrial_no, y = mean_aim, group = cluster_label)) +
@@ -109,7 +109,7 @@ clusterMeans <- strategy_data_clustered %>%
     .groups = "drop"
   )
 
-cluster_labels <- c("1" = "Gradual", "2" = "Exploratory", "3" = "Stepwise")
+cluster_labels <- c("1" = "Exploratory", "2" = "Stepwise", "3" = "Gradual")
 
 p <- ggplot(clusterMeans,
             aes(x = cutrial_no, y = mean_aim,
@@ -255,7 +255,7 @@ clusterMetrics <- function() {
     ungroup()
   
 
-  cluster_labels <- c("1" = "Gradual", "2" = "Exploratory", "3" = "Stepwise")
+  cluster_labels <- c("1" = "Exploratory", "2" = "Stepwise", "3" = "Gradual")
   
   cluster_metrics <- cluster_metrics %>%
     mutate(cluster_name = cluster_labels[as.character(cluster_label)]) %>%
