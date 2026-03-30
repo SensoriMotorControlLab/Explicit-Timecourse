@@ -17,7 +17,7 @@ library(xgboost)
 #   slice_sample(n = 75) %>%
 #   pull(participant_id)
 # 
-# plot_rotated_phase_all_trials <- function(pid = "bd8518", data_file = "data/strategy_only_participants.csv") {
+# plot_rotated_phase_all_trials <- function(pid = "1d818f", data_file = "data/strategy_only_participants.csv") {
 # 
 #   strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
 # 
@@ -50,10 +50,10 @@ library(xgboost)
 #   ggplotly(p, tooltip = "text")
 # }
 # 
-# plot_rotated_phase_all_trials("bd8518")
-
-
-
+# plot_rotated_phase_all_trials("1d818f")
+# 
+# 
+# 
 
 
 
@@ -62,7 +62,7 @@ library(xgboost)
 
 # Model 1:  XGBoost Regressor
 xgSetup <- function () {
-annotations <- read.csv("~/Desktop//ElysaClassifier2.csv", stringsAsFactors = FALSE)
+annotations <- read.csv("data/LearningClassifier.csv", stringsAsFactors = FALSE)
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_data <- strategy_data %>% 
