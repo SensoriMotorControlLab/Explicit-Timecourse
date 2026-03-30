@@ -218,12 +218,16 @@ FEATURES:
 <br> 1) SD of learning phase
 <br> 2) Length of learning phase
 <br> 3) Absolute trial to trial changes
-<br> 4) Number of clockwise aims
-<br> 5) Highest aim jump
-<br> 6) Highest aim jump / mean of jump magnitudes
-<br> 7) Number of sign flips (erraticness)
+<br> 4) Number of clockwise (negative) aims
+<br> 5) largest_jump_frac: Measures distribution of changes - Low → changes are more distributed (gradual or multiple smaller steps)
+<br> 6) jump_ratio: Highest aim jump / mean of jump magnitudes - How extreme the largest jump is compared to typical jumps. Measures contrast between big vs small steps
+<br> 7) early_jump_frac: How much of the total change happens early in learning. High → most adaptation happens early.
 <br> 8) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
 <br> 9) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
+<br> 10) incrementality - gradual adjustments in aim
+<br> 11) max jump norm - Largest jump relative to total learning range. (High → one jump accounts for a large portion of total learning)
+
+
 
 Run PCA to determine most informative components:
 ```{r}
@@ -240,13 +244,13 @@ k_scaled <- scale(k_input)
 # PCA 
 pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
 ```
-HIGHEST FEATURE LOADINGS:
-<br> - PC1 - length duration & eratticness (num of sign flips) N
-<br> - PC2 - variance & jump magnitude (absolute difference, SD, max jump)
-<br> - PC3 & 4 - gradualness (smoothess & linearity)
+HIGHEST FEATURE LOADINGS within PC1 AND PC2:
+<br> - PC1 – length duration & re-aiming magnitude (−smoothness so smaller value = more smooth, higher value = more jumpy (smoothness, jump_ratio (jumpiness), learning_length,learning_sd)
+<br> - PC2 - Re-aim structure (adjustment dominance or spikiness in timecourse) - how adjustments are distributed across trials and contribute to total change. (largest_jump_frac, early_jump_frac (early in learning), learning_abs_diff)
 
 
-**2) Run an unsupervised kMeans clustering analysis on four most informative components**
+
+**2) Run an unsupervised kMeans clustering analysis on two most informative components**
 
 Compare clusters to visually predicted clusters
 ```{r}
@@ -254,9 +258,9 @@ confMatrix()
 ```
 
 We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
-<br> t-SNE takes a high dimensional data set and reduces it to a low dimensional graph while retaining information. So t-SNE takes the PCA-reduced data (4 dimensions) and compresses it into 2D for visualization. 
+
 ```{r}
-plotTSNE()
+plotComponents()
 ```
 Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. Theres some overlap...these participants can be showing both!
 
@@ -285,28 +289,40 @@ clusterMetrics()
 
 After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. We can use these trials to assess aftereffects and whether it changes across strategy/non-strategy-users and strategy phenotype.
 
-####1) Do aftereffects differ across non-strategy and strategy users?
+####1) Do aftereffects differ across strategy levels including non learners?
 
+First lets visualize washout in non learners :
 ```{r}
-strategyWashout()
+plotNonL()
 ```
 
-Bayesian anova to compare first nocursor reach trial across strategy DEVELOPMENT and rotation size: 
+Visualize washout in non strategy learners : 
 ```{r}
-washoutStats()
+plotNonS()
 ```
 
-####2) Do aftereffects differ across strategy types?
-
+Visualize washout in the exploratory startegy group :
 ```{r}
-getWashoutCluster()
+plotC1()
 ```
-Bayesian anova to compare first nocursor reach trial across strategy PHENOTYPE and rotation size: 
 
+Visualize washout in the stepwise strategy group :
 ```{r}
-washoutClusterStats()
+plotC2()
 ```
-Implicit aftereffects do not show strong evidence of differences across participants (BF = 1.39 for strategy engagement, BF = 0.40 for strategy type), suggesting only weak or inconclusive support for differences. 
+
+Visualize washout in the gradual strategy group :
+```{r}
+plotC3()
+```
+
+
+Run 5x5 mixed anova (rotation as within subs, strategy group as between)
+```{r}
+fiveANOVA()
+```
+Anova results reveal significance for group (p=0.047, F=2.46, df=4). Tukey's post hoc reveals that after effects across the first 5 trials in the no cursor phase differ between Non learners and Non strategy users (p=0.02) and between Non learners and Exploratory learners (p=0.042). In general, strategy engagement or phenotype do not affect reach aftereffects. 
+
 <br> 
 This finding also aligns with a recent study assessing whether engaging in a cached vs parametric (mental rotation) strategy affects implicit learning captured by strategy exclusion trials. Wang & Taylor (2026) found that strategy type does not change how much implicit learning happens, but it affects the generalization across space with algorithmic strategy users (more variability in aiming) showing more implicit generalization.y 
 
