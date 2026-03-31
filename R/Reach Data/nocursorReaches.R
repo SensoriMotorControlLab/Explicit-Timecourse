@@ -68,7 +68,7 @@ setUpFive <- function () {
     left_join(pca_df %>% select(participant_id, cluster),
               by = "participant_id") %>%
     mutate(
-      group = paste0("", cluster_label),
+      group = paste0("", group),
       trial_type = trial_type.x
     )
   
@@ -105,144 +105,7 @@ setUpFive <- function () {
       ci_upper = mean_reach + 1.96 * se
     )
   
-}
-
-####5 plots#####
-make_plot <- function(df, title_name) {
-  ggplot(df,
-         aes(x = cutrial_no,
-             y = mean_reach,
-             color = factor(rotation),
-             group = rotation)) +
-    
-    geom_line(size = 1) +
-    geom_vline(xintercept = 233, linetype="dashed") +
-    geom_hline(yintercept = 0, linetype="dashed") +
-    coord_cartesian(xlim=c(226,242)) +
-    
-    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = factor(rotation)),
-                alpha = 0.2, color = NA) +
-    
-    scale_color_manual(values = rotation_colors) +
-    scale_fill_manual(values = rotation_colors) +
-    
-    theme_classic() +
-    
-    labs(
-      title = title_name,
-      x = "Trial",
-      y = "Reach Deviation (deg)",
-      color = "Rotation (°)",
-      fill = "Rotation (°)"
-    )
-}
-
-
-plotNonL <- function () {
-  df_list <- split(summary_df, summary_df$group)
-  
-  rotation_colors <- c(
-    "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-    "30"="hotpink", "20"="#a2bffe")
-  
-  plots <- lapply(names(df_list), function(g) {
-    make_plot(df_list[[g]], g) +
-      scale_color_manual(
-        values = rotation_colors,
-        breaks = c("20","30","40","50","60"),
-        labels = c("20° (n = 3)", "30° (n = 1)", "40° (n = 3)", "50° (n = 3)", "60° (n = 2)"),
-        name = "Rotation Size"
-      ) +
-      scale_fill_manual(
-        values = rotation_colors,
-        breaks = c("20","30","40","50","60"),
-        labels = c("20° (n = 3)", "30° (n = 1)", "40° (n = 3)", "50° (n = 3)", "60° (n = 2)"),
-        name = "Rotation Size"
-      )
-  })
-  
-  plots[[1]]
- 
-}
-
-plotNonS <- function () {
-  df_list <- split(summary_df, summary_df$group)
-  
-  rotation_colors <- c(
-    "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-    "30"="hotpink", "20"="#a2bffe")
-  
-  plots <- lapply(names(df_list), function(g) {
-    make_plot(df_list[[g]], g)
-  })
-  
-  plots[[2]]
-
-}
-
-plotC1 <- function () {
-  df_list <- split(summary_df, summary_df$group)
-  
-  rotation_colors <- c(
-    "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-    "30"="hotpink", "20"="#a2bffe")
-  
-  plots <- lapply(names(df_list), function(g) {
-    make_plot(df_list[[g]], g)
-  })
-  
-
-  plots[[3]]
-}
-
-plotC2 <- function () {
-  df_list <- split(summary_df, summary_df$group)
-  
-  rotation_colors <- c(
-    "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-    "30"="hotpink", "20"="#a2bffe")
-  
-  plots <- lapply(names(df_list), function(g) {
-    make_plot(df_list[[g]], g)
-  })
-  
-  
-  plots[[4]]
-}
-
-plotC3 <- function () {
-  df_list <- split(summary_df, summary_df$group)
-  
-  rotation_colors <- c(
-    "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-    "30"="hotpink", "20"="#a2bffe")
-  
-  plots <- lapply(names(df_list), function(g) {
-    make_plot(df_list[[g]], g)
-  })
-  
-  
-  plots[[5]]
-}
-
-NonLearnersT <- function () {
-  combined_clean <- setUpFive()
-  anova_df <- combined_clean %>%
-    filter(trial_type == "nocursor",
-           cutrial_no %in% 234:256,
-    ) %>% 
-    group_by(participant_id, group, rotation) %>%
-    summarise(
-      aftereffect = mean(reachdeviation_deg, na.rm = TRUE),
-      .groups = "drop"
-    )
-  anova_df <- anova_df %>%
-    mutate(rotation = as.factor(rotation))
-  
-  t.test(
-    anova_df$aftereffect[anova_df$group == "Non-learners"],
-    mu = 0
-  )
+  return(combined_clean)
 }
 
 ##T test to 0 is not significant (p=0.73) so non learners essentially 
@@ -258,7 +121,7 @@ fiveANOVA <- function () {
            ) %>% 
     group_by(participant_id, group, rotation) %>%
     summarise(
-      aftereffect = mean(reachdeviation_deg, na.rm = TRUE),
+      aftereffect = mean(reachdeviation_deg),
       .groups = "drop"
     )
   anova_df <- anova_df %>%
@@ -269,12 +132,15 @@ fiveANOVA <- function () {
     summarise(mean_aftereffect = mean(aftereffect, na.rm = TRUE))
   
   
-  anova_model <- aov(aftereffect ~ group * rotation, data = anova_df)
+  anova_model <- aov(
+    aftereffect ~ group * rotation + Error(participant_id/rotation),
+    data = anova_df
+  )
   
   
   summary(anova_model)
   
-  TukeyHSD(anova_model, "rotation") #"group"
+ # TukeyHSD(anova_model, "rotation") #"group"
   #Group = between-subject factor 
   #Rotation = within-subject factor
   
@@ -282,6 +148,7 @@ fiveANOVA <- function () {
 
 
 bfAnova <- function () {
+  combined_clean <- setUpFive()
   
   anova_df <- combined_clean %>%
     filter(trial_type == "nocursor",
@@ -290,7 +157,7 @@ bfAnova <- function () {
     ) %>% 
     group_by(participant_id, group, rotation) %>%
     summarise(
-      aftereffect = mean(reachdeviation_deg, na.rm = TRUE),
+      aftereffect = mean(reachdeviation_deg),
       .groups = "drop"
     )
   
@@ -302,12 +169,13 @@ bfAnova <- function () {
     )
  
   bf_model <- anovaBF(
-    aftereffect ~ group + rotation,
+    aftereffect ~ group + rotation,     
     data = anova_df,
+    whichRandom = "participant_id",     
     iterations = 2000
   )
   
-  
+  bf_model
 }
 
 
