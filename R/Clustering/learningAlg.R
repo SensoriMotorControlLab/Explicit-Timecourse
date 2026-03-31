@@ -66,9 +66,9 @@ annotations <- read.csv("data/LearningClassifier.csv", stringsAsFactors = FALSE)
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_data <- strategy_data %>% 
-  filter(trial_type.x == "rotated")
+  filter(trial_type == "rotated")
 strategy_data <- strategy_data %>% 
-  filter(trial_type.x == "rotated", group == "Group 2")
+  filter(trial_type == "rotated", group == "Group 2")
 
 annotated_pids <- annotations$pid  
 
