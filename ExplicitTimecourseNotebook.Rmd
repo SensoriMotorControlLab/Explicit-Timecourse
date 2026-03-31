@@ -226,9 +226,8 @@ FEATURES:
 <br> 5) largest_jump_frac: Measures distribution of changes - Low → changes are more distributed (gradual or multiple smaller steps)
 <br> 6) jump_ratio: Highest aim jump / mean of jump magnitudes - How extreme the largest jump is compared to typical jumps. Measures contrast between big vs small steps
 <br> 7) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
-<br> 7) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
-<br> 9) max jump norm - Largest jump relative to total learning range. (High → one jump accounts for a large portion of total learning)
-<br> 10) number of aim changes from clockwise to counterclockwise directions
+<br> 8) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
+
 
 
 
@@ -248,9 +247,9 @@ k_scaled <- scale(k_input)
 pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
 ```
 HIGHEST FEATURE LOADINGS within PC1 AND PC2:
-<br> - PC1 – length duration & sign flips (negative so smaller = higher)
+<br> - PC1 – Learning stability (smoothness) vs jumpiness
 <br> - PC2 - Learning variance (sd and trial-trial changes are negative so smaller =higher)
-<br> - PC3 - Jump size & Linearity (negative)
+<br> - PC3 - Linearity (gradual adjustments)
 
 For plotting we can pca$x*-1 to visualize patterns easier
 We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
