@@ -301,7 +301,7 @@ Visualize washout in non strategy learners :
 plotNonS()
 ```
 
-Visualize washout in the exploratory startegy group :
+Visualize washout in the exploratory strategy group :
 ```{r}
 plotC1()
 ```
@@ -316,12 +316,22 @@ Visualize washout in the gradual strategy group :
 plotC3()
 ```
 
+Compare non learner aftereffects to zero 
+```{r}
+NonLearnersT()
+```
 
-Run 5x5 mixed anova (rotation as within subs, strategy group as between)
+T test to 0 is not significant (p=0.73) so non learners essentially 
+have no aftereffects. We won't this group include in ANOVA
+
+Run 4x5 mixed anova (rotation as within subs, strategy group as between)
 ```{r}
 fiveANOVA()
 ```
-Anova results reveal significance for group (p=0.047, F=2.46, df=4). Tukey's post hoc reveals that after effects across the first 5 trials in the no cursor phase differ between Non learners and Non strategy users (p=0.02) and between Non learners and Exploratory learners (p=0.042). In general, strategy engagement or phenotype do not affect reach aftereffects. 
+Run baysian 4x5 anova too:
+```{r}
+bfAnova()
+```
 
 <br> 
 This finding also aligns with a recent study assessing whether engaging in a cached vs parametric (mental rotation) strategy affects implicit learning captured by strategy exclusion trials. Wang & Taylor (2026) found that strategy type does not change how much implicit learning happens, but it affects the generalization across space with algorithmic strategy users (more variability in aiming) showing more implicit generalization.y 
