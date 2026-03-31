@@ -31,7 +31,7 @@ getFeaturesFromModel <- function() {
     
     if (is.na(onset) | is.na(stable)) next
     
-    d <- subset(strategy_data, participant_id == id & trial_type == "rotated")
+    d <- subset(strategy_data, participant_id == id & trial_type.x == "rotated")
     aim <- d$aimdeviation_deg
     trials <- d$trial_idx
     
@@ -509,7 +509,7 @@ pcaBar <- function() {
         "Exploratory" = "#c495c9",
         "Stepwise"     = "#d16483"
       ),
-      labels = c("Gradual n = 27", "Exploratory n = 29", "Stepwise n = 58"),
+      labels = c("Gradual n = 16", "Exploratory n = 34", "Stepwise n = 64"),
       name = "Phenotype"
     ) +
     
