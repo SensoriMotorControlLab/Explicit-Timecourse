@@ -192,103 +192,6 @@ plotSteps <- function (target = "inline", main = NULL) {
 
 
 
-##we can do a steps plot but with each participants' model fit
-rotated_trials <- subset(
-  strat_data, 
-  (group == "Group 1" & cutrial_no >= 89 & cutrial_no <= 139) |
-    (group == "Group 2" & cutrial_no >= 113 & cutrial_no <= 163)
-)
-
-first_50_rotated <- rotated_trials %>%
-  group_by(participant_id) %>%
-  arrange(cutrial_no) %>%
-  slice_head(n = 60) %>%
-  mutate(cutrial_no = row_number())  # renumber within-participant 1–50
-
-
-first_step_over_10 <- first_50_rotated %>%
-  filter(aimdeviation_deg > 10) %>%
-  group_by(participant_id) %>%
-  slice_min(order_by = cutrial_no, n = 1)
-
-
-result_table <- dplyr::select(
-  first_step_over_10, participant_id, rotation, cutrial_no, aimdeviation_deg
-)
-
-
-df_steps <- result_table %>%
-  left_join(results %>% select(participant_id, best_model),
-            by = c("participant_id" = "participant")) %>%
-  rowwise() %>%
-  mutate(
-    trials = list(-8:60),   # extend to 60 after rotation
-    aim_deviation = list({
-      x <- -8:60
-      if (best_model == "one-step") {
-        pmin(ifelse(x < cutrial_no, 0, aimdeviation_deg), 80)
-      } else if (best_model == "two-step") {
-        # toy example: half step at cutrial_no, full step after +10
-        pmin(ifelse(x < cutrial_no, 0,
-                    ifelse(x < cutrial_no + 10, aimdeviation_deg / 2, aimdeviation_deg)), 80)
-      } else if (best_model == "exponential") {
-        rise <- aimdeviation_deg * (1 - exp(-(x - cutrial_no) / 5))
-        rise[x < cutrial_no] <- 0
-        pmin(rise, 80)
-      } else {
-        rep(0, length(x))
-      }
-    })
-  ) %>%
-  unnest(c(trials, aim_deviation)) %>%
-  filter(!rotation %in% c("20", "30"))
-
-
-plotSteps <- function(target = "inline", main = NULL) {
-  setupFigureFile(
-    target = target,
-    width = 3,
-    height = 3,
-    dpi = 300,
-    sprintf("images/plotsteps.%s", target)
-  )
-  
-  p <- ggplot(df_steps, aes(x = trials, y = aim_deviation,
-                            color = factor(rotation))) +
-    geom_line(aes(group = participant_id), size = 0.8) +
-    geom_vline(aes(xintercept = 0), linetype = "dashed", color = "grey60") +
-    labs(x = "", y = "", color = "Rotation", title = main) +
-    scale_color_manual(values = c(
-      "40" = "darkorange",
-      "50" = "cadetblue",
-      "60" = "hotpink"
-    )) +
-    coord_cartesian(xlim = c(-8, 60), ylim = c(0, 80)) +   # enforce axis ranges
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 17),
-      legend.text  = element_text(size = 16),
-      plot.title   = element_text(size = 19, hjust = 0),
-      legend.position = "inside",
-      legend.position.inside = c(0.08, 0.5)
-    )
-  
-  if (target %in% c("pdf", "svg", "png", "tiff")) {
-    dev.off()
-  }
-  print(p)
-}
-
-
-
 plotProportion <- function () {
   
   plot_data_yes <- logit_data %>%
@@ -342,150 +245,6 @@ plotProportion <- function () {
   
   
 }
-
-#####AIC ANALYSES
-#lets plot 
-plot_AIC <- function () {
-  library(tidyr)
-  aic_long <- results %>%
-    select(participant_id, exp_aic, step1_aic, step2_aic) %>%
-    pivot_longer(cols = c(exp_aic, step1_aic, step2_aic),
-                 names_to = "model",
-                 values_to = "AIC")
-  
-  aic_long$model <- factor(aic_long$model, levels = c("step1_aic","step2_aic", "exp_aic"),
-                           labels = c("Step Model","Two Step Model", "Exponential Model"))
-  
-  # Plot
-  ggplot(aic_long, aes(x = model, y = AIC)) +
-    geom_jitter(width = 0.1, height = 0, alpha = 0.7, color = "blue", size = 3) +
-    geom_boxplot(alpha = 0.3, outlier.shape = NA) +
-    labs(
-      title = "AIC Scores per Participant",
-      x = "Model",
-      y = "AIC)"
-    ) +
-    theme_minimal()
-}
-
-#with three models
-plotAICValues <- function () {
-  aic_long <- results %>%
-    select(participant_id, step1_aic, step2_aic, exp_aic) %>%
-    pivot_longer(cols = c(step1_aic, step2_aic, exp_aic),
-                 names_to = "model",
-                 values_to = "AIC") %>%
-    mutate(model = recode(model,
-                          step1_aic = "one-step",
-                          step2_aic = "two-step",
-                          exp_aic = "exponential"))
-  
-  best_models <- aic_long %>%
-    group_by(participant_id) %>%
-    slice_min(AIC, with_ties = FALSE) %>%
-    ungroup() %>%
-    select(participan_idt, winning_model = model)
-  
-  
-  aic_long <- aic_long %>%
-    left_join(best_models, by = "participant_id")
-  aic_long$model <- factor(aic_long$model, levels = c("one-step", "two-step", "exponential"))
-  aic_long$winning_model <- factor(aic_long$winning_model,
-                                   levels = c("one-step", "two-step", "exponential"))
-  
-  ggplot(aic_long, aes(x = model, y = AIC)) +
-    geom_boxplot(
-      aes(fill = model),
-      alpha = 0.4,
-      outlier.shape = NA,
-      color = "navy",
-      show.legend = FALSE  
-    ) +
-    
-    geom_point(
-      aes(fill = winning_model),
-      shape = 21, size = 3.7, alpha = 0.4, color = "grey",
-      position = position_jitter(width = 0.15, height = 0)
-    ) +
-    
-    scale_fill_manual(
-      values = c(
-        "one-step" = "#FF69B4",
-        "two-step" = "lightblue",
-        "exponential" = "#EEE98F"
-      )
-    ) +
-    
-    labs(
-      title = "",
-      x = "Model",
-      y = "AIC Value",
-      fill = "Winning Model"
-    ) +
-    
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank()
-    )
-}
-
-###or just plot winners
-plotAICBest <- function () {
-  aic_long <- results %>%
-    select(participant, step1_aic, step2_aic, exp_aic) %>%
-    pivot_longer(cols = c(step1_aic, step2_aic, exp_aic),
-                 names_to = "model",
-                 values_to = "AIC") %>%
-    mutate(model = recode(model,
-                          step1_aic = "one-step",
-                          step2_aic = "two-step",
-                          exp_aic = "exponential"))
-  
-  
-  best_models <- aic_long %>%
-    group_by(participant_id) %>%
-    slice_min(AIC, with_ties = FALSE) %>%
-    ungroup()
-  best_models$model <- factor(best_models$model, levels = c("one-step", "two-step", "exponential"))
-  
-  ggplot(best_models, aes(x = model, y = AIC, fill = model)) +
-    
-    geom_jitter(width = 0.15, size = 4, alpha = 0.6, color = "grey70") +
-    
-    
-    geom_boxplot(alpha = 0.4, outlier.shape = NA, color = "black") +
-    
-    
-    scale_fill_manual(values = c(
-      "one-step" = "magenta",
-      "two-step" = "cyan",
-      "exponential" = "purple"
-    )) +
-    
-    labs(
-      title = "Best Model AIC per Participant",
-      x = "Winning Model",
-      y = "AIC (lower is better)",
-      fill = "Winning Model"
-    ) +
-    
-    theme_minimal() +
-    theme(
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank()
-    )
-}
-
-
-
-df <- total_group_data[total_group_data$participant_id == "33e532", ] 
-plot(df$aimdeviation_deg, type = "l", main = "", ylim = c(-10, 60),
-     col= "grey", lwd = 1)
-lines(x=113, col="red")
-
-
-
 
 
 
@@ -791,4 +550,96 @@ plot(transition_trials, transition_aim, type = "l", lwd = 3,
 abline(v = 0, col = "grey", lty = 2, lwd = 2)  # trial 9 = first rotated trial
 abline(h = 60, col = "grey", lty = 2, lwd = 2)
 
+####
 
+plotSchedule <- function () {
+# Define the blocks
+schedule <- data.frame(
+  phase = c(
+    "Aligned",
+    "No-cursor",
+    "Aligned",
+    "Error-clamp",
+    "Aligned",
+    "No-cursor",
+    "Aligned",
+    "No-cursor",
+    "Aligned",
+    "Aligned",
+    "Rotation",
+    "No-cursor"
+  ),
+  trials = c(
+    24, 16, 16, 8,
+    8, 8, 8, 8, 8,
+    8,120, 24
+  )
+)
+
+# Map to condition types
+schedule <- schedule %>%
+  mutate(condition = case_when(
+    grepl("Aligned", phase) ~ "Aligned",
+    grepl("No-cursor", phase) ~ "No-cursor",
+    grepl("Error-clamp", phase) ~ "Error-clamp",
+    grepl("Rotation", phase) ~ "Rotation"
+  ))
+schedule <- schedule %>%
+  mutate(row = ifelse(row_number() <= 9, 2, 1))
+schedule <- schedule %>%
+  mutate(
+    end = cumsum(trials),
+    start = lag(end, default = 0),
+    mid = (start + end) / 2
+  )
+
+# ---- MANUAL COLORS (edit these) ----
+my_colors <- c(
+  "Aligned" = "#c9dce6",
+  "No-cursor" = "#cbb6a2",
+  "Error-clamp" = "white",
+  "Rotation" = "#d8a1c4"
+)
+ggplot(schedule) +
+  geom_rect(aes(
+    xmin = start,
+    xmax = end,
+    ymin = row - 0.3,
+    ymax = row + 0.3,
+    fill = condition
+  ), color = "black") +
+  
+  geom_text(aes(
+    x = (start + end) / 2,
+    y = row + 0.3,
+    label = trials
+  ),
+  vjust = -0.3,
+  size = 3.5
+  ) +
+  
+  scale_fill_manual(values = my_colors) +
+  scale_y_continuous(
+    breaks = c(1, 2),
+    labels = c("", "")
+  ) +
+  labs(
+    title = "",
+    x = "",
+    y = "",
+    fill = "Condition"
+  ) +
+  annotate("text", x = -Inf, y = 2.6, label = "Aligned Phase:",
+           hjust = -0.8, size = 4.2) +
+  annotate("text", x = -Inf, y = 1.6, label = "Rotated Phase:",
+           hjust = -3.4, size = 4.2) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+
+}
