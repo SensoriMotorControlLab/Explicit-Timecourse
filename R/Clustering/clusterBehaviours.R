@@ -24,8 +24,8 @@ clusterMeans <- strategy_data_clustered %>%
   group_by(participant_id) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   filter(
-    (trial_type == "aligned" & row_number() %in% tail(which(trial_type == "aligned"), 8)) |
-      trial_type == "rotated"
+    (trial_type.x == "aligned" & row_number() %in% tail(which(trial_type.x == "aligned"), 8)) |
+      trial_type.x == "rotated"
   ) %>%
   mutate(
     cutrial_no = row_number() - 9,
@@ -112,8 +112,8 @@ clusterMetrics <- function() {
     group_by(participant_id) %>%
     arrange(cutrial_no, .by_group = TRUE) %>%
     filter(
-      (trial_type == "aligned" & row_number() %in% tail(which(trial_type == "aligned"), 8)) |
-        trial_type == "rotated"
+      (trial_type.x == "aligned" & row_number() %in% tail(which(trial_type.x == "aligned"), 8)) |
+        trial_type.x == "rotated"
     ) %>%
     mutate(
       cutrial_no = row_number() - 9,
