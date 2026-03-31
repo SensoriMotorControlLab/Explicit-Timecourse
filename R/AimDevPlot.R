@@ -87,9 +87,9 @@ plotAIM <- function() {
       ~ rotation,
       ncol = 3,
       labeller = as_labeller(c(
-        "20" = "20° Rotation (n = 9)",
+        "20" = "20° Rotation (n = 10)",
         "30" = "30° Rotation (n = 21)",
-        "40" = "40° Rotation (n = 22)",
+        "40" = "40° Rotation (n = 23)",
         "50" = "50° Rotation (n = 28)",
         "60" = "60° Rotation (n = 32)"
       ))
@@ -159,9 +159,9 @@ plotAIM2 <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 9)",
+        "60° (n = 10)",
         "50° (n = 21)",
-        "40° (n = 22)",
+        "40° (n = 23)",
         "30° (n = 28)",
         "20° (n = 32)"
       ) 
@@ -190,7 +190,6 @@ plotAIM2 <- function() {
     ) +
     theme_minimal(base_size = 14) +
     theme(
-      legend.position = "none",
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
