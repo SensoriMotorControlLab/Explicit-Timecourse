@@ -148,20 +148,43 @@ kPCA <- function () {
   pca$rotation <- pca$rotation*-1
   pca$x<- pca$x*-1
   
-  pca_df <- as.data.frame(pca$x[,1:2])
-  colnames(pca_df) <- c("PC1","PC2")
+  pca_df <- as.data.frame(pca$x[,1:3])
+  colnames(pca_df) <- c("PC1","PC2",'PC3')
   pca_df$participant_id <- features_df$participant_id
   
   # -------------------------------
   # 3. K-means clustering
   set.seed(123)
-  km_res <- kmeans(pca_df[,c("PC1","PC2")], centers = 3, nstart = 50)
+  km_res <- kmeans(pca_df[,c("PC1","PC2",'PC3')], centers = 3, nstart = 50)
   
   pca_df$cluster <- km_res$cluster
   pca_df$cluster_label <- as.factor(km_res$cluster)
   return(pca_df)
+
 }
 
+plotScree <- function () {
+  extract <- getFeaturesFromModel() 
+  features_df <- extract$features_df        
+  k_input     <- extract$kmeans_input     
+  k_scaled <- scale(k_input)
+
+  pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
+  
+cum_var <- cumsum(pca$sdev^2 / sum(pca$sdev^2))
+
+# scree-style plot
+plot(cum_var,
+     type = "b",        
+     pch = 19,
+     xlab = "Principal Components",
+     ylab = "Cumulative Variance Explained",
+     main = "")
+
+# var_each <- pca$sdev^2
+# screeplot(pca, type="lines")
+# points(var_each, col="red")
+}
 
 #which components? - plot pca
 #pca$rotation
@@ -264,7 +287,7 @@ plotTSNE <- function() {
     )
   
   library(Rtsne)
-  pca_features <- pca_df %>% select(PC1, PC2)
+  pca_features <- pca_df %>% select(PC1, PC2, PC3)
   
   # Run t-SNE
   set.seed(123) 
