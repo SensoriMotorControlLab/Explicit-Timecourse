@@ -249,8 +249,14 @@ HIGHEST FEATURE LOADINGS within PC1 AND PC2:
 <br> - PC2 - Re-aim structure (adjustment dominance or spikiness in timecourse) - how adjustments are distributed across trials and contribute to total change. (largest_jump_frac, early_jump_frac (early in learning), learning_abs_diff)
 
 
+**2) Determine which components are most informative**
+We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 3 components make the largest contribution to the total variance (~83%) with steeper slopes.
+```{r}
+plotScree()
+```
 
-**2) Run an unsupervised kMeans clustering analysis on two most informative components**
+
+**3) Run an unsupervised kMeans clustering analysis on three most informative components**
 
 Compare clusters to visually predicted clusters
 ```{r}
