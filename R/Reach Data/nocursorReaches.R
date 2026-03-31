@@ -118,6 +118,7 @@ make_plot <- function(df, title_name) {
     geom_line(size = 1) +
     geom_vline(xintercept = 233, linetype="dashed") +
     geom_hline(yintercept = 0, linetype="dashed") +
+    coord_cartesian(xlim=c(226,242)) +
     
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = factor(rotation)),
                 alpha = 0.2, color = NA) +
@@ -131,8 +132,8 @@ make_plot <- function(df, title_name) {
       title = title_name,
       x = "Trial",
       y = "Reach Deviation (deg)",
-      color = "Rotation",
-      fill = "Rotation"
+      color = "Rotation (°)",
+      fill = "Rotation (°)"
     )
 }
 
@@ -145,7 +146,19 @@ plotNonL <- function () {
     "30"="hotpink", "20"="#a2bffe")
   
   plots <- lapply(names(df_list), function(g) {
-    make_plot(df_list[[g]], g)
+    make_plot(df_list[[g]], g) +
+      scale_color_manual(
+        values = rotation_colors,
+        breaks = c("20","30","40","50","60"),
+        labels = c("20° (n = 3)", "30° (n = 1)", "40° (n = 3)", "50° (n = 3)", "60° (n = 2)"),
+        name = "Rotation Size"
+      ) +
+      scale_fill_manual(
+        values = rotation_colors,
+        breaks = c("20","30","40","50","60"),
+        labels = c("20° (n = 3)", "30° (n = 1)", "40° (n = 3)", "50° (n = 3)", "60° (n = 2)"),
+        name = "Rotation Size"
+      )
   })
   
   plots[[1]]
@@ -212,11 +225,12 @@ plotC3 <- function () {
   plots[[5]]
 }
 
-fiveANOVA <- function () {
+NonLearnersT <- function () {
+  combined_clean <- setUpFive()
   anova_df <- combined_clean %>%
     filter(trial_type == "nocursor",
-           cutrial_no %in% 233:237
-           ) %>%
+           cutrial_no %in% 234:256,
+    ) %>% 
     group_by(participant_id, group, rotation) %>%
     summarise(
       aftereffect = mean(reachdeviation_deg, na.rm = TRUE),
@@ -225,18 +239,76 @@ fiveANOVA <- function () {
   anova_df <- anova_df %>%
     mutate(rotation = as.factor(rotation))
   
+  t.test(
+    anova_df$aftereffect[anova_df$group == "Non-learners"],
+    mu = 0
+  )
+}
+
+##T test to 0 is not significant (p=0.73) so non learners essentially 
+# have no aftereffects. We won't include in ANOVA
+
+fiveANOVA <- function () {
+  combined_clean <- setUpFive()
+  
+  anova_df <- combined_clean %>%
+    filter(trial_type == "nocursor",
+           cutrial_no %in% 234:256,
+          group != "Non-learners"
+           ) %>% 
+    group_by(participant_id, group, rotation) %>%
+    summarise(
+      aftereffect = mean(reachdeviation_deg, na.rm = TRUE),
+      .groups = "drop"
+    )
+  anova_df <- anova_df %>%
+    mutate(rotation = as.factor(rotation))
+  
+  group_means <- anova_df %>%
+    group_by(group) %>%
+    summarise(mean_aftereffect = mean(aftereffect, na.rm = TRUE))
+  
+  
   anova_model <- aov(aftereffect ~ group * rotation, data = anova_df)
+  
   
   summary(anova_model)
   
-  TukeyHSD(anova_model, "group")
+  TukeyHSD(anova_model, "rotation") #"group"
   #Group = between-subject factor 
   #Rotation = within-subject factor
   
 }
 
 
-
+bfAnova <- function () {
+  
+  anova_df <- combined_clean %>%
+    filter(trial_type == "nocursor",
+           cutrial_no %in% 234:256,
+           group != "Non-learners"
+    ) %>% 
+    group_by(participant_id, group, rotation) %>%
+    summarise(
+      aftereffect = mean(reachdeviation_deg, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  anova_df <- anova_df %>%
+    mutate(
+      group = as.factor(group),
+      participant_id = as.factor(participant_id),
+      rotation = as.factor(rotation)
+    )
+ 
+  bf_model <- anovaBF(
+    aftereffect ~ group + rotation,
+    data = anova_df,
+    iterations = 2000
+  )
+  
+  
+}
 
 
 
