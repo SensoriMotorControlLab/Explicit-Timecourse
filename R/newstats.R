@@ -167,7 +167,7 @@ zeroT <- function() {
     slice_tail(n = 16) %>%
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
   
-  results[["aligned"]] <- t.test(last_aligned$mean_aim, mu = -1)
+  results[["aligned"]] <- t.test(last_aligned$mean_aim, mu = 0, alternative = "less")
 
   first_rotated <- strat_data %>%
     filter(trial_type.x == "rotated") %>%
@@ -176,7 +176,7 @@ zeroT <- function() {
     slice_head(n = 16) %>%
     summarise(mean_aim = mean(aimdeviation_deg, na.rm = TRUE))
   
-  results[["rotated"]] <- t.test(first_rotated$mean_aim, mu = 0)
+  results[["rotated"]] <- t.test(first_rotated$mean_aim, mu = 0, alternative = "greater")
   
   return(results)
 }
