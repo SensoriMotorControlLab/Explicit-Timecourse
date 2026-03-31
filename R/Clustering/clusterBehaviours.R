@@ -109,7 +109,7 @@ clusterMeans <- strategy_data_clustered %>%
     .groups = "drop"
   )
 
-cluster_labels <- c("1" = "Exploratory", "2" = "Stepwise", "3" = "Gradual")
+cluster_labels <- c("2" = "Exploratory", "3" = "Stepwise", "1" = "Gradual")
 
 p <- ggplot(clusterMeans,
             aes(x = cutrial_no, y = mean_aim,
@@ -122,7 +122,7 @@ p <- ggplot(clusterMeans,
   geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
               alpha = 0.2, colour = NA) +
   
-  labs(x = "Trial Number", y = "Size-normalized Aim Deviation") +
+  labs(x = "Trial Number", y = "Rotation-normalized Aim Deviation") +
   
   scale_color_manual(values = c(
     "1" = "#c495c9",
@@ -255,7 +255,7 @@ clusterMetrics <- function() {
     ungroup()
   
 
-  cluster_labels <- c("1" = "Exploratory", "2" = "Stepwise", "3" = "Gradual")
+  cluster_labels <- c("2" = "Exploratory", "3" = "Stepwise", "1" = "Gradual")
   
   cluster_metrics <- cluster_metrics %>%
     mutate(cluster_name = cluster_labels[as.character(cluster_label)]) %>%
