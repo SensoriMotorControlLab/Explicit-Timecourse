@@ -10,9 +10,13 @@ editor_options:
 
 When participants experience a cursor rotation while making a reach to a
 target, they must compensate by deviating their hand movement in order
-to get a cursor straight to its target.
+to get a cursor straight to its target. While the strategies participants 
+implement to achieve this are thought to emerge gradually, recent data
+in our lab has shown that strategies might instead develop as a stepwise
+process (D'Amario et al.)
 
-In this experiment, participants learned to counter a rotation and were
+In this experiment, we aimed to identify the timecourse of explicit
+adaptation. Participants learned to counter a rotation and were
 instructed to report their aiming strategy by changing the direction of
 an arrow.
 
@@ -128,16 +132,14 @@ strat_data <- read.csv("data/strategy_only_participants.csv")
 
 [Aiming stats script](newstats.R)
 
-**1) Does final aligned and first rotated differ from \~0**
+**1) Does final aligned and first rotated aims differ from \~0**
 
 ```{r}
 zeroT()
-
-
 ```
 
-Here we took the mean final 8 aligned and mean final 8 rotated per
-participant and ran 5 paired T-tests per rotation group. Aligned to 0 is not significant (p=0.08), but rotated to 0 is significant (p < 0.001).
+Here we took the mean final 16 aligned and mean First 16 rotated aim deviations per
+participant and ran one sided T-tests per rotation group. Aligned aim deviations to 0 is significant (p<0.001), indicating aim biases in the clockwise direction. First rotated aims to 0 is significant (p < 0.001).
 
 **2) Is likelihood of strategy development predicted by rotation size?**
 - Logistic regression analysis to predict probability of developing a strategy.
@@ -145,8 +147,7 @@ participant and ran 5 paired T-tests per rotation group. Aligned to 0 is not sig
 logAnalysis()
 ```
 
-The odds of using an explicit strategy are higher in the 40°, 50°,
-and 60° rotation groups compared to the 20° group.
+The odds of using a strategy are above 0 in the 20 degree group, however the odds of using a strategy is higher in all other rotations as compared to the 20 degree group.
 
 **3)Does aim magnitude vary across rotation sizes?**
 
@@ -186,14 +187,17 @@ plotAIM2()
 
 ### Are there 'patterns' in strategy development among participants?
 
-Inspired by Tsay et al. 2024 which suggested distinct classifications of
-strategies. We can thus implement a similar cluster analysis to
-determine if we can observe similar patterns through three methods
+Inspired by D'Amario et al 2024 which first showed aiming patterns different from 
+an inverted exponential decay function, we noticed that not all participants develop
+strategies solely as a step or as an exponential process. We note different patterns as well.
+Tsay et al. 2024 initially suggested distinct classifications of
+strategies. We can therefore conduct a kMeans cluster analysis to identify patterns
+in our own data to determine if phenotypes other than gradual and stepwise exist.
 
 **1) Predicting individual participant learning phases**
 
 - First, we need to define a 'learning phase' finding the point of strategy onset to  when a strategy becomes stable,       using a rolling window  analysis approach, 
-- Trial start: when a participants aim deviation exceeds the motor noise thresholf of 5 degrees.
+- Trial start: when a participants aim deviation exceeds the motor noise threshold of 5 degrees.
 - Trial end: when the SD of a participants aim deviation closely matches the SD of the final 16 aiming trials and 
   remains within an SD of 1.9.
 
@@ -224,11 +228,11 @@ FEATURES:
 <br> 7) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
 <br> 7) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
 <br> 9) max jump norm - Largest jump relative to total learning range. (High → one jump accounts for a large portion of total learning)
-<br> 10) number of flips from clockwise to counterclockwise directions
+<br> 10) number of aim changes from clockwise to counterclockwise directions
 
 
 
-Run PCA to determine most informative components:
+Run PCA to determine most highest feature loadings:
 ```{r}
 extract <- getFeaturesFromModel() 
   
@@ -244,8 +248,17 @@ k_scaled <- scale(k_input)
 pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
 ```
 HIGHEST FEATURE LOADINGS within PC1 AND PC2:
-<br> - PC1 – length duration & re-aiming magnitude (−smoothness so smaller value = more smooth, higher value = more jumpy (smoothness, jump_ratio (jumpiness), learning_length,learning_sd)
-<br> - PC2 - Re-aim structure (adjustment dominance or spikiness in timecourse) - how adjustments are distributed across trials and contribute to total change. (largest_jump_frac, early_jump_frac (early in learning), learning_abs_diff)
+<br> - PC1 – length duration & sign flips (negative so smaller = higher)
+<br> - PC2 - Learning variance (sd and trial-trial changes are negative so smaller =higher)
+<br> - PC3 - Jump size & Linearity (negative)
+
+For plotting we can pca$x*-1 to visualize patterns easier
+We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
+
+```{r}
+plotComponents()
+```
+Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. 
 
 
 **2) Determine which components are most informative**
@@ -262,12 +275,6 @@ Compare clusters to visually predicted clusters
 confMatrix()
 ```
 
-We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
-
-```{r}
-plotComponents()
-```
-Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. Theres some overlap...these participants can be showing both!
 
 **Is cluster predicted by rotation size?**
 <br> - We can run a fisher's exact test with a monte carlo simulation to account for small cell count and large table frequency.
@@ -296,40 +303,23 @@ After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. W
 
 ####1) Do aftereffects differ across strategy levels including non learners?
 
+
 First lets visualize washout in non learners :
+
 ```{r}
-plotNonL()
+nonCSV()
 ```
+
 
 Visualize washout in non strategy learners : 
-```{r}
-plotNonS()
-```
 
 Visualize washout in the exploratory strategy group :
-```{r}
-plotC1()
-```
 
 Visualize washout in the stepwise strategy group :
-```{r}
-plotC2()
-```
 
 Visualize washout in the gradual strategy group :
-```{r}
-plotC3()
-```
 
-Compare non learner aftereffects to zero 
-```{r}
-NonLearnersT()
-```
-
-T test to 0 is not significant (p=0.73) so non learners essentially 
-have no aftereffects. We won't this group include in ANOVA
-
-Run 4x5 mixed anova (rotation as within subs, strategy group as between)
+Run 4x5 mixed anova (rotation as within subs, strategy group as between) - exclude non Learners 
 ```{r}
 fiveANOVA()
 ```
@@ -340,6 +330,5 @@ bfAnova()
 
 <br> 
 This finding also aligns with a recent study assessing whether engaging in a cached vs parametric (mental rotation) strategy affects implicit learning captured by strategy exclusion trials. Wang & Taylor (2026) found that strategy type does not change how much implicit learning happens, but it affects the generalization across space with algorithmic strategy users (more variability in aiming) showing more implicit generalization.y 
-
 
 
