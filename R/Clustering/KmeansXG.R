@@ -181,10 +181,10 @@ plotScree <- function () {
        main = "",
        bty = "n",
        xaxs = "i",            
-       xlim = c(0, 10.2)
+       xlim = c(0, 8.2)
   )
   
-  axis(1, at = 0:10.2)
+  axis(1, at = 0:8.2)
   axis(2)
   
   abline(h = 0.8, col = "grey", lty = 2, lwd = 1)
@@ -255,7 +255,7 @@ plotComponents <- function() {
   ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster_label)) +
     geom_point(size = 3, alpha = 0.8) +
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
-    labs(x = "(PC1): Learning duration & aim magnitude", y = "(PC2): Re-aim structure & proportion", color = "Cluster", fill = "Cluster") +
+    labs(x = "(PC1): Learning Stability (Trajectory Smoothness)", y = "(PC2): Learning Variance", color = "Cluster", fill = "Cluster") +
     scale_fill_manual(values = c(
       "Exploratory" = "#c495c9",
       "Gradual"     = "#3dcad4",
@@ -275,13 +275,13 @@ plotComponents <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 18),
-      legend.text  = element_text(size = 17) 
+       axis.line = element_line()
+      # axis.text.x  = element_text(size = 24),
+      # axis.text.y  = element_text(size = 24),
+      # axis.title.x = element_text(size = 17),
+      # axis.title.y = element_text(size = 17),
+      # legend.title = element_text(size = 18),
+      # legend.text  = element_text(size = 17) 
     )
 }
 
@@ -525,13 +525,13 @@ pcaBar <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 17),
-      axis.text.y  = element_text(size = 17),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 17),
-      legend.text  = element_text(size = 16)
+      axis.line = element_line()
+      # axis.text.x  = element_text(size = 17),
+      # axis.text.y  = element_text(size = 17),
+      # axis.title.x = element_text(size = 17),
+      # axis.title.y = element_text(size = 17),
+      # legend.title = element_text(size = 17),
+      # legend.text  = element_text(size = 16)
     ) 
   print(p)
   return(proportions_plot)
