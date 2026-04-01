@@ -57,15 +57,15 @@ p <- ggplot(clusterMeans,
   labs(x = "Trial Number", y = "Rotation-normalized Aim Deviation") +
   
   scale_color_manual(values = c(
-    "1" = "#c495c9",
+    "1" = "#d16483",
     "2" = "#3dcad4",
-    "3" = "#d16483"
+    "3" = "#c495c9"
   )) +
   
   scale_fill_manual(values = c(
-    "1" = "#c495c9",
+    "1" = "#d16483",
     "2" = "#3dcad4",
-    "3" = "#d16483"
+    "3" = "#c495c9"
   )) +
   
   coord_cartesian(ylim = c(0, 1), xlim=c(-8,45)) +
@@ -79,6 +79,7 @@ p <- ggplot(clusterMeans,
   
   theme_classic() +
   theme(
+  legend.position = "none",
     strip.background = element_blank(),
     strip.text = element_text(size = 14, face = "bold"),
     axis.text.x  = element_text(size = 17),
@@ -196,8 +197,10 @@ clusterMetrics <- function() {
     select(cluster_name, everything())
   
   print(cluster_metrics)
+
   
   return(cluster_metrics)
 }
+
 
 
