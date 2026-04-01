@@ -161,7 +161,7 @@ zeroT <- function() {
   results <- list()
   
   last_aligned <- strat_data %>%
-    filter(trial_type.x == "aligned") %>%
+    filter(trial_type == "aligned") %>%
     group_by(participant_id) %>%
     arrange(cutrial_no, .by_group = TRUE) %>%
     slice_tail(n = 16) %>%
@@ -170,7 +170,7 @@ zeroT <- function() {
   results[["aligned"]] <- t.test(last_aligned$mean_aim, mu = 0, alternative = "less")
 
   first_rotated <- strat_data %>%
-    filter(trial_type.x == "rotated") %>%
+    filter(trial_type == "rotated") %>%
     group_by(participant_id) %>%
     arrange(cutrial_no, .by_group = TRUE) %>%
     slice_head(n = 16) %>%
@@ -186,7 +186,7 @@ zeroT <- function() {
 idealT <- function() {
   strat_data <- read.csv("data/strategy_only_participants.csv")
   final_aligned <- strat_data %>%
-  filter(trial_type.x == "aligned") %>%
+  filter(trial_type == "aligned") %>%
   group_by(participant_id, rotation) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   slice_tail(n = 8) %>%
@@ -194,7 +194,7 @@ idealT <- function() {
     
     
  final_rotated <- strat_data %>%
-  filter(trial_type.x == "rotated") %>%
+  filter(trial_type == "rotated") %>%
   group_by(participant_id, rotation) %>%
   arrange(cutrial_no, .by_group = TRUE) %>%
   slice_tail(n = 8) %>%
