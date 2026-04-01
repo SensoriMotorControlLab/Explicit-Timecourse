@@ -47,18 +47,135 @@ rotated_trials <- seb_data %>%
   filter(phase == "rotation") %>%
   group_by(participant) %>%
   arrange(trialno) %>%
-  slice_head(n = 32) %>%
+  slice_head(n = 60) %>%
   ungroup()
 rotated_trials <- rotated_trials %>%
   group_by(participant) %>%
   arrange(trialno) %>%
-  mutate(trialno_aligned = seq(0, 31)) %>%
+  mutate(trialno_aligned = seq(0, 59)) %>%
   ungroup()
 
 
-all_hist_data <- rbind(aligned_trials, rotated_trials) %>%
-  select(trialno_aligned, aimingdeviation_deg) %>%
+all_hist_data <- rbind(rotated_trials) %>%
+  select(trialno_aligned, aimingdeviation_deg, participant) %>%
   rename(trialno = trialno_aligned)
+
+
+
+library(dplyr)
+library(ggplot2)
+
+# Compute mean per trial
+trial_means <- all_hist_data %>%
+  group_by(trialno) %>%
+  summarise(mean_aim = mean(aimingdeviation_deg, na.rm = TRUE))
+
+library(dplyr)
+
+
+trial_means_ci <- all_hist_data %>%
+  group_by(trialno) %>%
+  summarise(
+    mean_aim = mean(aimingdeviation_deg, na.rm = TRUE),
+    sd_aim   = sd(aimingdeviation_deg, na.rm = TRUE),
+    n        = n(),
+    se       = sd_aim / sqrt(n),
+    ci_upper = mean_aim + 1.96 * se,
+    ci_lower = mean_aim - 1.96 * se
+  )
+
+# Plot
+
+
+ggplot(trial_means_ci, aes(x = trialno, y = mean_aim * -1)) +
+  geom_ribbon(aes(ymin = ci_lower * -1, ymax = ci_upper * -1), fill = "pink", alpha = 0.3) +
+  geom_line(color = "red", size = 1) +
+  geom_hline(yintercept = 0, color = "black") +
+  geom_vline(xintercept = 0, color = "black") +
+  geom_hline(yintercept = 45, linetype = "dashed", color = "grey", size = 1) +
+  xlim(0, 60) +
+  ylim(-2, 60) +
+  labs(title = "", x = "Trial Number", y = "Mean Aiming Deviation (deg)") +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank()
+  )
+
+###
+
+participant_data <- all_hist_data %>%
+  filter(participant == "42cb35")
+
+# Compute mean per trial (if multiple entries per trial)
+trial_means <- participant_data %>%
+  group_by(trialno) %>%
+  summarise(
+    mean_aim = mean(aimingdeviation_deg, na.rm = TRUE),
+    .groups = "drop"
+  )
+trial_means <- trial_means %>%
+  filter(!is.na(mean_aim) & !is.nan(mean_aim))
+
+ggplot(trial_means, aes(x = trialno, y = mean_aim * -1)) +
+  geom_line(color = "red", linewidth = 0.5, na.rm = TRUE) +
+  labs(
+    x = "Trial Number",
+    y = "Mean Aiming Deviation (deg)"
+  ) +
+  coord_cartesian(xlim = c(0, 60), ylim = c(-2, 60)) +
+  geom_hline(yintercept = 0, color = "black") +
+  geom_vline(xintercept = 0, color = "black") +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank()
+  )
+
+### animate???
+# Example for group data
+trial_means <- all_hist_data %>%
+  group_by(trialno) %>%
+  summarise(mean_aim = mean(aimingdeviation_deg, na.rm = TRUE)) %>%
+  arrange(trialno)
+
+# Add cumulative frame variable
+trial_means <- participant_data %>%
+  group_by(trialno) %>%
+  summarise(
+    mean_aim = mean(aimingdeviation_deg, na.rm = TRUE),
+    .groups = "drop"
+  )
+trial_means <- trial_means %>%
+  filter(!is.na(mean_aim) & !is.nan(mean_aim))
+
+trial_means <- trial_means %>%
+  arrange(trialno) %>%
+  mutate(frame = trialno) 
+
+p <- ggplot(trial_means, aes(x = trialno, y = mean_aim * -1)) +
+  geom_line(color = "red", linewidth = 0.5, na.rm = TRUE) +
+  labs(
+    x = "",
+    y = ""
+  ) +
+  coord_cartesian(xlim = c(0, 60), ylim = c(-2, 60)) +
+  geom_hline(yintercept = 0, color = "black") +
+  geom_vline(xintercept = 0, color = "black") +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank()
+  ) +
+transition_reveal(frame)  # this makes the line “grow” over frames
+animate(
+  p, 
+  nframes = max(trial_means$frame),  # one frame per trial
+  fps = 10, 
+  width = 650, 
+  height = 400, 
+  renderer = gifski_renderer("participant_2.gif")
+)
 
 
 plotSEBaim <- function(all_hist_data, df_steps) {

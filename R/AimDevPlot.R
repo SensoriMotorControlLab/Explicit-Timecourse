@@ -9,10 +9,10 @@ setupAIM <- function() {
   strat_data <- read.csv("data/strategy_only_participants.csv")
   
   clean_data <- strat_data %>%
-    filter(trial_type.x %in% c("aligned", "rotated")) %>%
+    filter(trial_type %in% c("aligned", "rotated")) %>%
     group_by(participant_id, rotation) %>%
     # find the first rotated trial
-    mutate(rotation_onset = min(cutrial_no[trial_type.x == "rotated"])) %>%
+    mutate(rotation_onset = min(cutrial_no[trial_type == "rotated"])) %>%
     mutate(norm_trial = cutrial_no - rotation_onset) %>%
     ungroup() %>%
     group_by(participant_id) %>%
@@ -193,11 +193,11 @@ plotAIM2 <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
+      axis.line = element_line()
+      # axis.text.x  = element_text(size = 24),
+      # axis.text.y  = element_text(size = 24),
+      # axis.title.x = element_text(size = 17),
+      # axis.title.y = element_text(size = 17),
     )
 }
 

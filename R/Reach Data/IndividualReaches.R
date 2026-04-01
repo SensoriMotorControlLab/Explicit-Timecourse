@@ -423,7 +423,6 @@ fitReachModels <- function() {
     
   }
   return(list(
-    results = results,
     summary_overall = summary_overall
   ))
 }

@@ -65,13 +65,11 @@ setUpFive <- function () {
     ungroup()
   
   strategy_final <- bind_rows(rotated_strategy, nocursor_strategy) %>%
-    left_join(pca_df %>% select(participant_id, cluster),
-              by = "participant_id") %>%
-    mutate(
-      group = paste0("", group),
-      trial_type = trial_type.x
+    filter(participant_id %in% pca_df$participant_id) %>%  
+    left_join(
+      pca_df %>% select(participant_id, cluster),
+      by = "participant_id"
     )
-  
   
   combined <- bind_rows(
     nonlearners_final,
@@ -91,19 +89,6 @@ setUpFive <- function () {
         reachdeviation_deg <= (mean_reach + 3*sd_reach)
     )
   
-  summary_df <- combined_clean %>%
-    group_by(group, rotation, cutrial_no) %>%   
-    summarise(
-      mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
-      sd_reach   = sd(reachdeviation_deg, na.rm = TRUE),
-      n          = n(),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      se = sd_reach / sqrt(n),
-      ci_lower = mean_reach - 1.96 * se,
-      ci_upper = mean_reach + 1.96 * se
-    )
   
   return(combined_clean)
 }
@@ -177,7 +162,6 @@ bfAnova <- function () {
   
   bf_model
 }
-
 
 
 

@@ -279,34 +279,28 @@ strategySummary <- function() {
 #make new strategy file
 
 Strategyfile <- function() {
-
-  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors = FALSE)
   
   strategy_df <- getStrategies()
   
-  strategy_ids <-   strategy_df$participant_id[  strategy_df$strategy %in% c("Yes")]
+  strategy_ids <- strategy_df$participant_id[
+    strategy_df$strategy == "Yes"
+  ]
   
   strategy_data <- total_learners_data %>%
     filter(participant_id %in% strategy_ids)
   
-  strategy_data <- strategy_data %>%
-    left_join(
-      total_learners_data %>% select(participant_id, cutrial_no, trial_type),
-      by = c("participant_id", "cutrial_no")
-    ) 
-  
   total_learners_data <- total_learners_data %>%
-    mutate(strategy = ifelse(participant_id %in% strategy_ids, "Yes", "No"))
+    mutate(strategy = ifelse(participant_id %in% strategy_ids, 1, 0))
   
-  total_learners_data$strategy <- ifelse(total_learners_data$strategy == "Yes", 1,
-                                         ifelse(total_learners_data$strategy == "No", 0, NA))
   write.csv(strategy_data, "data/strategy_only_participants.csv", row.names = FALSE)
   
-  return(invisible(list(strategy_data = strategy_data, 
-                        total_learners_data = total_learners_data)))
-  
+  return(invisible(list(
+    strategy_data = strategy_data,
+    total_learners_data = total_learners_data
+  )))
 }
-
 #add sanity check
 getTargets <- function () {
   strategy_data <- read.csv("data/strategy_only_participants.csv")
