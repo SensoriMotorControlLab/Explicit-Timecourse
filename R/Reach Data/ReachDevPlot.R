@@ -99,16 +99,17 @@ plotREACH <- function() {
     ) +
     theme_minimal(base_size = 14) +
     theme(
+      legend.position = "none",
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line()
-      # axis.text.x  = element_text(size = 24),
-      # axis.text.y  = element_text(size = 24),
-      # axis.title.x = element_text(size = 17),
-      # axis.title.y = element_text(size = 17),
+      axis.line = element_line(),
+      axis.text.x  = element_text(size = 24),
+      axis.text.y  = element_text(size = 24),
+      axis.title.x = element_text(size = 17),
+      axis.title.y = element_text(size = 17)
       # legend.title = element_text(size = 18),
-      # legend.text  = element_text(size = 17) 
+      # legend.text  = element_text(size = 17)
     )
 }
 
