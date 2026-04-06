@@ -236,6 +236,7 @@ rotationEffect <- function () {
 } # p-value = 0.00018
 
 #more specific than just cluster type: stats that are good to have
+#two fishers: proportion of ppl learnign falling into each cluster by different rotation sizes 
 
 ## does learning phase length differ by rotation group?
 

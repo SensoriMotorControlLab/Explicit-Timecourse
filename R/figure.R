@@ -366,8 +366,8 @@ plot_step_histogram(exp_data)
 ## 
 pid <- "422c52"
 df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
+aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
+rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
 transition_aim <- c(aligned_trials, rotated_trials)
 transition_trials <- 1:length(transition_aim)
 
@@ -390,10 +390,10 @@ abline(h = 40, col = "grey", lty = 2, lwd = 2)
 
 ##
 
-pid <- "85592d"
+pid <- "1d818f"
 df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
+aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
+rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
 transition_aim <- c(aligned_trials, rotated_trials)
 transition_trials <- 1:length(transition_aim)
 
@@ -412,7 +412,7 @@ plot(transition_trials, transition_aim, type = "l", lwd = 3,
      cex.main = 1.8)
 
 abline(v = 0, col = "grey", lty = 2, lwd = 2)  
-abline(h = 30, col = "grey", lty = 2, lwd = 2)
+abline(h = 40, col = "grey", lty = 2, lwd = 2)
 
 
 
@@ -447,8 +447,8 @@ abline(h = 40, col = "grey", lty = 2, lwd = 2)
 
 pid <- "24c273"
 df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
+aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
+rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
 transition_aim <- c(aligned_trials, rotated_trials)
 transition_trials <- 1:length(transition_aim)
 
@@ -472,8 +472,8 @@ abline(h = 40, col = "grey", lty = 2, lwd = 2)
 ## #abf95a 2528e1
 pid <- "b7804c"
 df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
+aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
+rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
 transition_aim <- c(aligned_trials, rotated_trials)
 transition_trials <- 1:length(transition_aim)
 
@@ -502,8 +502,8 @@ abline(h = 60, col = "grey", lty = 2, lwd = 2)
 ##
 pid <- "bdb042"
 df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
+aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
+rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
 transition_aim <- c(aligned_trials, rotated_trials)
 transition_trials <- 1:length(transition_aim)
 
@@ -528,8 +528,8 @@ abline(h = 60, col = "grey", lty = 2, lwd = 2)
 ##
 pid <- "f275ca"
 df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
+aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
+rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
 transition_aim <- c(aligned_trials, rotated_trials)
 transition_trials <- 1:length(transition_aim)
 
