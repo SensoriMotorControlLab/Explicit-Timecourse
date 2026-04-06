@@ -26,7 +26,7 @@ library(xgboost)
 # 
 #   d <- strategy_data %>%
 #     filter(participant_id == pid,
-#            trial_type.x.x == "rotated")
+#            trial_type.x == "rotated")
 # 
 #   if (nrow(d) == 0) stop("No rotated phase data for this participant.")
 # 
@@ -66,9 +66,9 @@ annotations <- read.csv("data/LearningClassifier.csv", stringsAsFactors = FALSE)
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_data <- strategy_data %>% 
-  filter(trial_type.x == "rotated")
+  filter(trial_type == "rotated")
 strategy_data <- strategy_data %>% 
-  filter(trial_type.x == "rotated", group == "Group 2")
+  filter(trial_type == "rotated", group == "Group 2")
 
 annotated_pids <- annotations$pid  
 
@@ -284,11 +284,15 @@ plotStart <- function(target = "inline", main = NULL) {
   correlation <- cor(model_df$starttrial, model_df$pred_start, use = "complete.obs")
 
   ggplot(model_df, aes(x = starttrial, y = pred_start, label = participant_id)) +
-  geom_point(size = 3, alpha = 0.75, colour="#ff713d") +
+  geom_point(size = 3, alpha = 0.75, colour="#a2bffe") +
   geom_abline(intercept = 0, slope = 1, 
               color = "grey", linetype = "solid", linewidth = 1) +
-  geom_abline(intercept = 0, slope = correlation, 
-              color = "#ff713d", linetype = "dashed", linewidth = 1) +
+    geom_smooth(
+      aes(group = 1),
+      method = "lm",
+      se = FALSE,
+      linetype = "dashed",
+      color = "#a2bffe") +
   labs(
     title = "",
     x = "Human Classifier Prediction (Trial)",
@@ -299,8 +303,8 @@ plotStart <- function(target = "inline", main = NULL) {
     "text", 
     x = max(model_df$starttrial)*0.2, 
     y = max(model_df$pred_start)*1.08, 
-    label = correlation, 
-    size = 4, 
+    label = "r =0.94", 
+    size = 6, 
     color = "black"
   ) +
   theme_minimal() +
@@ -337,23 +341,30 @@ plotEnd <- function(target = "inline", main = NULL) {
   correlation <- cor(model_df$endtrial, model_df$pred_end)
   
 ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
-  geom_point(size = 3, alpha = 0.75, color="#5C1675") +
+  geom_point(size = 3, alpha = 0.75, color="#e89c7b") +
   geom_abline(intercept = 0, slope = 1, 
               color = "grey", linetype = "solid", linewidth = 1) +
-  geom_abline(intercept = 0, slope = correlation, 
-              color = "#5C1675", linetype = "dashed", linewidth = 1) +
+  # geom_abline(intercept = 0, slope = correlation, 
+  #             color = "#e89c7b", linetype = "dashed", linewidth = 1) +
+  geom_smooth(
+    aes(group = 1),
+    method = "lm",
+    se = FALSE,
+    linetype = "dashed",
+    color = "#e89c7b"
+  ) +
   labs(
     title = "",
     x = "Human Classifier Prediction (Trial)",
     y = "xgBoost Model Prediction (Trial)"
   ) +
-  coord_cartesian(xlim = c(0, 125), ylim=c(0,125)) +
+  coord_cartesian(xlim = c(0,125), ylim = c(0,125))+
   annotate(
     "text",
     x = 0.1 * 127,
     y = 0.9 * 100,
-    label = correlation,
-    size =4,
+    label = "r = 0.60",
+    size =6,
     color = "black"
   ) +
   theme_minimal() +
