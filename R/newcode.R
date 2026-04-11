@@ -176,17 +176,17 @@ LearnerCSV <- function() {
 nonCSV <- function () {
   total_group_data <- load_total_group_data("data/Group_two_summary/")
   
-  learner_id <- getLearners() %>%
-    distinct(participant_id, rotation, group, .keep_all = TRUE)
+  learner_data <- getLearners()
   
-  learner_id <- learner_id %>%
-    mutate(rotation = abs(rotation))
+  # Step 1: get non-learner IDs
+  nonlearners_ids <- learner_data %>%
+    filter(is_learner == FALSE) %>%
+    select(participant_id)
   
+  # Step 2: filter trial-level data
   nonlearners_data <- total_group_data %>%
-    inner_join(
-      learner_id %>% filter(is_learner == FALSE),
-      by = c("participant_id", "rotation", "group")
-    )
+    semi_join(nonlearners_ids, by = "participant_id") %>%
+    select(participant_id, trial_type, reachdeviation_deg, cutrial_no)
   
   write.csv(nonlearners_data, "data/nonlearners_data.csv", row.names = FALSE)
 }
