@@ -68,6 +68,7 @@ source("R/data.R")
 source("R/newcode.R") 
 source("R/AimDevPlot.R") 
 source("R/Clustering/learningAlg.R") 
+source("R/Clustering/distributions.R") 
 source("R/Clustering/KmeansXG.R") 
 source("R/Clustering/clusterBehaviours.R")
 source("R/Reach Data/ReachDevPlot.R")
@@ -125,23 +126,14 @@ For further analysis, we can create a csv file for only strategy users.
 
 ```{r}
 Strategyfile()
-strat_data <- read.csv("data/strategy_only_participants.csv")
+strategy_data <- read.csv("data/strategy_only_participants.csv")
 ```
 
 #### Statistics
 
 [Aiming stats script](newstats.R)
 
-**1) Does final aligned and first rotated aims differ from \~0**
-
-```{r}
-zeroT()
-```
-
-Here we took the mean final 16 aligned and mean First 16 rotated aim deviations per
-participant and ran one sided T-tests per rotation group. Aligned aim deviations to 0 is significant (p<0.001), indicating aim biases in the clockwise direction. First rotated aims to 0 is significant (p < 0.001).
-
-**2) Is likelihood of strategy development predicted by rotation size?**
+**Is likelihood of strategy development predicted by rotation size?**
 - Logistic regression analysis to predict probability of developing a strategy.
 ```{r}
 logAnalysis()
@@ -149,7 +141,7 @@ logAnalysis()
 
 The odds of using a strategy are above 0 in the 20 degree group, however the odds of using a strategy is higher in all other rotations as compared to the 20 degree group.
 
-**3)Does aim magnitude vary across rotation sizes?**
+**Does aim magnitude vary across rotation sizes?**
 
 ```{r}
 aimAOV()
@@ -159,7 +151,7 @@ Taking the mean from the last 16 trials, One way anova shows an effect
 of rotation size (p<0.0001). Post-hoc tukey shows that the 60 degree group produces
 a higher aim strategy than all other groups. 50 degree is higher than 30 and 20 group. 40 degree is higher than the 20 group. 
 
-**4) Does aim variance vary across rotation sizes?**
+**Does aim variance vary across rotation sizes?**
 <br> - One way ANOVA (IV: Rotation, DV: final SD of aim) with Tukey test
 
 ```{r}
@@ -171,7 +163,7 @@ rotation size (p=0.0005). Post-hoc tukey shows that participants in the 60°
 rotation group show significantly greater variability in their final
 performance than participants in the 20°, 30°, and 40° groups.
 
-**5) Is there an effect of rotation size for the timepoint of strategy-onset?**
+**Is there an effect of rotation size for the timepoint of strategy-onset?**
 <br> - One-way ANOVA (IV: rotation, DV: trial)
 ```{r}
 startTrialAOV()
@@ -196,7 +188,7 @@ in our own data to determine if phenotypes other than gradual and stepwise exist
 
 **1) Predicting individual participant learning phases**
 
-- First, we need to define a 'learning phase' finding the point of strategy onset to  when a strategy becomes stable,       using a rolling window  analysis approach, 
+- First, we need to define a 'learning phase' finding the point of strategy onset to  when a strategy becomes stable, using a rolling window  analysis approach, 
 - Trial start: when a participants aim deviation exceeds the motor noise threshold of 5 degrees.
 - Trial end: when the SD of a participants aim deviation closely matches the SD of the final 16 aiming trials and 
   remains within an SD of 1.9.
@@ -216,7 +208,7 @@ plotEnd()
 
 
 
-**2) Run a PCA participant features to capture aim heterogeneity**
+**2) Run a PCA on participant NORMALIZED features to capture aim heterogeneity**
 
 FEATURES:
 <br> 1) SD of learning phase
@@ -227,6 +219,11 @@ FEATURES:
 <br> 6) jump_ratio: Highest aim jump / mean of jump magnitudes - How extreme the largest jump is compared to typical jumps. Measures contrast between big vs small steps
 <br> 7) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
 <br> 8) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
+
+We do not include features that:
+
+1) Take loadings of features onto PC and multiplied them with percentage of explained variance and     summed Σ ( |pcLoading| x pcVariance ). Remove lowest importance scores.
+2) cannot be transformed to a normal distribution
 
 
 
@@ -247,9 +244,8 @@ k_scaled <- scale(k_input)
 pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
 ```
 HIGHEST FEATURE LOADINGS within PC1 AND PC2:
-<br> - PC1 – Learning stability (smoothness) vs jumpiness
+<br> - PC1 – Learning Duration and Trajectory Smoothness (num_sign_flips, jump ratio (which is negative) smoothness)
 <br> - PC2 - Learning variance (sd and trial-trial changes are negative so smaller =higher)
-<br> - PC3 - Linearity (gradual adjustments)
 
 For plotting we can pca$x*-1 to visualize patterns easier
 We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
@@ -261,7 +257,7 @@ Thus, we have found three clusters or 'learning phenotypes that describe strateg
 
 
 **2) Determine which components are most informative**
-We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 3 components make the largest contribution to the total variance (~83%) with steeper slopes.
+We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 2 components make the largest contribution to the total variance (~99%) with steeper slopes.
 ```{r}
 plotScree()
 ```
@@ -271,10 +267,10 @@ plotScree()
 
 Compare clusters to visually predicted clusters
 ```{r}
-confMatrix()
+plotComponents1()
 ```
 
-
+Open circles represent participants that were clustered differently than pre-labeled.
 **Is cluster predicted by rotation size?**
 <br> - We can run a fisher's exact test with a monte carlo simulation to account for small cell count and large table frequency.
 
