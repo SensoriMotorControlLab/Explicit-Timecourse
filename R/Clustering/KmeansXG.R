@@ -194,13 +194,13 @@ plotScree <- function () {
        main = "",
        bty = "n",
        xaxs = "i",            
-       xlim = c(0.8, 8.1)
+       xlim = c(0.8, 8.1),
+       ylim = c(0,1)
   )
   
   axis(1, at = 1:8)
-  axis(2)
   
-  #abline(h = 0.95, col = "grey", lty = 2, lwd = 1)
+  abline(h = 0.80, col = "grey", lty = 2, lwd = 1)
   
   points(1:3, cum_var[1:3], col = "#f52f57", pch = 19)
   
@@ -256,7 +256,7 @@ plotComponents <- function() {
     mutate(
       cluster_label = factor(
         cluster_label,
-        levels = c(2, 3, 1),
+        levels = c(3, 1, 2),
         labels = c("Gradual", "Exploratory", "Stepwise")
       )
     )
@@ -270,18 +270,18 @@ plotComponents <- function() {
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
     labs(x = "(PC1): Learning Stability (Trajectory Smoothness)", y = "(PC2): Learning Variance", color = "Cluster", fill = "Cluster") +
     scale_fill_manual(values = c(
-      "Exploratory" = "#c495c9",
-      "Gradual"     = "#3dcad4",
-      "Stepwise"    = "#d16483"
+      "Exploratory" = "hotpink",
+      "Gradual"     = "#e89c7b",
+      "Stepwise"    = "#a2bffe"
     )) +
     coord_equal() +
     scale_x_continuous(breaks = seq(-2, 10, by = 2)) +
     scale_y_continuous(breaks = seq(-2, 10, by = 2)) +
     
     scale_color_manual(values = c(
-      "Exploratory" = "#c495c9",
-      "Gradual"     = "#3dcad4",
-      "Stepwise"    = "#d16483"
+      "Exploratory" = "hotpink",
+      "Gradual"     = "#e89c7b",
+      "Stepwise"    = "#a2bffe"
     )) +
     theme_minimal(base_size = 14) +
     theme(
@@ -403,6 +403,14 @@ plotComponents2 <- function() {
 
   # --- LOAD DATA ---
   pca_df <- kPCA()
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+  
+  rotation_df <- strategy_data %>%
+    select(participant_id, rotation) %>%
+    distinct()
+  
+  pca_df <- kPCA() %>%
+    left_join(rotation_df, by = "participant_id")
   
   # --- CLASSIFICATION (FULL TABLE — keep yours here) ---
   classification <- data.frame(
@@ -491,54 +499,43 @@ plotComponents2 <- function() {
   
   
   # --- HULLS ---
+  # --- HULLS ---
   hulls <- pca_labeled %>%
     group_by(cluster_label) %>%
     slice(chull(PC1, PC2))
   
+  # --- Ensure rotation is a factor with correct order ---
+  pca_labeled <- pca_labeled %>%
+    mutate(rotation = factor(as.character(rotation),
+                             levels = c("20","30","40","50","60")))
   
   # --- PLOT ---
-  ggplot(pca_labeled, aes(x = PC1, y = PC2, color = cluster_label)) +
+  ggplot(pca_labeled, aes(x = PC1, y = PC2, color = rotation)) +
     
-    # normal points (filled)
-    geom_point(
-      data = subset(pca_labeled, confused == FALSE | is.na(confused)),
-      size = 3,
-      alpha = 0.8
-    ) +
-    
-    # confused points (open circles)
-    geom_point(
-      data = subset(pca_labeled, confused == TRUE),
-      size = 3,
-      shape = 1,
-      stroke = 1.3
-    ) +
-    
-    # hulls
+    # grey cluster hulls
     geom_polygon(
       data = hulls,
-      aes(fill = cluster_label),
-      alpha = 0.15,
-      color = NA
+      aes(group = cluster_label),
+      fill = NA,
+      color = "black",
+      linewidth = 0.5
     ) +
+    
+    # all points colored by rotation
+    geom_point(size = 3, alpha = 0.9) +
     
     labs(
       x = "(PC1): Duration & Trajectory Erraticness",
       y = "(PC2): Learning Variance & re-aim change",
-      color = "Cluster",
-      fill = "Cluster"
+      color = "Rotation Size"
     ) +
     
-    scale_fill_manual(values = c(
-      "Exploratory" = "#c495c9",
-      "Gradual" = "#3dcad4",
-      "Stepwise" = "#d16483"
-    )) +
-    
     scale_color_manual(values = c(
-      "Exploratory" = "#c495c9",
-      "Gradual" = "#3dcad4",
-      "Stepwise" = "#d16483"
+      "20"="#a2bffe",
+      "30"="hotpink",
+      "40"="#e89c7b",
+      "50"="#87ae73",
+      "60"="#999999"
     )) +
     
     coord_equal() +
@@ -559,6 +556,34 @@ plotComponents2 <- function() {
       legend.title = element_text(size = 18),
       legend.text = element_text(size = 17)
     )
+  
+  ##linear regression for pc (r = 0.42 for pc1)
+     #pca_labeled$rotation_num <- as.numeric(as.character(pca_labeled$rotation))
+   # ggplot(pca_labeled, aes(x = rotation_num, y = PC1, color = rotation)) +
+   #       
+   #       geom_point(size = 3, alpha = 0.9) +
+   #       
+   #       geom_smooth(
+   #             method = "lm",
+   #             se = TRUE,
+   #             color = "black"
+   #         ) +
+   #       
+   #       labs(
+   #             x = "Rotation Size",
+   #             y = "PC1",
+   #             color = "Rotation Size"
+   #         ) +
+   #       
+   #       scale_color_manual(values = c(
+   #             "20"="#a2bffe",
+   #             "30"="hotpink",
+   #             "40"="#e89c7b",
+   #             "50"="#87ae73",
+   #             "60"="#999999"
+   #        )) +
+   #       
+   #       theme_minimal()
 }
 
 
@@ -629,11 +654,11 @@ pcaBar <- function() {
     geom_bar(stat = "identity", color = "black", width = 0.7) +
     scale_fill_manual(
       values = c(
-        "Gradual"    = "#3dcad4",
-        "Exploratory" = "#c495c9",
-        "Stepwise"     = "#d16483"
+        "Gradual"    = "#e89c7b",
+        "Exploratory" = "hotpink",
+        "Stepwise"     = "#a2bffe"
       ),
-      labels = c("Gradual n = 40", "Exploratory n = 32", "Stepwise n = 42\nNon-Strategy n =79"),
+      labels = c("Gradual n = 41", "Exploratory n = 32", "Stepwise n = 41"),
       name = "Phenotype"
     ) +
     
@@ -650,12 +675,12 @@ pcaBar <- function() {
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
       axis.line = element_line(),
-      axis.text.x  = element_text(size = 17),
-      axis.text.y  = element_text(size = 17),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
-      legend.title = element_text(size = 17),
-      legend.text  = element_text(size = 16)
+      # axis.text.x  = element_text(size = 17),
+      # axis.text.y  = element_text(size = 17),
+      # axis.title.x = element_text(size = 17),
+      # axis.title.y = element_text(size = 17),
+      # legend.title = element_text(size = 17),
+      # legend.text  = element_text(size = 16)
     ) 
   print(p)
   return(proportions_plot)
@@ -666,6 +691,7 @@ makeTrajectoryPlot <- function(pid, color, hline_val) {
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   
   df <- strategy_data[strategy_data$participant_id == pid, ]
+  rot <- unique(df$rotation)[1]
   
   aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
   rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
@@ -683,20 +709,31 @@ makeTrajectoryPlot <- function(pid, color, hline_val) {
   
   ggplot(df_plot, aes(trial, aim)) +
     geom_line(color = color, size = 0.8) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "grey") +
-    geom_hline(yintercept = hline_val, linetype = "dashed", color = "grey") +
+    geom_segment(
+      x = 0, xend = 0,
+      y = -15, yend = rot,
+      linetype = "solid",
+      color = "grey"
+    ) +
+    geom_segment(
+      x = 0, xend = max(df_plot$trial),
+      y = rot, yend = rot,
+      color = "grey"
+    ) +
     ylim(-15, 80) +
     theme_void()
 }
 
-p_confGr <- makeTrajectoryPlot("73230b", "#3dcad4", 60)
-p_GrEx   <- makeTrajectoryPlot("85592d", "#3dcad4", 30)
 
-p_confStep <- makeTrajectoryPlot("1d818f", "#d16483", 40)
-p_StEx     <- makeTrajectoryPlot("24c273", "#d16483", 60)
 
-p_confEr <- makeTrajectoryPlot("0f6fbf", "#c495c9", 50)
-p_errEx  <- makeTrajectoryPlot("f275ca", "#c495c9", 60)
+p_confGr <- makeTrajectoryPlot("73230b", "#e89c7b", 60)
+p_GrEx   <- makeTrajectoryPlot("1d818f", "#e89c7b", 30)
+
+p_confStep <- makeTrajectoryPlot("a7178b", "#a2bffe", 40)
+p_StEx     <- makeTrajectoryPlot("24c273", "#a2bffe", 60) 
+
+p_confEr <- makeTrajectoryPlot("9c8da7", "hotpink", 50)
+p_errEx  <- makeTrajectoryPlot("f275ca", "hotpink", 60)
 
 
 library(grid)
@@ -713,14 +750,7 @@ p_errEx_grob   <- ggplotGrob(p_errEx)
 add_inset <- function(base_plot, pid, grob_plot, dx = 0, dy = 0, size = 0.5) {
   pca_df <- kPCA()
   
-  pca_df <- pca_df %>%
-    mutate(
-      cluster_label = factor(
-        cluster_label,
-        levels = c(2, 3, 1),
-        labels = c("Gradual", "Exploratory", "Stepwise")
-      )
-    )
+
   
    get_coords <- function(pid) {
     pca_df[pca_df$participant_id == pid, c("PC1", "PC2")]
@@ -740,15 +770,83 @@ add_inset <- function(base_plot, pid, grob_plot, dx = 0, dy = 0, size = 0.5) {
 plotComponents1 <- function() {
   pca_df <- kPCA()
   
+  classification <- data.frame(
+    participant_id = c("35f115", "dd50ef", "ee29d6", "1e2a6b", "20d744", 
+                       "2c2f44", "70e8cb", "83456b", "8d426d", "9fb9fe", "ab3b79",
+                       "ba8f14", "fd5cd5", "205194", "2525df", "2528e1", "31b753",
+                       "3e3a73", "422c52", "4a6642", "58e451","59a9dd", "81d984","96634a",
+                       "ba0a7c", "bccf6e","bde44b", "d1436b", "ffa337", "05484c", "0f6fbf",
+                       "194dab", "360ea6","52ef4e", "54044d", "7eacfc", "901482", "94709f", 
+                       "a18f63", "af8328", "b4d36d", "bb04a2", "c0144b", "d6141d", "e066de",
+                       "d9ff04", "0b1dca", "0c7728", "13cb04", "13d986", "14893b", "1896cb",
+                       "19e7ed", "33e532", "4093e8", "54c6f3", "622518",
+                       "7cd1bd","7eec53","811eae","98e5cb","9db7b0","9eabc1","a23b35","a5310d","abf95a",
+                       "bdb042","d0d19c","f275ca", "a02c67", "396716", "15f2a1", 
+                       "19187c", "3091de", "654648",
+                       
+                       "fecce7", "feb484", "fd3e77", "ef7c34", "d0a134", 
+                       "b7804c", "b5edb9", "b3fac9", "ac4304", "9d628e",
+                       "9c8da7", "9b1b25","98abcb","977304","8bc9fd",
+                       "85592d","822948","803175","7ddb15","73230b",
+                       "71ea32","6442f3","6387a3","514daa","5129de",
+                       "4ff32b","4cbb11","4b9fad","4b701d","30035a",
+                       "2ff26d","27edd0","24c273","1cce80","1cc592","1c10b9",
+                       
+                       
+                       
+                       "9b5b71","7454c1","a16f97","a7178b","d53112",
+                       "ad1dea", "afaaf4", "dfe4d5", "fa0f1a", "fe59c4",
+                       "d1d7c3","d10bdf","03fd31","49e772","56968f", "bd8518", "139857", "657fba",
+                       "a4cf19","2c82f8","2f40e0", "6359c5", "1d818f" ),
+    
+    
+    
+    
+    label = c("step", "step", "step", "step", "step", 
+              "step", "step", "erratic", "step", "step", "erratic", "step",
+              "gradual", "step", "step", "step", "step", "erratic", "gradual", "gradual",
+              "gradual", "erratic", "gradual", "gradual", "step", "step", "gradual","step", "step", 
+              "erratic", "erratic","erratic",  "erratic", "erratic", "step", "step", "gradual", "step",
+              "step","erratic", "step", "step", "step",  "step", "step",
+              "step", "step", "erratic", "step", "step", "step", "erratic",
+              "erratic", "gradual", "erratic", "step", "step",
+              "step",  "step","gradual", "erratic", "step", "step", "gradual",
+              "erratic", "step","erratic", "gradual", "erratic", "erratic", "erratic", "step",
+              "erratic", "erratic", "erratic",
+              
+              "gradual", "step", "erratic", "step", "step",
+              "step", "erratic", "step", "erratic", "step",
+              "gradual","step","step","step","step",
+              "gradual","erratic","erratic","step","erratic",
+              "gradual","erratic","erratic","erratic","gradual",
+              "step","step","step","step","step",
+              "erratic","erratic","step","step","step", "step",
+              
+              
+              "step", "erratic", "erratic", "gradual", "step", 
+              "step", "gradual", "step", "step","erratic",
+              "gradual","step","erratic","erratic","step", "gradual", "step", "erratic",
+              "erratic","step","step", "step", "gradual")
+  )
+  
   pca_df <- pca_df %>%
+    left_join(classification, by = "participant_id") %>%
     mutate(
       cluster_label = factor(
         cluster_label,
-        levels = c(2, 3, 1),
+        levels = c(3, 1, 2),
         labels = c("Gradual", "Exploratory", "Stepwise")
-      )
+      ),
+      
+      label_clean = case_when(
+        label == "gradual" ~ "Gradual",
+        label == "step" ~ "Stepwise",
+        label == "erratic" ~ "Exploratory",
+        TRUE ~ NA_character_
+      ),
+      
+      confused = ifelse(!is.na(label_clean) & label_clean != cluster_label, TRUE, FALSE)
     )
-  
   hulls <- pca_df %>%
     group_by(cluster_label) %>%
     slice(chull(PC1, PC2))
@@ -757,9 +855,9 @@ plotComponents1 <- function() {
     select(participant_id, PC1, PC2)
 
   segment_df <- data.frame(
-    participant_id = c("73230b","85592d","1d818f","24c273","0f6fbf","f275ca"),
-    dx = c(1.2, 0, -0.9, 1, 1, 2.1),
-    dy = c(-1, 2.5, -2, -2.2, -1, -1.1)
+    participant_id = c("73230b","1d818f","a7178b","24c273","9c8da7","f275ca"),
+    dx = c(1.6, -2.1, -0.7, -1.9, 1.5, 2.1),
+    dy = c(-1, 2.4, -3.5, -2.5, -1.2, 2)
   ) %>%
     left_join(coords_df, by = "participant_id") %>%
     mutate(
@@ -769,17 +867,34 @@ plotComponents1 <- function() {
   
   
   base_plot <- ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster_label)) +
-    geom_point(size = 3, alpha = 0.8) +
+    # normal points
+    geom_point(
+      data = subset(pca_df, confused == FALSE | is.na(confused)),
+      size = 3,
+      alpha = 0.8
+    ) +
+    
+    # confused participants (open circles)
+    geom_point(
+      data = subset(pca_df, confused == TRUE),
+      size = 3,
+      shape = 1,
+      stroke = 1.3
+    ) +
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
-    scale_color_manual(values = c(
-      "Exploratory" = "#c495c9",
-      "Gradual"     = "#3dcad4",
-      "Stepwise"    = "#d16483"
+    scale_color_manual(
+      name = "Cluster",
+      values = c(
+      "Exploratory" = "hotpink",
+      "Gradual"     = "#e89c7b",
+      "Stepwise"    = "#a2bffe"
     )) +
-    scale_fill_manual(values = c(
-      "Exploratory" = "#c495c9",
-      "Gradual"     = "#3dcad4",
-      "Stepwise"    = "#d16483"
+    scale_fill_manual(
+      name = "Cluster",
+      values = c(
+      "Exploratory" = "hotpink",
+      "Gradual"     = "#e89c7b",
+      "Stepwise"    = "#a2bffe"
     )) +
     theme_minimal() +
     theme(
@@ -787,10 +902,10 @@ plotComponents1 <- function() {
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
       axis.line = element_line(),
-      axis.text.x = element_text(size = 17),
-      axis.text.y = element_text(size = 17),
-      legend.title = element_text(size = 18),
-      legend.text  = element_text(size = 17)
+      # axis.text.x = element_text(size = 17),
+      # axis.text.y = element_text(size = 17),
+      # legend.title = element_text(size = 18),
+      # legend.text  = element_text(size = 17)
     ) +
     
     ggnewscale::new_scale_color() +  
@@ -809,27 +924,24 @@ plotComponents1 <- function() {
       show.legend = FALSE
     ) +
     scale_color_manual(values = c(
-      "73230b" = "#3dcad4",
-      "85592d" = "#3dcad4",
-      "1d818f" = "#d16483",
-      "24c273" = "#d16483",
-      "0f6fbf" = "#c495c9",
-      "f275ca" = "#c495c9"
+      "73230b" = "#e89c7b",
+      "1d818f" = "#e89c7b",
+      "a7178b" = "#a2bffe",
+      "24c273" = "#a2bffe",
+      "9c8da7" = "hotpink",
+      "f275ca" = "hotpink"
     ),
     guide = "none")
   
-
-
   
   p <- base_plot
   
-  
-  p <- add_inset(p, "73230b", p_confGr_grob, dx = 1.2,  dy = -1,    size = 1.0)
-  p <- add_inset(p, "85592d", p_GrEx_grob,   dx = -0., dy = 2.5,  size = 1.0)
-  p <- add_inset(p, "1d818f", p_confStep_grob, dx = -0.9, dy = -2,  size = 1.0)
-  p <- add_inset(p, "24c273", p_StEx_grob, dx = 1, dy = -2.1,       size = 1.0)
-  p <- add_inset(p, "0f6fbf", p_confEr_grob, dx = 1, dy = -1,       size = 1.0)
-  p <- add_inset(p, "f275ca", p_errEx_grob, dx = 2.1, dy = -1.1,   size = 1.0)
+  p <- add_inset(p, "73230b", p_confGr_grob, dx = 1.6,  dy = -1,    size = 1.0)
+  p <- add_inset(p, "1d818f", p_GrEx_grob,   dx = -2.1, dy = 2.4,  size = 1.0)
+  p <- add_inset(p, "a7178b", p_confStep_grob, dx = -0.7, dy = -3.5,  size = 1.0)
+  p <- add_inset(p, "24c273", p_StEx_grob, dx = -1.9, dy = -2.5,  size = 1.0)
+  p <- add_inset(p, "9c8da7", p_confEr_grob, dx = 1.5, dy = -1.2,       size = 1.0)
+  p <- add_inset(p, "f275ca", p_errEx_grob, dx = 2.1, dy = 2,   size = 1.0)
   
   p
 }
