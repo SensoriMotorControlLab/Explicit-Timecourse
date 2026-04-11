@@ -419,33 +419,7 @@ abline(h = 40, col = "grey", lty = 2, lwd = 2)
 #-- step --#
 
  #1c10b9
-pid <- "7ddb15" #2528e1, 
-df <- strategy_data[strategy_data$participant_id == pid, ]
-aligned_trials <- tail(df$aimdeviation_deg[df$trial_type.x == "aligned"], 16)
-rotated_trials <- head(df$aimdeviation_deg[df$trial_type.x == "rotated"], 100)
-transition_aim <- c(aligned_trials, rotated_trials)
-transition_trials <- 1:length(transition_aim)
-
-x_aligned <- seq(-length(aligned_trials), -1, 1)
-x_rotated <- seq(0, length(rotated_trials) - 1, 1)
-transition_trials <- c(x_aligned, x_rotated)
-
-
-plot(transition_trials, transition_aim, type = "l", lwd = 3,
-     col = "#d16483", ylim = c(-15, 80),
-     xlab = "", ylab = "",
-     main = paste(""),
-     bty = "n",       
-     cex.axis = 1.5,   
-     cex.lab = 1.5,    
-     cex.main = 1.8)
-abline(v = 0, col = "grey", lty = 2, lwd = 2)  
-abline(h = 40, col = "grey", lty = 2, lwd = 2)
-
-
-####
-
-pid <- "24c273"
+pid <- "fa0f1a" #2528e1, 
 df <- strategy_data[strategy_data$participant_id == pid, ]
 aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
 rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
@@ -466,11 +440,12 @@ plot(transition_trials, transition_aim, type = "l", lwd = 3,
      cex.lab = 1.5,    
      cex.main = 1.8)
 abline(v = 0, col = "grey", lty = 2, lwd = 2)  
-abline(h = 40, col = "grey", lty = 2, lwd = 2)
+abline(h = 50, col = "grey", lty = 2, lwd = 2)
 
 
-## #abf95a 2528e1
-pid <- "b7804c"
+####
+
+pid <- "abf95a"
 df <- strategy_data[strategy_data$participant_id == pid, ]
 aligned_trials <- tail(df$aimdeviation_deg[df$trial_type == "aligned"], 16)
 rotated_trials <- head(df$aimdeviation_deg[df$trial_type == "rotated"], 100)
@@ -492,6 +467,7 @@ plot(transition_trials, transition_aim, type = "l", lwd = 3,
      cex.main = 1.8)
 abline(v = 0, col = "grey", lty = 2, lwd = 2)  
 abline(h = 60, col = "grey", lty = 2, lwd = 2)
+
 
 # 7eacfc, 94709f is a 50 degree
 
