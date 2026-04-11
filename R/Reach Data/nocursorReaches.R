@@ -3,7 +3,7 @@
 
 setUpFive <- function () {
   
-  nonLearners_data <- read.csv("data/nonlearners_data.csv", stringsAsFactors = FALSE)
+  nonlearners_data <- read.csv("data/nonlearners_data.csv", stringsAsFactors = FALSE)
   learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors = FALSE)
   pca_df <- kPCA()
   strategy_data <- read.csv("data/strategy_only_participants.csv")
@@ -53,13 +53,13 @@ setUpFive <- function () {
   #strategy 
   
   rotated_strategy <- strategy_data %>%
-    filter(trial_type.x == "rotated") %>%
+    filter(trial_type == "rotated") %>%
     group_by(participant_id) %>%
     slice_tail(n = 8) %>%
     ungroup()
   
   nocursor_strategy <- strategy_data %>%
-    filter(trial_type.x == "nocursor") %>%
+    filter(trial_type == "nocursor") %>%
     group_by(participant_id) %>%
     slice_tail(n = 24) %>%
     ungroup()
@@ -97,6 +97,7 @@ setUpFive <- function () {
 # have no aftereffects. We won't include in ANOVA
 
 fiveANOVA <- function () {
+  nonLearners_data <- read.csv("data/nonlearners_data.csv", stringsAsFactors = FALSE)
   combined_clean <- setUpFive()
   
   anova_df <- combined_clean %>%
@@ -133,6 +134,7 @@ fiveANOVA <- function () {
 
 
 bfAnova <- function () {
+  nonLearners_data <- read.csv("data/nonlearners_data.csv", stringsAsFactors = FALSE)
   combined_clean <- setUpFive()
   
   anova_df <- combined_clean %>%
