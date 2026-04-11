@@ -93,7 +93,6 @@ strategy_annot <- strategy_annot %>%
 return(strategy_annot)
 }
 
-
 # -----------------------------
 # compute rolling features per participant
 xgFeatures <- function () {
@@ -284,7 +283,7 @@ plotStart <- function(target = "inline", main = NULL) {
   correlation <- cor(model_df$starttrial, model_df$pred_start, use = "complete.obs")
 
   ggplot(model_df, aes(x = starttrial, y = pred_start, label = participant_id)) +
-  geom_point(size = 3, alpha = 0.75, colour="#a2bffe") +
+  geom_point(size = 3, alpha = 0.75, colour="#ee6b6e") +
   geom_abline(intercept = 0, slope = 1, 
               color = "grey", linetype = "solid", linewidth = 1) +
     geom_smooth(
@@ -292,7 +291,7 @@ plotStart <- function(target = "inline", main = NULL) {
       method = "lm",
       se = FALSE,
       linetype = "dashed",
-      color = "#a2bffe") +
+      color = "#ee6b6e") +
   labs(
     title = "",
     x = "Human Classifier Prediction (Trial)",
@@ -341,7 +340,7 @@ plotEnd <- function(target = "inline", main = NULL) {
   correlation <- cor(model_df$endtrial, model_df$pred_end)
   
 ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
-  geom_point(size = 3, alpha = 0.75, color="#e89c7b") +
+  geom_point(size = 3, alpha = 0.75, color="#de0a26") +
   geom_abline(intercept = 0, slope = 1, 
               color = "grey", linetype = "solid", linewidth = 1) +
   # geom_abline(intercept = 0, slope = correlation, 
@@ -351,7 +350,7 @@ ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
     method = "lm",
     se = FALSE,
     linetype = "dashed",
-    color = "#e89c7b"
+    color = "#de0a26"
   ) +
   labs(
     title = "",
