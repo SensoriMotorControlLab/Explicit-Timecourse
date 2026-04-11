@@ -7,7 +7,7 @@ setupREACH <- function() {
   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   clean_data <- total_learners_data %>%
-    filter(trial_type %in% c("aligned", "rotated")) %>%
+    filter(trial_type %in% c("aligned", "rotated","nocursor")) %>%
     group_by(participant_id, rotation) %>%
     mutate(rotation_onset = min(cutrial_no[trial_type == "rotated"])) %>%
     
@@ -58,36 +58,37 @@ plotREACH <- function() {
       color = "grey85", linetype = "solid", linewidth = 0.5
     ) +
     geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+    geom_vline(xintercept = 121, linetype = "dashed", color = "black") +
     geom_line(size = 1) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
                 alpha = 0.2, color = NA) +
-    coord_cartesian(xlim = c(-24, 120)) +
+    coord_cartesian(xlim = c(-8, 140)) +
     scale_color_manual(
       values = c(
-        "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-        "30"="hotpink", "20"="#a2bffe"
+        "60"="#12086f", "50"="#2835af","40"="#4261ee",
+        "30"="#4895ef", "20"="#4cc9f0"
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 38 /32)",
-        "50° (n = 39 /28)",
-        "40° (n = 39 /23)",
-        "30° (n = 38 /21)",
-        "20° (n = 39 /10)"
+        "60° (n = 32 /38)",
+        "50° (n = 28 /39)",
+        "40° (n = 23 /39)",
+        "30° (n = 21 /38)",
+        "20° (n = 10 /39)"
       ) 
     ) +
     scale_fill_manual(
       values = c(
-        "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-        "30"="hotpink", "20"="#a2bffe"
+        "60"="#12086f", "50"="#2835af","40"="#4261ee",
+        "30"="#4895ef", "20"="#4cc9f0"
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 38 /32)",
-        "50° (n = 39 /28)",
-        "40° (n = 39 /23)",
-        "30° (n = 38 /21)",
-        "20° (n = 39 /10)"
+        "60° (n = 32 /38)",
+        "50° (n = 28 /39)",
+        "40° (n = 23 /39)",
+        "30° (n = 21 /38)",
+        "20° (n = 10 /39)"
       )
     )+
     
@@ -99,7 +100,6 @@ plotREACH <- function() {
     ) +
     theme_minimal(base_size = 14) +
     theme(
-      legend.position = "none",
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),

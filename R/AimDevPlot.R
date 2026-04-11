@@ -154,8 +154,8 @@ plotAIM2 <- function() {
     coord_cartesian(xlim = c(-24, 120)) +
     scale_color_manual(
       values = c(
-        "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-        "30"="hotpink", "20"="#a2bffe"
+        "60"="#12086f", "50"="#2835af","40"="#4261ee",
+        "30"="#4895ef", "20"="#4cc9f0"
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
@@ -168,8 +168,8 @@ plotAIM2 <- function() {
     ) +
     scale_fill_manual(
       values = c(
-        "60"="#999999", "50"="#87ae73","40"="#e89c7b",
-        "30"="hotpink", "20"="#a2bffe"
+        "60"="#12086f", "50"="#2835af","40"="#4261ee",
+        "30"="#4895ef", "20"="#4cc9f0"
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
@@ -190,15 +190,14 @@ plotAIM2 <- function() {
     ) +
     theme_minimal(base_size = 14) +
     theme(
-      legend.position = "none",
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17),
+      axis.line = element_line()
+      # axis.text.x  = element_text(size = 24),
+      # axis.text.y  = element_text(size = 24),
+      # axis.title.x = element_text(size = 17),
+      # axis.title.y = element_text(size = 17),
     )
 }
 
@@ -328,10 +327,10 @@ ggplot(overall_ci, aes(x = cutrial_no, y = mean_aim)) +
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
     axis.line = element_line(),
-    axis.text.x  = element_text(size = 21),
-    axis.text.y  = element_text(size = 21),
-    axis.title.x = element_text(size = 17),
-    axis.title.y = element_text(size = 17)
+    # axis.text.x  = element_text(size = 21),
+    # axis.text.y  = element_text(size = 21),
+    # axis.title.x = element_text(size = 17),
+    # axis.title.y = element_text(size = 17)
   )
 }
 
