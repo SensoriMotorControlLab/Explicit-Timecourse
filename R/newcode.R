@@ -217,32 +217,48 @@ getCI <- function () {
 
 #using CI function, we can now use a 95% interval approach to figure out strategy-users
 getStrategies <- function() {
-  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   ci_result <- getCI()
-  CI_df <- ci_result$CI
   
-  ##force erratic nos for entirely erratic individuals
-  erratic_participants <- c("d6de5e")
- 
+  CI_df <- ci_result$CI
+  raw_df <- ci_result$data
+  
+  # 1. compute sign flip metric from RAW data
+  sign_df <- raw_df %>%
+    group_by(participant_id, rotation) %>%
+    summarise(
+      neg_prop = mean(aimdeviation_deg < 0),
+      sign_flips = sum(diff(sign(aimdeviation_deg)) != 0),
+      .groups = "drop"
+    )
+  
+  # 2.flag unstable participants (NO strategy automatically)
+  sign_df <- sign_df %>%
+    mutate(
+      flip_flag = sign_flips > 2   
+    )
+  
+  # 3. apply CI only to stable participants
   strategy_df <- CI_df %>%
     rowwise() %>%
     mutate(
       lower = aimdeviation_deg[1],
-      upper = aimdeviation_deg[2],
-      strategy = case_when(
-        participant_id %in% erratic_participants ~ "No",
-        lower > 4.5                              ~ "Yes",
-        TRUE                                     ~ "No"
-      )
+      upper = aimdeviation_deg[2]
     ) %>%
     ungroup() %>%
-    select(participant_id, rotation, lower, upper, strategy)
-  
+    left_join(sign_df, by = c("participant_id", "rotation")) %>%
+    mutate(
+      strategy = case_when(
+        flip_flag ~ "No",         
+        lower < 0 ~ "No",
+        lower > 5 ~ "Yes",
+        TRUE ~ "No"
+      )
+    ) %>%
+    select(participant_id, rotation, lower, upper, neg_prop, sign_flips, strategy)
   
   return(strategy_df)
 }
-
 
 
 countStrategies <- function() {
