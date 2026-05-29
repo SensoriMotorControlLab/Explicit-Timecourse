@@ -72,22 +72,24 @@ setUpFive <- function () {
     )
   
   combined <- bind_rows(
-    nonlearners_final,
+    #nonlearners_final,
     no_strategy_final,
     strategy_final
   )
   
   combined_clean <- combined %>%
-    group_by(group, trial_type) %>%
+    group_by(participant_id, trial_type) %>%
     mutate(
       mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
       sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
     ) %>%
-    ungroup() %>%
     filter(
-      reachdeviation_deg >= (mean_reach - 3*sd_reach) &
-        reachdeviation_deg <= (mean_reach + 3*sd_reach)
-    )
+      between(reachdeviation_deg,
+              mean_reach - 3 * sd_reach,
+              mean_reach + 3 * sd_reach)
+    ) %>%
+    ungroup() %>%
+    select(-mean_reach, -sd_reach)
   
   
   return(combined_clean)
@@ -95,6 +97,38 @@ setUpFive <- function () {
 
 ##T test to 0 is not significant (p=0.73) so non learners essentially 
 # have no aftereffects. We won't include in ANOVA
+
+findAll <- function () {
+  combined_clean <- setUpFive()
+  
+  anova_df <- combined_clean %>%
+    filter(trial_type == "nocursor",
+           cutrial_no %in% 234:241,
+            group == "Group 2"
+    ) %>% 
+    group_by(participant_id,group, cluster,rotation) %>%
+    summarise(
+      aftereffect = mean(reachdeviation_deg),
+      .groups = "drop"
+    )
+  
+  
+  anova_df <- anova_df %>%
+    mutate(rotation = as.factor(rotation))
+  anova_df$cluster <- factor(anova_df$cluster)
+  anova_df$group <- factor(anova_df$group)
+ 
+   anova_model <- aov(
+    aftereffect ~ cluster,
+    data = anova_df
+  )
+  
+  summary(anova_model)
+  
+  t.test(anova_df$aftereffect, mu=0)
+  
+  
+}
 
 fiveANOVA <- function () {
   nonLearners_data <- read.csv("data/nonlearners_data.csv", stringsAsFactors = FALSE)
@@ -362,116 +396,151 @@ bfAnova <- function () {
 # 
 # 
 # 
-# getWashoutCluster <- function() {
-#   
-#   pca_df <- kPCA()
-#   strategy_data <- read.csv("data/strategy_only_participants.csv")
-# 
-#   
-#   washout <- strategy_data %>%
-#     filter(trial_type.x == "nocursor") %>% 
-#     group_by(participant_id) %>%
-#     slice_tail(n = 24) %>%
-#     ungroup() %>%
-#     left_join(pca_df %>% select(participant_id, cluster),
-#               by = "participant_id")
-#   
-#   rotated <- strategy_data %>%
-#     filter(trial_type.x == "rotated") %>% 
-#     group_by(participant_id) %>%
-#     slice_tail(n = 8) %>%
-#     ungroup()  %>%
-#     left_join(pca_df %>% select(participant_id, cluster),
-#               by = "participant_id")
-#     
-#   
-#   total <- bind_rows(washout,rotated)
-#   
-#   total_clean <- total %>%
-#     group_by(rotation) %>%  # group by rotation
-#     mutate(
-#       mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
-#       sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
-#     ) %>%
-#     ungroup() %>%
-#     filter(
-#       reachdeviation_deg >= (mean_reach - 3*sd_reach) &
-#         reachdeviation_deg <= (mean_reach + 3*sd_reach)
-#     ) %>%
-#     select(-mean_reach, -sd_reach) 
-#   
-#   summary_df <-   total_clean %>%
-#     group_by(cutrial_no, cluster) %>%
-#     summarise(
-#       mean_reach = mean(reachdeviation_deg, na.rm = TRUE),  # use reach deviation from learners_data
-#       sd_reach   = sd(reachdeviation_deg, na.rm = TRUE),
-#       n          = n(),
-#       .groups = "drop"
-#     ) %>%
-#     mutate(
-#       se = sd_reach / sqrt(n),
-#       ci_lower = mean_reach - 1.96 * se,
-#       ci_upper = mean_reach + 1.96 * se
-#     )
-#   summary_df <- summary_df %>%
-#     mutate(cluster = factor(cluster))
-#   
-#   p <-ggplot(summary_df, aes(x = cutrial_no, y = mean_reach,
-#                          color = cluster, fill = cluster)) +
-#     geom_line(size = 1.2) +
-#     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
-#     geom_vline(xintercept = 233, linetype = "dashed", colour = "black") +
-#     geom_hline(yintercept = 0, linetype = "dashed", colour = "blue") +
-#     coord_cartesian(ylim = c(-15, 70)) +
-#     scale_color_manual(values = c("1" = "#3dcad4", "2" = "#c495c9", "3" = "#d16483")) +
-#     scale_fill_manual(values = c("1" = "#3dcad4", "2" = "#c495c9", "3" = "#d16483")) +
-#     labs(
-#       x     = "Trial",
-#       y     = "Reach Deviation (°)",
-#       title = "No-Cursor Trials: Gradual, Exploratory, and Stepwise",
-#       color = "Strategy Use",
-#       fill  = "Strategy Use"
-#     ) +
-#     theme_minimal() +
-#     theme(legend.position = "top")
-#   print(p)
-# }
-# 
-# 
-# washoutClusterStats <- function () {
-#   strategy_data <- read.csv("data/strategy_only_participants.csv")
-#   
-#   washout_clean <- strategy_data %>%
-#     group_by(participant_id) %>%
-#     mutate(
-#       mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
-#       sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
-#     ) %>%
-#     ungroup() %>%
-#     filter(
-#       reachdeviation_deg >= (mean_reach - 3*sd_reach) &
-#         reachdeviation_deg <= (mean_reach + 3*sd_reach)
-#     )
-# 
-#   washout_first <- washout_clean %>%
-#     filter(trial_type.x == "nocursor",
-#            cutrial_no == 233) %>%
-#     left_join(pca_df %>% select(participant_id, cluster),
-#               by = "participant_id")
-# 
-#   
-#   
-#   washout_first$cluster <- as.factor(washout_first$cluster)
-#   washout_first$rotation <- as.factor(washout_first$rotation)
-#   
-#   bf_full <- anovaBF(
-#     reachdeviation_deg ~ cluster*rotation,
-#     data = washout_first
-#   )
-#   
-#   bf_full
-# }
-# 
+getWashoutCluster <- function() {
+
+  pca_df <- kPCA()
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+
+
+  washout <- strategy_data %>%
+    filter(trial_type == "nocursor") %>%
+    group_by(participant_id) %>%
+    slice_tail(n = 24) %>%
+    ungroup() %>%
+    left_join(pca_df %>% select(participant_id, cluster),
+              by = "participant_id")
+
+  rotated <- strategy_data %>%
+    filter(trial_type == "rotated") %>%
+    group_by(participant_id) %>%
+    slice_tail(n = 8) %>%
+    ungroup()  %>%
+    left_join(pca_df %>% select(participant_id, cluster),
+              by = "participant_id")
+
+
+  total <- bind_rows(washout,rotated)
+
+  total_clean <- total %>%
+    group_by(participant_id, rotation) %>%  
+    mutate(
+      mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
+      sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
+    ) %>%
+    filter(
+      between(reachdeviation_deg,
+              mean_reach - 3 * sd_reach,
+              mean_reach + 3 * sd_reach)
+    ) %>%
+    ungroup() %>%
+    select(-mean_reach, -sd_reach)
+ 
+  
+  summary_df <-   total_clean %>%
+    group_by(cutrial_no, cluster) %>%
+    summarise(
+      mean_reach = mean(reachdeviation_deg, na.rm = TRUE),  # use reach deviation from learners_data
+      sd_reach   = sd(reachdeviation_deg, na.rm = TRUE),
+      n          = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      se = sd_reach / sqrt(n),
+      ci_lower = mean_reach - 1.96 * se,
+      ci_upper = mean_reach + 1.96 * se
+    )
+  summary_df <- summary_df %>%
+    mutate(cluster = factor(cluster))
+  
+  summary_df <- summary_df %>%
+    mutate(rel_trial = cutrial_no - 232)
+
+  p <-ggplot(summary_df, aes(x = rel_trial, y = mean_reach,
+                         color = cluster, fill = cluster)) +
+    geom_line(size = 1.2) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = "grey") +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey") +
+    coord_cartesian(ylim = c(-15, 70)) +
+    scale_color_manual(values = c("1" = "hotpink", "2" = "#a2bffe", "3" = "#e89c7b"),
+                       labels = c(
+                         "1" = "Exploratory",
+                         "2" = "Stepwise",
+                         "3" = "Gradual"
+                       )) +
+    scale_fill_manual(values = c("1" = "hotpink", "2" = "#a2bffe", "3" = "#e89c7b"),
+                      labels = c(
+                        "1" = "Exploratory",
+                        "2" = "Stepwise",
+                        "3" = "Gradual"
+                      )) +
+    labs(
+      x     = "Trial",
+      y     = "Reach Deviation (°)",
+      title = "",
+      color = "Phenotype",
+      fill  = "Phenotype"
+    ) +
+    theme_minimal() +
+    theme(
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(color = "black")) 
+  print(p)
+  
+  
+  
+  anova_df <- combined_clean %>%
+    filter(trial_type == "nocursor",
+    ) %>% 
+    group_by(participant_id,group, rotation) %>%
+    summarise(
+      aftereffect = mean(reachdeviation_deg),
+      .groups = "drop"
+    )
+  
+  summary_df <- summary_df %>%
+    mutate(rel_trial = cutrial_no - 232)
+  
+}
+
+
+washoutClusterStats <- function () {
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+
+  washout_clean <- strategy_data %>%
+    group_by(participant_id) %>%
+    mutate(
+      mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
+      sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
+    ) %>%
+    ungroup() %>%
+    filter(
+      reachdeviation_deg >= (mean_reach - 3*sd_reach) &
+        reachdeviation_deg <= (mean_reach + 3*sd_reach)
+    )
+
+  washout_first <- washout_clean %>%
+    filter(trial_type == "nocursor",
+           cutrial_no == 234:241) %>%
+    left_join(pca_df %>% select(participant_id, cluster),
+              by = "participant_id")
+
+  anova_model <- aov(reachdeviation_deg ~ cluster, data = washout_first)
+  summary(anova_model)
+
+  washout_first$cluster <- as.factor(washout_first$cluster)
+  washout_first$rotation <- as.factor(washout_first$rotation)
+
+  
+  bf_full <- anovaBF(
+    reachdeviation_deg ~ cluster*rotation,
+    data = washout_first
+  )
+
+  bf_full
+}
+
 # 
 # strategyWashout <- function () {
 #     
@@ -593,3 +662,86 @@ bfAnova <- function () {
 # 
 # p
 # }
+
+
+combined <- setUpFive()
+
+
+combined_clean <- combined %>%
+  group_by(participant_id, trial_type) %>%
+  mutate(
+    mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
+    sd_reach   = sd(reachdeviation_deg, na.rm = TRUE)
+  ) %>%
+  filter(
+    between(reachdeviation_deg,
+            mean_reach - 3 * sd_reach,
+            mean_reach + 3 * sd_reach)
+  ) %>%
+  ungroup() %>%
+  select(-mean_reach, -sd_reach)
+
+
+summary_df <- combined_clean %>%
+  group_by(cutrial_no, group) %>%
+  summarise(
+    mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
+    sd_reach   = sd(reachdeviation_deg, na.rm = TRUE),
+    n          = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    se = sd_reach / sqrt(n),
+    ci_lower = mean_reach - 1.96 * se,
+    ci_upper = mean_reach + 1.96 * se,
+    rel_trial = cutrial_no - 232,
+    group = factor(group)
+  )
+summary_df <- summary_df %>%
+  mutate(group = factor(group))
+
+summary_df <- summary_df %>%
+  mutate(rel_trial = cutrial_no - 232)
+
+p <-ggplot(summary_df, aes(x = rel_trial, y = mean_reach,
+                           color = group, fill = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.2, color = NA) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey") +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey") +
+  coord_cartesian(ylim = c(-15, 70)) +
+  scale_color_manual(
+    values = c(
+      "Group 2" = "#2F4858",
+      "Non-strategy learners" = "#BC4749"
+    ),
+    labels = c(
+      "Group 2" = "Strategy",
+      "Non-strategy learners" = "No strategy"
+    )
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Group 2" = "#2F4858",
+      "Non-strategy learners" = "#BC4749"
+    ),
+    labels = c(
+      "Group 2" = "Strategy",
+      "Non-strategy learners" = "No strategy"
+    )
+  ) + 
+  labs(
+    x     = "Trial",
+    y     = "Reach Deviation (°)",
+    title = "",
+    color = "Strategy Use",
+    fill  = "Strategy Use"
+  ) +
+  theme_minimal() +
+  theme(
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(color = "black")) 
+print(p)
+
+
