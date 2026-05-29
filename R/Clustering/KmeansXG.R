@@ -16,6 +16,7 @@ getFeaturesFromModel <- function() {
     largest_jump_frac = numeric(),
     lin_r2 = numeric(),
     smoothness = numeric(),
+    incrementality = numeric(),
     stringsAsFactors = FALSE
   )
   
@@ -99,6 +100,7 @@ getFeaturesFromModel <- function() {
         largest_jump_frac = largest_jump_frac,
         lin_r2 = lin_r2,
         smoothness = smoothness,
+        incrementality = incrementality,
         stringsAsFactors = FALSE
       )
     )
@@ -131,8 +133,8 @@ getFeaturesFromModel <- function() {
 
 ##middle cluster has confusion
 kPCA <- function () {
-  df <- read.csv('~/Desktop/participantFeatures.csv')
-
+   df <- read.csv('~/Desktop/participantFeatures.csv')
+  # 
   vars <- c(
     "learning_sd",
     "learning_length",
@@ -152,7 +154,13 @@ kPCA <- function () {
   model_df <- xgRun()
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   
-  k_input <- dfn[, vars]  
+  
+  features_df <- extract$features_df      
+  k_input     <- extract$kmeans_input  
+#  k_input <- dfn[, vars]  
+  k_input <- scale(k_input)
+
+
   
   # -------------------------------
   # PCA 
@@ -162,15 +170,19 @@ kPCA <- function () {
   
   pca_df <- as.data.frame(pca$x[,1:2])
   colnames(pca_df) <- c("PC1","PC2")
-  pca_df$participant_id <- df$participant_id
+  pca_df$participant_id <- features_df$participant_id
+
   
-  # -------------------------------
+   # -------------------------------
   # 3. K-means clustering
   set.seed(123)
   km_res <- kmeans(pca_df[,c("PC1","PC2")], centers = 3, nstart = 50)
-  
+
   pca_df$cluster <- km_res$cluster
   pca_df$cluster_label <- as.factor(km_res$cluster)
+  
+  
+  
   return(pca_df)
   
 }
@@ -178,7 +190,8 @@ kPCA <- function () {
 plotScree <- function () {
   extract <- getFeaturesFromModel() 
   features_df <- extract$features_df        
-  k_input     <- extract$kmeans_input     
+#  k_input     <- extract$kmeans_input  
+   k_input <- dfn[, vars] 
   
   pca <- prcomp(k_input, center = TRUE, scale. = FALSE)
   
@@ -202,7 +215,7 @@ plotScree <- function () {
   
   abline(h = 0.80, col = "grey", lty = 2, lwd = 1)
   
-  points(1:3, cum_var[1:3], col = "#f52f57", pch = 19)
+  points(1:2, cum_var[1:2], col = "#f52f57", pch = 19)
   
   # var_each <- pca$sdev^2
   # screeplot(pca, type="lines")
@@ -227,7 +240,7 @@ plotRaw <- function () {
     left_join(pca_df[,c("participant_id", "cluster_label")], by = "participant_id")
   
   strategy_data_clustered <- strategy_data %>%
-    inner_join(model_df_with_clusters %>% select(participant_id, cluster_label),
+    inner_join(model_df_with_clusters %>% dplyr::select(participant_id, cluster_label),
                by = "participant_id") %>%
     filter(!is.na(cluster_label))  
   
@@ -256,8 +269,8 @@ plotComponents <- function() {
     mutate(
       cluster_label = factor(
         cluster_label,
-        levels = c(3, 1, 2),
-        labels = c("Gradual", "Exploratory", "Stepwise")
+        # levels = c(3, 2, 1),
+        labels = c("Gradual", "Stepwise", "Exploratory")
       )
     )
   
@@ -268,15 +281,15 @@ plotComponents <- function() {
   ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster_label)) +
     geom_point(size = 3, alpha = 0.8) +
     geom_polygon(data = hulls, aes(fill = cluster_label), alpha = 0.15, color = NA) +
-    labs(x = "(PC1): Learning Stability (Trajectory Smoothness)", y = "(PC2): Learning Variance", color = "Cluster", fill = "Cluster") +
+    labs(x = "PC1", y = "PC2", color = "Cluster", fill = "Cluster") +
     scale_fill_manual(values = c(
       "Exploratory" = "hotpink",
       "Gradual"     = "#e89c7b",
       "Stepwise"    = "#a2bffe"
     )) +
     coord_equal() +
-    scale_x_continuous(breaks = seq(-2, 10, by = 2)) +
-    scale_y_continuous(breaks = seq(-2, 10, by = 2)) +
+    # scale_x_continuous(breaks = seq(-2, 10, by = 2)) +
+    # scale_y_continuous(breaks = seq(-2, 10, by = 2)) +
     
     scale_color_manual(values = c(
       "Exploratory" = "hotpink",
@@ -334,7 +347,9 @@ confMatrix <- function () {
                        "9b5b71","7454c1","a16f97","a7178b","d53112",
                        "ad1dea", "afaaf4", "dfe4d5", "fa0f1a", "fe59c4",
                        "d1d7c3","d10bdf","03fd31","49e772","56968f", "bd8518", "139857", "657fba",
-                       "a4cf19","2c82f8","2f40e0", "6359c5", "1d818f" ),
+                       "a4cf19","2c82f8","2f40e0", "6359c5", "1d818f",
+                       
+                       "acd861","33334e","6a544a","8608d6","f8bc1f"),
     
     
     
@@ -363,7 +378,9 @@ confMatrix <- function () {
               "step", "erratic", "erratic", "gradual", "step", 
               "step", "gradual", "step", "step","erratic",
               "gradual","step","erratic","erratic","step", "gradual", "step", "erratic",
-              "erratic","step","step", "step", "gradual")
+              "erratic","step","step", "step", "gradual",
+              "erratic","step","erratic","step","erratic"
+              )
   )
   
   classification$label[classification$participant_id == "13d986"] <- "gradual"
@@ -378,16 +395,21 @@ confMatrix <- function () {
     inner_join(classification, by = "participant_id")
   strategy_data_labeled <- strategy_data %>%
     inner_join(
-      model_df_labeled %>% select(participant_id, label, cluster_label),
+      model_df_labeled %>% dplyr::select(participant_id, label, cluster_label),
       by = "participant_id"
     )
   
-  cluster_map <- c("1", "2", "3")
+  cluster_map <- c("1", "2", "3","4")
   
   model_df_labeled$cluster_aligned <- factor(cluster_map[as.numeric(model_df_labeled$cluster_label)],
-                                             levels = c("1", "2", "3"))
+                                             levels = c("1", "2", "3","4"))
   
   table(model_df_labeled$label, model_df_labeled$cluster_aligned)
+  return(list(
+    data = model_df_labeled,
+    table = table(model_df_labeled$label,
+                  model_df_labeled$cluster_aligned)
+  ))
 }
 
 
@@ -406,7 +428,7 @@ plotComponents2 <- function() {
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   
   rotation_df <- strategy_data %>%
-    select(participant_id, rotation) %>%
+    dplyr::select(participant_id, rotation) %>%
     distinct()
   
   pca_df <- kPCA() %>%
@@ -628,8 +650,8 @@ pcaBar <- function() {
     filter(!is.na(cluster_label))
   proportions_combined$cluster_label <- factor(
     proportions_combined$cluster_label,
-    levels = c("Non-strategy", "3", "1", "2"),
-    labels = c("Non-Strategy", "Gradual","Exploratory","Stepwise")
+    levels = c("Non-strategy", "3", "2", "1"),
+    labels = c("Non-Strategy", "Gradual","Stepwise","Exploratory")
   )
   
   ##find percentages
@@ -655,10 +677,10 @@ pcaBar <- function() {
     scale_fill_manual(
       values = c(
         "Gradual"    = "#e89c7b",
-        "Exploratory" = "hotpink",
-        "Stepwise"     = "#a2bffe"
+        "Stepwise"     = "#a2bffe",
+        "Exploratory" = "hotpink"
       ),
-      labels = c("Gradual n = 41", "Exploratory n = 32", "Stepwise n = 41"),
+      labels = c("Gradual ", "Stepwise  ", "Exploratory "),
       name = "Phenotype"
     ) +
     
@@ -797,7 +819,9 @@ plotComponents1 <- function() {
                        "9b5b71","7454c1","a16f97","a7178b","d53112",
                        "ad1dea", "afaaf4", "dfe4d5", "fa0f1a", "fe59c4",
                        "d1d7c3","d10bdf","03fd31","49e772","56968f", "bd8518", "139857", "657fba",
-                       "a4cf19","2c82f8","2f40e0", "6359c5", "1d818f" ),
+                       "a4cf19","2c82f8","2f40e0", "6359c5", "1d818f",
+                       
+                       "acd861","33334e","6a544a","8608d6","f8bc1f"),
     
     
     
@@ -826,16 +850,20 @@ plotComponents1 <- function() {
               "step", "erratic", "erratic", "gradual", "step", 
               "step", "gradual", "step", "step","erratic",
               "gradual","step","erratic","erratic","step", "gradual", "step", "erratic",
-              "erratic","step","step", "step", "gradual")
+              "erratic","step","step", "step", "gradual",
+              "erratic","step","erratic","step","erratic"
+    )
   )
+  
+  classification$label[classification$participant_id == "13d986"] <- "gradual"
   
   pca_df <- pca_df %>%
     left_join(classification, by = "participant_id") %>%
     mutate(
       cluster_label = factor(
         cluster_label,
-        levels = c(3, 1, 2),
-        labels = c("Gradual", "Exploratory", "Stepwise")
+        levels = c(1, 3, 2),
+        labels = c("Exploratory", "Gradual", "Stepwise")
       ),
       
       label_clean = case_when(
@@ -845,14 +873,18 @@ plotComponents1 <- function() {
         TRUE ~ NA_character_
       ),
       
-      confused = ifelse(!is.na(label_clean) & label_clean != cluster_label, TRUE, FALSE)
+      confused = ifelse(
+        !is.na(label_clean) & label_clean != cluster_label,
+        TRUE,
+        FALSE
+      )
     )
   hulls <- pca_df %>%
     group_by(cluster_label) %>%
     slice(chull(PC1, PC2))
  
    coords_df <- pca_df %>%
-    select(participant_id, PC1, PC2)
+    dplyr::select(participant_id, PC1, PC2)
 
   segment_df <- data.frame(
     participant_id = c("73230b","1d818f","a7178b","24c273","9c8da7","f275ca"),
@@ -865,6 +897,11 @@ plotComponents1 <- function() {
       yend = PC2 + dy
     )
   
+  pca_df$cluster_label <- factor(pca_df$cluster_label,
+                                 levels = c("Exploratory", "Stepwise", "Gradual"))
+  
+  hulls$cluster_label <- factor(hulls$cluster_label,
+                                levels = c("Exploratory", "Stepwise", "Gradual"))
   
   base_plot <- ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster_label)) +
     # normal points
@@ -901,12 +938,12 @@ plotComponents1 <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line(),
+      axis.line = element_line()
       # axis.text.x = element_text(size = 17),
       # axis.text.y = element_text(size = 17),
       # legend.title = element_text(size = 18),
       # legend.text  = element_text(size = 17)
-    ) +
+    ) 
     
     ggnewscale::new_scale_color() +  
     
