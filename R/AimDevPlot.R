@@ -143,15 +143,38 @@ plotAIM2 <- function() {
     color = factor(rotation),
     fill = factor(rotation)
   )) +
-    geom_hline(
-      yintercept = rotation_levels,
-      color = "grey85", linetype = "solid", linewidth = 0.5
+    geom_segment(
+      data = data.frame(y = rotation_levels),
+      aes(x = 0, xend = 119, y = y, yend = y),
+      color = "grey85",
+      linetype = "solid",
+      linewidth = 0.5,
+      inherit.aes = FALSE
+    )+
+    geom_segment(
+      aes(x = 0, xend = 0, y = 0, yend = 60),
+      linetype = "dashed",
+      color = "black",
+      inherit.aes = FALSE
     ) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+    geom_segment(
+      data = data.frame(y = 0),
+      aes(x = 121, xend = 144, y = y, yend = y),
+      color = "grey85",
+      linetype = "solid",
+      linewidth = 0.5,
+      inherit.aes = FALSE
+    ) +
+    geom_segment(
+      aes(x = 0, xend = 0, y = 0, yend = 60),
+      linetype = "dashed",
+      color = "black",
+      inherit.aes = FALSE
+    ) +
     geom_line(size = 1) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
                 alpha = 0.2, color = NA) +
-    coord_cartesian(xlim = c(-24, 120)) +
+    coord_cartesian(xlim = c(-, 119)) +
     scale_color_manual(
       values = c(
         "60"="#12086f", "50"="#2835af","40"="#4261ee",
@@ -159,11 +182,11 @@ plotAIM2 <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 10)",
-        "50° (n = 21)",
-        "40° (n = 23)",
-        "30° (n = 28)",
-        "20° (n = 32)"
+        "60° (n = 34)",
+        "50° (n = 28)",
+        "40° (n = 24)",
+        "30° (n = 23)",
+        "20° (n = 10)"
       ) 
     ) +
     scale_fill_manual(
@@ -173,11 +196,11 @@ plotAIM2 <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 10)",
-        "50° (n = 21)",
-        "40° (n = 23)",
-        "30° (n = 28)",
-        "20° (n = 32)"
+        "60° (n = 34)",
+        "50° (n = 28)",
+        "40° (n = 24)",
+        "30° (n = 23)",
+        "20° (n = 10)"
       )
       
     )+
