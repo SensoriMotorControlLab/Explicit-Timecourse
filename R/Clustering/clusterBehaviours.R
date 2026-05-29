@@ -174,11 +174,29 @@ clusterMetrics <- function() {
     ss_tot <- sum((signal - mean(signal, na.rm = TRUE))^2, na.rm = TRUE)
     r2 <- 1 - ss_res / ss_tot
     
+    early_idx <- 1:round(0.3 * n)
+    late_idx  <- round(0.8 * n):n
+    
+    # ───────────────
+    # Early variability
+    # ───────────────
+    early_var <- sd(signal[early_idx], na.rm = TRUE)
+    
+    # ───────────────
+    # Early learning slope (TRUE metric)
+    # ───────────────
+    early_slope <- tryCatch(
+      coef(lm(signal[early_idx] ~ early_idx))[2],
+      error = function(e) NA
+    )
+    
+    
     tibble(
       lambda = lambda,
       asymptote = asymptote,
       plateau_trial = plateau_trial,
       asymptote_sd = asymptote_sd,
+      early_var = early_var,
       r2 = round(r2, 3)
     )
   }
@@ -190,7 +208,7 @@ clusterMetrics <- function() {
     ungroup()
   
 
-  cluster_labels <- c("1" = "Exploratory", "2" = "Stepwise", "3" = "Gradual")
+  cluster_labels <- c("1" = "Gradual", "2" = "Stepwise", "3" = "Exploratory")
   
   cluster_metrics <- cluster_metrics %>%
     mutate(cluster_name = cluster_labels[as.character(cluster_label)]) %>%
@@ -206,94 +224,107 @@ clusterMetrics <- function() {
 
 #participant level ANOVAs
 
-# clusterMetrics_individual <- function() {
-#   
-#   pca_df   <- kPCA()
-#   model_df <- xgRun()
-#   strategy_data <- read.csv("data/strategy_only_participants.csv")
-#   
-#   model_df_with_clusters <- model_df %>%
-#     left_join(pca_df[, c("participant_id", "cluster_label")], by = "participant_id")
-#   
-#   strategy_data_clustered <- strategy_data %>%
-#     inner_join(
-#       model_df_with_clusters %>% 
-#         select(participant_id, cluster_label),
-#       by = "participant_id"
-#     )
-#   
-#   trial_data <- strategy_data_clustered %>%
-#     group_by(participant_id) %>%
-#     arrange(cutrial_no, .by_group = TRUE) %>%
-#     filter(
-#       (trial_type == "aligned" & row_number() %in% tail(which(trial_type == "aligned"), 8)) |
-#         trial_type == "rotated"
-#     ) %>%
-#     mutate(
-#       cutrial_no = row_number() - 9,
-#       norm_aim = aimdeviation_deg / abs(rotation)
-#     ) %>%
-#     filter(cutrial_no > 0) %>%
-#     ungroup()
-#   
-#   # ── Fit per participant ──
-#   fit_one <- function(df) {
-#     
-#     signal <- df$norm_aim
-#     n <- length(signal)
-#     t_seq <- seq_len(n)
-#     
-#     fit <- tryCatch(
-#       Reach::exponentialFit(
-#         signal = signal,
-#         timepoints = n,
-#         mode = "learning"
-#       ),
-#       error = function(e) NULL
-#     )
-#     
-#     if (is.null(fit)) {
-#       return(tibble(
-#         plateau_trial = NA,
-#         asymptote_sd = NA
-#       ))
-#     }
-#     
-#     lambda <- fit["lambda"]
-#     N0     <- fit["N0"]
-#     
-#     # Plateau (95%)
-#     plateau_trial <- -log(0.05) / lambda
-#     
-#     # Variability (last 20%)
-#     tail_idx <- round(0.8 * n):n
-#     asymptote_sd <- sd(signal[tail_idx], na.rm = TRUE)
-#     
-#     tibble(
-#       plateau_trial = plateau_trial,
-#       asymptote_sd = asymptote_sd,
-#       lambda = lambda
-#     )
-#   }
-#   
-#   participant_metrics <- trial_data %>%
-#     group_by(participant_id, cluster_label) %>%
-#     group_modify(~ fit_one(.x)) %>%
-#     ungroup()
-#   
-#   return(participant_metrics)
-# }
-# 
-# 
-# metrics <- clusterMetrics_individual()
-# 
-# # Plateau ANOVA
-# anova_plateau <- aov(lambda ~ factor(cluster_label), data = metrics)
-# summary(anova_plateau)
-# 
-# # Variance ANOVA
-# anova_var <- aov(asymptote_sd ~ factor(cluster_label), data = metrics)
-# summary(anova_var)
+clusterMetrics_individual <- function() {
+
+  pca_df   <- kPCA()
+  model_df <- xgRun()
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+
+  model_df_with_clusters <- model_df %>%
+    left_join(pca_df[, c("participant_id", "cluster_label")], by = "participant_id")
+
+  strategy_data_clustered <- strategy_data %>%
+    inner_join(
+      model_df_with_clusters %>%
+        select(participant_id, cluster_label),
+      by = "participant_id"
+    )
+
+  trial_data <- strategy_data_clustered %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    filter(
+      (trial_type == "aligned" & row_number() %in% tail(which(trial_type == "aligned"), 8)) |
+        trial_type == "rotated"
+    ) %>%
+    mutate(
+      cutrial_no = row_number() - 9,
+      norm_aim = aimdeviation_deg / abs(rotation)
+    ) %>%
+    filter(cutrial_no > 0) %>%
+    ungroup()
+
+  # ── Fit per participant ──
+  fit_one <- function(df) {
+
+    signal <- df$norm_aim
+    n <- length(signal)
+    t_seq <- seq_len(n)
+
+    fit <- tryCatch(
+      Reach::exponentialFit(
+        signal = signal,
+        timepoints = n,
+        mode = "learning"
+      ),
+      error = function(e) NULL
+    )
+
+    if (is.null(fit)) {
+      return(tibble(
+        plateau_trial = NA_real_,
+        asymptote_sd = NA_real_,
+        lambda = NA_real_
+      ))
+    }
+
+    lambda <- fit["lambda"]
+    N0     <- fit["N0"]
+
+    # plateau (95% of asymptote)
+    plateau_trial <- -log(0.05) / lambda
+
+    # variability in last 20%
+    tail_idx <- round(0.8 * n):n
+    asymptote_sd <- sd(signal[tail_idx], na.rm = TRUE)
+
+    early_idx <- 1:round(0.3 * n)
+    late_idx  <- round(0.8 * n):n
+
+    # ───────────────
+    # Early variability
+    # ───────────────
+    early_var <- sd(signal[early_idx], na.rm = TRUE)
+
+    tibble(
+      lambda = lambda,
+      plateau_trial = plateau_trial,
+      asymptote_sd = asymptote_sd,
+      early_var  = early_var,
+
+    )
+  }
+
+  participant_metrics <- trial_data %>%
+    group_by(participant_id, cluster_label) %>%
+    group_modify(~ fit_one(.x)) %>%
+    ungroup()
+
+  return(participant_metrics)
+}
+
+
+metrics <- clusterMetrics_individual()
+
+# Plateau ANOVA
+anova_plateau <- aov(lambda ~ factor(cluster_label), data = metrics)
+summary(anova_plateau)
+
+anova_ear <- aov(early_var ~ factor(cluster_label), data = metrics)
+summary(anova_ear)
+# Variance ANOVA
+anova_var <- aov(asymptote_sd ~ factor(cluster_label), data = metrics)
+summary(anova_var)
 
 
 
