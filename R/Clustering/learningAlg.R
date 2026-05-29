@@ -16,8 +16,8 @@ library(xgboost)
 #   ungroup() %>%             
 #   slice_sample(n = 75) %>%
 #   pull(participant_id)
-# 
-# plot_rotated_phase_all_trials <- function(pid = "1d818f", data_file = "data/strategy_only_participants.csv") {
+# # 
+# plot_rotated_phase_all_trials <- function(pid = "f8bc1f", data_file = "data/strategy_only_participants.csv") {
 # 
 #   strategy_data <- read.csv(data_file, stringsAsFactors = FALSE)
 # 
@@ -26,7 +26,7 @@ library(xgboost)
 # 
 #   d <- strategy_data %>%
 #     filter(participant_id == pid,
-#            trial_type.x == "rotated")
+#            trial_type == "rotated")
 # 
 #   if (nrow(d) == 0) stop("No rotated phase data for this participant.")
 # 
@@ -50,8 +50,8 @@ library(xgboost)
 #   ggplotly(p, tooltip = "text")
 # }
 # 
-# plot_rotated_phase_all_trials("1d818f")
-# 
+# plot_rotated_phase_all_trials("f8bc1f")
+# # 
 # 
 # 
 
@@ -102,9 +102,9 @@ xgFeatures <- function () {
   group_by(participant_id) %>%
   arrange(trial_idx, .by_group = TRUE) %>%
   mutate(
-    roll_mean   = rollapply(aimdeviation_deg, width = 12, FUN = mean, fill = NA, align = "right", partial = TRUE),
-    roll_sd     = rollapply(aimdeviation_deg, width = 12, FUN = sd, fill = NA, align = "right", partial = TRUE),
-    roll_mad   = rollapply(aimdeviation_deg, width = 12, FUN = function(x) mad(x, constant = 1), fill = NA, align = "right")
+    roll_mean   = rollapply(aimdeviation_deg, width = 8, FUN = mean, fill = NA, align = "right", partial = TRUE),
+    roll_sd     = rollapply(aimdeviation_deg, width = 8, FUN = sd, fill = NA, align = "right", partial = TRUE),
+    roll_mad   = rollapply(aimdeviation_deg, width = 8, FUN = function(x) mad(x, constant = 1), fill = NA, align = "right")
   ) %>%
   ungroup()
 
@@ -115,7 +115,7 @@ start_sd_trials <- strategy_annot %>%
   filter(!is.na(roll_mean) & abs(roll_mean) > 5) %>%  
   slice(1) %>%
   ungroup() %>%
-  select(participant_id, trial.start = trial_idx)
+  dplyr::select(participant_id, trial.start = trial_idx)
 
 # -----------------------------
 # determine trial.end using final SD stability
@@ -125,8 +125,8 @@ final_sd <- strategy_annot %>%
     final_sd = sd(tail(aimdeviation_deg, 16), na.rm = TRUE)
   )
 
-delta <- 1.9  # tolerance for SD similarity
-N     <- 4 # consecutive trials for stability
+delta <- 2.5  # tolerance for SD similarity
+N     <- 8 # consecutive trials for stability
 
 min_sd_trials <- strategy_annot %>%
   left_join(start_sd_trials, by = "participant_id") %>%
@@ -204,7 +204,7 @@ xgRun <- function () {
   model_df <- xgParticipant()
   
   features_start <- model_df %>% 
-  select(mean_dev, sd_dev, mean_roll_mean, sd_roll_mean, median_dev, mean_roll_mad)
+    dplyr::select(mean_dev, sd_dev, mean_roll_mean, sd_roll_mean, median_dev, mean_roll_mad)
 
   label_start <- model_df$trial.start
 
@@ -265,8 +265,6 @@ model_df <- model_df %>%
 return(model_df)
 }
 
-# random forest regression 
-# take trial - end value (from 16 trials)- how much you deviate
 
 
 plotStart <- function(target = "inline", main = NULL) {
@@ -362,7 +360,7 @@ ggplot(model_df, aes(x = endtrial, y = pred_end, label = participant_id)) +
     "text",
     x = 0.1 * 127,
     y = 0.9 * 100,
-    label = "r = 0.60",
+    label = "r = 0.64",
     size =6,
     color = "black"
   ) +
