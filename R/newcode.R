@@ -186,7 +186,7 @@ nonCSV <- function () {
   # Step 2: filter trial-level data
   nonlearners_data <- total_group_data %>%
     semi_join(nonlearners_ids, by = "participant_id") %>%
-    select(participant_id, trial_type, reachdeviation_deg, cutrial_no)
+    select(participant_id, trial_type, reachdeviation_deg, rotation, aimdeviation_deg,cutrial_no)
   
   write.csv(nonlearners_data, "data/nonlearners_data.csv", row.names = FALSE)
 }
@@ -255,7 +255,7 @@ getStrategies <- function() {
         TRUE ~ "No"
       )
     ) %>%
-    select(participant_id, rotation, lower, upper, neg_prop, sign_flips, strategy)
+    dplyr::select(participant_id, rotation, lower, upper, neg_prop, sign_flips, strategy)
   
   return(strategy_df)
 }
