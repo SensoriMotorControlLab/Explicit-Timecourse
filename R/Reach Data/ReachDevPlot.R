@@ -53,12 +53,42 @@ plotREACH <- function() {
     color = factor(rotation),
     fill = factor(rotation)
   )) +
-    geom_hline(
-      yintercept = rotation_levels,
-      color = "grey85", linetype = "solid", linewidth = 0.5
+    geom_segment(
+      data = data.frame(y = rotation_levels),
+      aes(x = 0, xend = 119, y = y, yend = y),
+      color = "grey85",
+      linetype = "solid",
+      linewidth = 0.5,
+      inherit.aes = FALSE
+    )+
+    geom_segment(
+      data = data.frame(y = 0),
+      aes(x = -8, xend = 0, y = y, yend = y),
+      color = "grey85",
+      linetype = "solid",
+      linewidth = 0.5,
+      inherit.aes = FALSE
     ) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
-    geom_vline(xintercept = 121, linetype = "dashed", color = "black") +
+    geom_segment(
+      data = data.frame(y = 0),
+      aes(x = 121, xend = 144, y = y, yend = y),
+      color = "grey85",
+      linetype = "solid",
+      linewidth = 0.5,
+      inherit.aes = FALSE
+    ) +
+    geom_segment(
+      aes(x = 0, xend = 0, y = 0, yend = 60),
+      linetype = "dashed",
+      color = "black",
+      inherit.aes = FALSE
+    ) +
+    geom_segment(
+      aes(x = 120, xend = 120, y = 0, yend = 60),
+      linetype = "dashed",
+      color = "black",
+      inherit.aes = FALSE
+    ) +
     geom_line(size = 1) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
                 alpha = 0.2, color = NA) +
@@ -70,11 +100,11 @@ plotREACH <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 32 /38)",
-        "50° (n = 28 /39)",
-        "40° (n = 23 /39)",
-        "30° (n = 21 /38)",
-        "20° (n = 10 /39)"
+        "60° (n = 40)",
+        "50° (n = 40)",
+        "40° (n = 40)",
+        "30° (n = 40)",
+        "20° (n = 40)"
       ) 
     ) +
     scale_fill_manual(
@@ -84,14 +114,14 @@ plotREACH <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 32 /38)",
-        "50° (n = 28 /39)",
-        "40° (n = 23 /39)",
-        "30° (n = 21 /38)",
-        "20° (n = 10 /39)"
+        "60° (n = 40)",
+        "50° (n = 40)",
+        "40° (n = 40)",
+        "30° (n = 40)",
+        "20° (n = 40)"
       )
     )+
-    
+    scale_x_continuous(breaks = c(0,60, 119, 143)) +
     labs(
       x = "Trial Number",
       y = "Reach deviation (°)",
@@ -103,11 +133,11 @@ plotREACH <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line(),
-      axis.text.x  = element_text(size = 24),
-      axis.text.y  = element_text(size = 24),
-      axis.title.x = element_text(size = 17),
-      axis.title.y = element_text(size = 17)
+      axis.line = element_line()
+      # axis.text.x  = element_text(size = 24),
+      # axis.text.y  = element_text(size = 24),
+      # axis.title.x = element_text(size = 17),
+      # axis.title.y = element_text(size = 17)
       # legend.title = element_text(size = 18),
       # legend.text  = element_text(size = 17)
     )
