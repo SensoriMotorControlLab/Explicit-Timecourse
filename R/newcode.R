@@ -238,6 +238,7 @@ getStrategies <- function() {
       flip_flag = sign_flips > 2   
     )
   
+  
   # 3. apply CI only to stable participants
   strategy_df <- CI_df %>%
     rowwise() %>%
@@ -249,7 +250,8 @@ getStrategies <- function() {
     left_join(sign_df, by = c("participant_id", "rotation")) %>%
     mutate(
       strategy = case_when(
-        flip_flag ~ "No",         
+        participant_id == "657fba" ~ "No", #this was the weird one
+        flip_flag ~ "No",
         lower < 0 ~ "No",
         lower > 5 ~ "Yes",
         TRUE ~ "No"
