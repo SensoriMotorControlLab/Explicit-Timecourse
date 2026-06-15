@@ -17,9 +17,9 @@ getData <- function() {
     filelist = list(
       'data/' = c(
         'demographics.zip',
-        'Instructed_summary.zip',
        'Group_two_summary.zip',
-       'LearningClassifier.zip'
+       'LearningClassifier.zip',
+       'StandardizedFeatures.zip'
         )),
     folder = 'data/',
     overwrite = TRUE,
