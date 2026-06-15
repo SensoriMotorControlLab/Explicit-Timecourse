@@ -293,3 +293,34 @@ varStats <- function () {
 } #yes p<0.001
 
 
+
+
+###2 way anovas
+strategy_df <- getStrategies()
+strategy_ids <- strategy_df$participant_id
+
+strategy_data <- total_learners_data %>%
+  filter(participant_id %in% strategy_ids)
+
+final_trials_data <- strategy_data %>%
+  filter(trial_type == "rotated") %>%
+  group_by(participant_id,rotation,strategy) %>%   
+  slice_tail(n = 8) %>%
+  ungroup()
+
+anova_ready_data <- final_trials_data %>%
+  group_by(participant_id, rotation, strategy) %>%
+  summarise(mean_aim_dev = mean(reachdeviation_deg, na.rm = TRUE),
+            .groups = 'drop')
+
+anova_ready_data$rotation <- as.factor(anova_ready_data$rotation)
+anova_ready_data$strategy <- as.factor(anova_ready_data$strategy)
+
+res_aov <- aov(mean_aim_dev ~ rotation * strategy, data = anova_ready_data)
+
+summary(res_aov)
+
+
+
+library(emmeans)
+emmeans(res_aov, pairwise ~ strategy | rotation)
