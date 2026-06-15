@@ -8,8 +8,8 @@ runHClust <- function () {
   k_input <- extract$kmeans_input
   
   pca <- prcomp(k_input, center = FALSE, scale. = FALSE)
+  pca$x <- pca$x*-1
   pca$rotation <- pca$rotation*-1
-  pca$x<- pca$x*-1
 
 
   pca_df <- as.data.frame(pca$x[,1:3])
@@ -33,8 +33,34 @@ runHClust <- function () {
 
 return(pca_df)
 }
-#plot(hc, labels = pca_df$participant_id, main = "Hierarchical Clustering Dendrogram", xlab = "Participants", sub = "")
 
+dendogram <- function () {
+ pca_df <- runHClust()
+ 
+ distance_matrix <- dist(pca_df[, 1:3], method = "euclidean")
+ hc <- hclust(distance_matrix, method = "ward.D2")
+   library(dendextend)
+  
+  dend <- as.dendrogram(hc)
+  
+  dend <- color_branches(
+    dend,
+    h = 10,
+    col = c("#EAA178", "cyan", "orchid")
+  )
+  
+  # remove participant_id labels
+  labels(dend) <- rep("", length(labels(dend)))
+  
+  plot(
+    dend,
+    main = "",
+    ylab = "Height",
+    leaflab = "none"
+  )
+  abline(h = 10, col = "grey", lty = 2)
+  
+}
 
 pcaPlot <- function () {
   pca_df <- runHClust() 
@@ -299,13 +325,6 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     ),
     name = "Rotation"
   ) +
-  geom_smooth(
-    aes(x = PC1, y = PC2),
-    method = "lm",
-    se = TRUE,
-    color = "black",
-    linewidth = 0.8
-  ) +
   theme_classic() +
   labs(x = "PC1", y = "PC2")
 }
@@ -323,8 +342,8 @@ lmRot <- function () {
       .groups = "drop"
     )
   
-  model <- lm(mean_PC1 ~ rotation, data = rotation_summary)
-  summary(lm(mean_PC1 ~ rotation, data = rotation_summary))
+  model <- lm(mean_PC3 ~ rotation, data = rotation_summary)
+  summary(lm(mean_PC3 ~ rotation, data = rotation_summary))
 
 }
 
@@ -360,7 +379,7 @@ ggplot(pca_df, aes(x = rotation, y = PC1)) +
 
 
 
-ggplot(pca_df, aes(x = rotation, y = PC2, color = factor(rotation))) +
+ggplot(pca_df, aes(x = rotation, y = -PC1, color = factor(rotation))) +
   
   geom_point(size = 2, alpha = 0.8) +
   
@@ -384,6 +403,28 @@ ggplot(pca_df, aes(x = rotation, y = PC2, color = factor(rotation))) +
   ) +
   
   theme_classic() +
-  labs(x = "Rotation", y = "PC2")
+  labs(x = "Rotation", y = "PC1")
 
 
+
+##gap statistic
+
+library(cluster)
+
+hc_fun <- function(x, k) {
+  distance_matrix <- dist(x, method = "euclidean")
+  hc <- hclust(distance_matrix, method = "ward.D2")
+  
+  list(cluster = cutree(hc, k))
+}
+
+set.seed(123)
+
+gap_stat <- clusGap(
+  pca_df[, c("PC1", "PC2", "PC3")],
+  FUNcluster = hc_fun,
+  K.max = 10,
+  B = 500
+)
+
+plot(gap_stat)
