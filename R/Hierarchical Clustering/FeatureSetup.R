@@ -171,9 +171,9 @@ feature_table <- data.frame(
     "Absolute Trial Differences",
     "Directional Sign Flips",
     "Abruptness index",
-    "Largest Step",
+    "Largest Step Index",
     "Linearity of Adaptation",
-    "Smoothness"
+    "Smoothness Index"
   ),
   Description = c(
     "Baseline-corrected SD of aiming deviation",
@@ -197,49 +197,35 @@ feature_table <- data.frame(
   )
 )
 
-library(gt)
 
-feature_table %>%
-  gt() %>%
-  
+library(gt)
+feature_table |> 
+  gt() |> 
   tab_header(
-    title = "Summary of Extracted Learning Features"
-  ) %>%
-  
-  
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels()
-  ) %>%
-  
+    title = md("**Feature Summary**"),
+    subtitle = ""
+  ) |> 
+  cols_label(
+    Feature = md("**Feature Name**"),
+    Description = md("**Description / Calculation**"),
+    Interpretation = md("**Behavioral Interpretation**")
+  ) |> 
   tab_options(
-    table.border.top.style = "solid",
-    table.border.top.width = px(0.8),
-    
-    table.border.bottom.style = "solid",
-    table.border.bottom.width = px(0.8),
-    
-    column_labels.border.bottom.style = "solid",
-    column_labels.border.bottom.width = px(0.6),
-    
-    data_row.padding = px(4),
-    table.font.size = px(11)
-  ) %>%
-  
-  cols_align(
-    align = "left",
-    columns = everything()
+    table.width = pct(100),
+    column_labels.background.color = "#f4f4f4",
+    table.font.size = "14px"
   )
 
 
 plotScree <- function () {
-  extract <- getFeaturesFromModel() 
-  features_df <- extract$features_df        
-  k_input     <- extract$kmeans_input  
-  k_input <- scale(k_input)
-  # k_input <- dfn[, vars] 
+  model_df <- read.csv("data/LearningClassifier.csv") #for pre-xG boost labels
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+  extract <- getFeatures() 
+  features_z <- extract$features_z
   
-  pca <- prcomp(k_input, center = TRUE, scale. = FALSE)
+  k_input <- extract$kmeans_input
+  
+  pca <- prcomp(k_input, center = FALSE, scale. = FALSE)
   
   cum_var <- cumsum(pca$sdev^2 / sum(pca$sdev^2))
   
@@ -267,3 +253,176 @@ plotScree <- function () {
   # screeplot(pca, type="lines")
   # points(var_each, col="red")
 }
+
+
+
+##now determine whether features differ with rotation
+
+kruskalFeatures <- function () {
+featuresFile <- read.csv("data/StandardizedFeatures.csv")
+strategy_data <- read.csv("data/strategy_only_participants.csv")
+
+strategy_unique <- strategy_data %>%
+  group_by(participant_id) %>%
+  summarize(rotation = first(rotation), .groups = "drop")
+
+df_merged <- featuresFile %>%
+  left_join(strategy_unique, by = "participant_id")
+
+
+feature_names <- c(
+  "learning_sd",
+  "learning_length",
+  "learning_abs_diff",
+  "num_sign_flips_prop",
+  "jump_ratio",
+  "largest_jump_frac",
+  "lin_r2",
+  "smoothness"
+)
+
+kw_results <- data.frame()
+
+for(f in feature_names){
+  
+  form <- as.formula(
+    paste(f, "~ factor(rotation)")
+  )
+  
+  test <- kruskal.test(form, data = df_merged)
+  
+  kw_results <- rbind(
+    kw_results,
+    data.frame(
+      feature = f,
+      H = unname(test$statistic),
+      p = test$p.value
+    )
+  )
+}
+
+return(list(
+  data = df_merged,
+  stats = kw_results
+))
+}
+
+
+
+## plot box plots per rotation ##
+plotBox <- function() {
+  
+  out <- kruskalFeatures()
+  df_merged <- out$data
+  
+  kw_results$signif <- cut(
+    kw_results$p_fdr,
+    breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
+    labels = c("***", "**", "*", "")
+  )
+  
+  rot_cols <- c(
+    "20" = "#4cc9f0",
+    "30" = "#4895ef",
+    "40" = "#4261ee",
+    "50" = "#2835af",
+    "60" = "#12086f"
+  )
+  
+  ggplot(df_merged,
+         aes(x = factor(rotation),
+             y = smoothness,
+             fill = factor(rotation))) +
+    
+    geom_boxplot(
+      alpha = 0.75,
+      outlier.shape = NA,
+      width = 0.6,
+      color = "grey25"
+    ) +
+    
+    geom_jitter(
+      width = 0.12,
+      alpha = 0.35,
+      size = 1,
+      color = "black"
+    ) +
+    
+    scale_fill_manual(values = rot_cols) +
+    
+    labs(
+      x = "Rotation magnitude (°)",
+      y = "Smoothness Index"
+    ) +
+    
+    theme_classic(base_size = 12) +
+    
+    theme(
+      legend.position = "none",
+      axis.title = element_text(face = "bold"),
+      axis.text = element_text(color = "black")
+    ) +
+    annotate("text",
+             x = 3, y = max(df_merged$largest_jump_frac),
+             label = "**")
+}
+
+
+loadingTable <- function () {
+  
+  model_df <- read.csv("data/LearningClassifier.csv") #for pre-xG boost labels
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+  extract <- getFeatures() 
+  features_z <- extract$features_z
+  
+  k_input <- extract$kmeans_input
+  
+  pca <- prcomp(k_input, center = FALSE, scale. = FALSE)
+  pca$rotation <- pca$rotation*-1
+  pca$x<- pca$x*-1
+  
+  
+  features <- c(
+    "Aiming Variability",
+    "Aiming Phase Length",
+    "Absolute Trial Differences",
+    "Directional Sign Flips",
+    "Abruptness Index",
+    "Largest Step Index",
+    "Linearity of Adaptation",
+    "Smoothness Index"
+  )
+  
+  # extract PCA loadings
+  rot <- as.data.frame(pca$rotation)
+  
+  rot_table <- rot[, 1:3] %>%
+    mutate(Feature = features) %>%
+    select(Feature, PC1, PC2, PC3)
+  
+  # gt table
+  rot_table %>%
+    gt() %>%
+    fmt_number(
+      columns = c(PC1, PC2, PC3),
+      decimals = 2
+    ) %>%
+    cols_label(
+      Feature = "Feature",
+      PC1 = "PC1",
+      PC2 = "PC2",
+      PC3 = "PC3"
+    ) %>%
+    tab_header(
+      title = "Principal Component Analysis (PCA) Loadings",
+      subtitle = ""
+    ) %>%
+    tab_options(
+      table.font.size = px(12),
+      column_labels.font.weight = "bold"
+    )
+  
+  
+}
+
+
