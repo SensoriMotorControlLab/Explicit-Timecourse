@@ -327,3 +327,65 @@ dev.off()
 
 # Run it!
 timecourseCartoon()
+
+
+
+# Generate Data
+trials <- 1:50
+stepwise_y <- ifelse(trials < 15, 0, 40)
+df1 <- data.frame(trial = trials, stepwise = stepwise_y)
+
+# Plot Figure 1
+fig1 <- ggplot(df1, aes(x = trial, y = stepwise)) +
+  geom_step(color = "#C39BD3", linewidth = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  labs(title = "", x = "Trial", y = "Aim") +
+  scale_y_continuous(limits = c(-20, 60), breaks = seq(-20, 60, 20)) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.title = element_text(size = 14),  
+        axis.text = element_text(size = 14, color = "black")) # Removes all background grids
+
+print(fig1)
+
+
+
+
+trials <- 0:50
+gradual_y <- 40 * (1 - exp(-0.20 * trials))
+df2 <- data.frame(trial = trials, gradual = gradual_y)
+
+# Plot Figure 2
+fig2 <- ggplot(df2, aes(x = trial, y = gradual)) +
+  geom_line(color = "#A2D9CE", linewidth = 1.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+  labs(title = "", x = "Trial", y = "Aim") +
+  scale_y_continuous(limits = c(-20, 60), breaks = seq(-20, 60, 20)) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.title = element_text(size = 14),  
+        axis.text = element_text(size = 14, color = "black")) # Removes all background grids
+
+print(fig2)
+
+# Generate Data
+trials <- 1:50
+erratic_y <- c(
+  0, -20, 55, -18, 48, -15, 42, 5, 38, 25, 
+  45, 36, 42, 39, 41, 40, 40, 40, 40, 40, 
+  rep(40, 30)
+)
+df3 <- data.frame(trial = trials, erratic = erratic_y)
+
+# Plot Figure 3
+fig3 <- ggplot(df3, aes(x = trial, y = erratic)) +
+  geom_line(color = "salmon", linewidth = 1) +             
+  geom_hline(yintercept = 00, linetype = "dashed", color = "gray50") +
+  labs(title = "", x = "Trial", y = "Aim") +
+  scale_y_continuous(limits = c(-20, 60), breaks = seq(-20, 60, 20)) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.title = element_text(size = 14),  
+        axis.text = element_text(size = 14, color = "black")) # Removes all background grids
+
+print(fig3)
