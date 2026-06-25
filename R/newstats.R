@@ -182,99 +182,35 @@ zeroT <- function() {
 }
 
 #does rotated differ from ideal angle?
-
 idealT <- function() {
   strat_data <- read.csv("data/strategy_only_participants.csv")
-  final_aligned <- strat_data %>%
-  filter(trial_type == "aligned") %>%
-  group_by(participant_id, rotation) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 8) %>%
-  summarise(mean_aligned = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
-    
-    
- final_rotated <- strat_data %>%
-  filter(trial_type == "rotated") %>%
-  group_by(participant_id, rotation) %>%
-  arrange(cutrial_no, .by_group = TRUE) %>%
-  slice_tail(n = 8) %>%
-  summarise(mean_rotated = mean(aimdeviation_deg, na.rm = TRUE), .groups = "drop")
-    
- combined <- inner_join(final_aligned, final_rotated,
-  by = c("participant_id", "rotation"))
   
-  results <- combined %>%
-  group_by(rotation) %>%
-  summarise(
-       t_stat = t.test(mean_rotated, mean_aligned, paired = TRUE)$statistic,
-       df = t.test(mean_rotated, mean_aligned, paired = TRUE)$parameter,
-       p_value = t.test(mean_rotated, mean_aligned, paired = TRUE)$p.value,
-       .groups = "drop"
-      )
-    
-    return(results)
-}
-
-
-
-
-## clusters
-
-rotationEffect <- function () {
-  proportions_plot <- pcaBar()
-
-  
-  proportions_plot$cluster_label <- droplevels(proportions_plot$cluster_label)
-  
-  table_data <- xtabs(n_participants ~ rotation + cluster_label, 
-                      data = proportions_plot)
-  
-  #monte carlo simulation?? bc some cells are less than 5 and fishers is hard to use on a big contigency table
-  
-  fisher.test(table_data, simulate.p.value = TRUE, B = 100000)
-
-} # p-value = 0.00018
-
-#more specific than just cluster type: stats that are good to have
-#two fishers: proportion of ppl learnign falling into each cluster by different rotation sizes 
-
-## does learning phase length differ by rotation group?
-
-lengthStats <- function () {
-  strat_data <- read.csv("data/strategy_only_participants.csv")
-  model_df <- xgRun()
-  rotation_lookup <- unique(strat_data[, c("participant_id", "rotation")])
-  model_df <- merge(model_df, rotation_lookup, by = "participant_id", all.x = TRUE)
-  
-  model_df$learning_length <- model_df$pred_end - model_df$pred_start
-  anova_result <- aov(learning_length ~ factor(rotation), data = model_df)
-  summary(anova_result)
-  
-  
-  summary_df <- model_df %>%
-    group_by(rotation.x) %>%
+  final_rotated <- strat_data %>%
+    filter(trial_type == "rotated") %>%
+    group_by(participant_id, rotation) %>%
+    arrange(cutrial_no, .by_group = TRUE) %>%
+    slice_tail(n = 8) %>%
     summarise(
-      mean_length = mean(learning_length, na.rm = TRUE),
-      se_length = sd(learning_length, na.rm = TRUE)/sqrt(n())
+      mean_rotated = mean(aimdeviation_deg, na.rm = TRUE),
+      .groups = "drop"
     )
   
-  # Bar plot with error bars
-  ggplot(summary_df, aes(x = rotation.x, y = mean_length, fill = rotation.x)) +
-    geom_bar(stat = "identity", color = "black", width = 0.6) +
-    geom_errorbar(aes(ymin = mean_length - se_length, ymax = mean_length + se_length),
-                  width = 0.2) +
-    labs(
-      title = "Learning Phase Length by Rotation Group",
-      x = "Rotation Group",
-      y = "Mean Learning Length (trials)"
-    ) +
-    coord_cartesian(ylim = c(0, 35)) +
-    theme_minimal() +
-    theme(legend.position = "none")
+  results <- final_rotated %>%
+    group_by(rotation) %>%
+    group_modify(~ {
+      rt <- unique(.y$rotation)   
+      
+      t_res <- t.test(.x$mean_rotated, mu = rt)
+      
+      tibble(
+        t_stat = t_res$statistic,
+        df = t_res$parameter,
+        p_value = t_res$p.value
+      )
+    })
   
-} #yes p =0.038
-
-
+  results
+}
 
 
 
@@ -296,31 +232,72 @@ varStats <- function () {
 
 
 ###2 way anovas
-strategy_df <- getStrategies()
-strategy_ids <- strategy_df$participant_id
+twoAnova <-function () {
+  strategy_df <- getStrategies()
+  strategy_ids <- strategy_df$participant_id
 
-strategy_data <- total_learners_data %>%
+  strategy_data <- total_learners_data %>%
   filter(participant_id %in% strategy_ids)
 
-final_trials_data <- strategy_data %>%
+  final_trials_data <- strategy_data %>%
   filter(trial_type == "rotated") %>%
   group_by(participant_id,rotation,strategy) %>%   
   slice_tail(n = 8) %>%
   ungroup()
 
-anova_ready_data <- final_trials_data %>%
+  anova_ready_data <- final_trials_data %>%
   group_by(participant_id, rotation, strategy) %>%
   summarise(mean_aim_dev = mean(reachdeviation_deg, na.rm = TRUE),
             .groups = 'drop')
 
-anova_ready_data$rotation <- as.factor(anova_ready_data$rotation)
-anova_ready_data$strategy <- as.factor(anova_ready_data$strategy)
+  anova_ready_data$rotation <- as.factor(anova_ready_data$rotation)
+  anova_ready_data$strategy <- as.factor(anova_ready_data$strategy)
 
-res_aov <- aov(mean_aim_dev ~ rotation * strategy, data = anova_ready_data)
+  res_aov <- aov(mean_aim_dev ~ rotation * strategy, data = anova_ready_data)
 
-summary(res_aov)
+  summary(res_aov)
+  return(res_aov)
+}
 
 
-
-library(emmeans)
+postHoc <- function () {
+ 
+res_aov <-  twoAnova()
 emmeans(res_aov, pairwise ~ strategy | rotation)
+
+}  
+  
+#does final reach differ by strategy type
+aovClusterData <- function() {
+  pca_df <- runHClust()
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+  
+  rotated <- strategy_data %>%
+    filter(trial_type == "rotated") %>%
+    group_by(participant_id) %>%
+    arrange(cutrial_no) %>%
+    slice_tail(n = 16) %>%
+    ungroup() %>%
+    left_join(
+      pca_df %>% select(participant_id, cluster_label),
+      by = "participant_id"
+    )
+  
+  rotated
+}
+
+cluster_data <- aovClusterData()
+
+cluster_anova_df <- cluster_data %>%
+  group_by(participant_id, cluster_label) %>%
+  summarise(
+    final_reach = mean(reachdeviation_deg, na.rm = TRUE), #/aimdev
+    .groups = "drop"
+  )
+
+print("--- Phenotype Cluster ANOVA ---")
+print(summary(aov(final_reach ~ cluster_label, data = cluster_anova_df)))
+
+tukey <- aov(final_reach ~ cluster_label, data = cluster_anova_df)
+TukeyHSD(tukey)
+
