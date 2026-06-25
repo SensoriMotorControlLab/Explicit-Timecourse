@@ -529,120 +529,114 @@ abline(h = 20, col = "grey", lty = 2, lwd = 2)
 
 ####
 plotSchedule <- function() {
-  library(dplyr)
-  library(ggplot2)
-  
-  schedule <- data.frame(
-    phase = c(
-      "Aligned",
-      "No-cursor",
-      "Aligned",
-      "Error-clamp",
-      "Aligned",
-      "No-cursor",
-      "Aligned",
-      "No-cursor",
-      "Aligned",
-      "Aligned",
-      "Rotation",
-      "No-cursor"
+
+
+schedule <- data.frame(
+  phase = c(
+    "Aligned", "No-cursor", "Aligned", "Error-clamp",
+    "Aligned", "No-cursor", "Aligned", "No-cursor", 
+    "Aligned", "Aligned", "Rotation", "No-cursor"
+  ),
+  trials = c(
+    24, 16, 16, 8,
+    8, 8, 8, 8, 8,
+    8, 120, 24
+  )
+)
+
+schedule <- schedule %>%
+  mutate(
+    condition = phase,
+    row = 1
+  ) %>%
+  mutate(
+    end = cumsum(trials),
+    start = lag(end, default = 0),
+    mid = (start + end) / 2,
+    # Make text white on dark blue blocks, black on others for readability
+    text_color = ifelse(phase == "No-cursor", "white", "black")
+  )
+
+my_colors <- c(
+  "Aligned" = "#c9dce6",
+  "No-cursor" = "#243762",
+  "Error-clamp" = "#d9dddc",
+  "Rotation" = "#d8a1c4"
+)
+
+aligned_end <- 104
+aligned_mid <- aligned_end / 2
+rotation_mid <- 175.5
+
+ggplot(schedule) +
+  # The Boxes (Y spans from 0.7 to 1.3)
+  geom_rect(
+    aes(
+      xmin = start, xmax = end,
+      ymin = 0.7, ymax = 1.3,
+      fill = condition
     ),
-    trials = c(
-      24, 16, 16, 8,
-      8, 8, 8, 8, 8,
-      8, 120, 24
-    )
-  )
+    color = "black"
+  ) +
   
-  schedule <- schedule %>%
-    mutate(
-      condition = case_when(
-        phase == "Aligned" ~ "Aligned",
-        phase == "No-cursor" ~ "No-cursor",
-        phase == "Error-clamp" ~ "Error-clamp",
-        phase == "Rotation" ~ "Rotation"
-      ),
-      row = 1
-    ) %>%
-    mutate(
-      end = cumsum(trials),
-      start = lag(end, default = 0),
-      mid = (start + end) / 2
-    )
+  # Centered Trial Numbers
+  geom_text(
+    aes(
+      x = mid, 
+      y = 1.0,             # Dead center vertically between 0.7 and 1.3
+      label = trials,
+      color = text_color   # Dynamic color mapping for contrast
+    ),
+    vjust = 0.5,           # Hard vertical center anchor
+    hjust = 0.5,           # Hard horizontal center anchor
+    size = 3.5,
+    show.legend = FALSE    # Hide text color from the legend
+  ) +
   
-  my_colors <- c(
-    "Aligned" = "#c9dce6",
-    "No-cursor" = "#243762",
-    "Error-clamp" = "white",
-    "Rotation" = "#d8a1c4"
-  )
+  # Arrow reminder marker
+  geom_vline(
+    xintercept = aligned_end,
+    linetype = "dashed",
+    linewidth = 0.6
+  ) +
   
-  # ---- phase boundary ----
-  aligned_end <- 104
-  
-  aligned_mid <- aligned_end / 2
-  rotation_mid <- 175.5
-  
-  ggplot(schedule) +
-    
-    geom_rect(
-      aes(
-        xmin = start,
-        xmax = end,
-        ymin = 0.7,
-        ymax = 1.3,
-        fill = condition
-      ),
-      color = "black"
-    ) +
-    
-    geom_text(
-      aes(x = mid, y = 1.3, label = trials),
-      vjust = -0.3,
-      size = 3.5
-    ) +
-    
-    # Arrow reminder marker (at end of first aligned phase)
-    geom_vline(
-      xintercept = aligned_end,
-      linetype = "dashed",
-      linewidth = 0.6
-    ) +
-    
-    annotate(
-      "text",
-      x = aligned_end,
-      y = 1.55,
-      label = "Arrow\nReminder",
-      size = 3
-    ) +
-    
-    # ---- phase labels ----
   annotate(
     "text",
-    x = aligned_mid,
-    y = 0.45,
-    label = "Aligned Phase",
-    size = 4
+    x = 125,
+    y = 1.55,
+    label = "Aim Reminder",
+    size = 3.2
   ) +
-    
-    annotate(
-      "text",
-      x = rotation_mid,
-      y = 0.45,
-      label = "Rotation Phase",
-      size = 4
-    ) +
-    
-    scale_fill_manual(values = my_colors) +
-    
-    coord_cartesian(ylim = c(0.35, 1.7)) +
-    
-    theme_minimal() +
-    theme(
-      panel.grid = element_blank(),
-      axis.text = element_blank(),
-      axis.title = element_blank(),
-      axis.ticks = element_blank()
-    )
+  
+
+  # annotate(
+  #   "text",
+  #   x = aligned_mid,
+  #   y = 0.45,
+  #   label = "Aligned Phase",
+  #   size = 4
+  # ) +
+  
+  annotate(
+    "text",
+    x = 134,
+    y = 1.37,
+    label = "Rotation Onset",
+    size = 3,
+    col="#909090"
+  ) +
+  
+
+  scale_fill_manual(values = my_colors) +
+  scale_color_identity() +  
+  
+  coord_cartesian(ylim = c(0.35, 1.7)) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank()
+  )
 }
