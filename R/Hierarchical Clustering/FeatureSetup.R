@@ -315,11 +315,6 @@ plotBox <- function() {
   out <- kruskalFeatures()
   df_merged <- out$data
   
-  kw_results$signif <- cut(
-    kw_results$p_fdr,
-    breaks = c(-Inf, 0.001, 0.01, 0.05, Inf),
-    labels = c("***", "**", "*", "")
-  )
   
   rot_cols <- c(
     "20" = "#4cc9f0",
@@ -347,7 +342,8 @@ plotBox <- function() {
       size = 1,
       color = "black"
     ) +
-    
+    coord_cartesian(ylim = c(-2, 5)) +
+    scale_y_continuous(breaks = c(-2, 0, 2, 4)) +
     scale_fill_manual(values = rot_cols) +
     
     labs(
@@ -363,8 +359,9 @@ plotBox <- function() {
       axis.text = element_text(color = "black")
     ) +
     annotate("text",
-             x = 3, y = max(df_merged$largest_jump_frac),
-             label = "**")
+             x = 3, y = 5,
+             label = "",
+             size = 8)
 }
 
 
