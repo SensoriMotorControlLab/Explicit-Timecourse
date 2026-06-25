@@ -133,7 +133,10 @@ plotREACH <- function() {
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
       panel.background = element_blank(),
-      axis.line = element_line()
+      axis.line = element_line(color = "black"),
+      axis.title = element_text(size = 14),  
+      axis.text = element_text(size = 14, color = "black"),
+      legend.position = "none"
       # axis.text.x  = element_text(size = 24),
       # axis.text.y  = element_text(size = 24),
       # axis.title.x = element_text(size = 17),
