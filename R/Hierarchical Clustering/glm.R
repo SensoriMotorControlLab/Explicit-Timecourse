@@ -85,10 +85,10 @@ NonAIC <- function () {
             family = binomial,
             data = dat2)
   
-  AIC(m0, m1)
+  print(stats::AIC(m0, m1))
   
-  deltaAIC <- AIC(m0) - AIC(m1)
-  deltaAIC
+  deltaAIC <- stats::AIC(m0) - stats::AIC(m1)
+  return(deltaAIC)
 }
 
 ####
@@ -106,8 +106,9 @@ make_MUmodel <- function(){
   #m0 (null model): cluster distribution is the same across all rotation groups
   m1 <- multinom(cluster_label ~ rotation, weights = n_participants, data = clean_dat) 
   #  m1 (full model): cluster distribution depends on rotation
-  AIC(m0, m1) 
-  deltaAIC <- AIC(m0) - AIC(m1) 
+  stats::AIC(m0, m1) 
+  
+  deltaAIC <- stats::AIC(m0) - stats::AIC(m1) 
   deltaAIC
 }
 
@@ -136,7 +137,7 @@ make_model <- function(cluster_name) {
   
   return(c(
     cluster = cluster_name,
-    deltaAIC = AIC(m0) - AIC(m1)
+    deltaAIC = stats::AIC(m0) - stats::AIC(m1)
   ))
 }
 
