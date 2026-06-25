@@ -174,7 +174,7 @@ plotAIM2 <- function() {
     geom_line(size = 1) +
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper),
                 alpha = 0.2, color = NA) +
-    coord_cartesian(xlim = c(-, 119)) +
+    coord_cartesian(xlim = c(-8, 119)) +
     scale_color_manual(
       values = c(
         "60"="#12086f", "50"="#2835af","40"="#4261ee",
@@ -215,8 +215,11 @@ plotAIM2 <- function() {
     theme(
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank(),
-      panel.background = element_blank(),
-      axis.line = element_line()
+      axis.line = element_line(color = "black"),
+      axis.title = element_text(size = 14),  
+      axis.text = element_text(size = 14, color = "black"),
+      legend.title = element_text(size = 14), 
+      legend.text = element_text(size = 14)  
       # axis.text.x  = element_text(size = 24),
       # axis.text.y  = element_text(size = 24),
       # axis.title.x = element_text(size = 17),
@@ -350,6 +353,7 @@ ggplot(overall_ci, aes(x = cutrial_no, y = mean_aim)) +
     panel.grid.minor = element_blank(),
     panel.background = element_blank(),
     axis.line = element_line(),
+    
     # axis.text.x  = element_text(size = 21),
     # axis.text.y  = element_text(size = 21),
     # axis.title.x = element_text(size = 17),
