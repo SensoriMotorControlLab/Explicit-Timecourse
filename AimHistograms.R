@@ -22,7 +22,7 @@ hist2d <- function(x, y, nbins = c(100, 100), edges = NULL) {
 }
 #create data frame
 learner_data <- read.csv("data/total_learners_data.csv")
-
+strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 learner_data <- learner_data %>%
   mutate(
@@ -40,7 +40,7 @@ all_hist_data <- strategy_data %>%
   filter(time >= -8 & time <= 100) %>%
   transmute(
     x = time,
-    y = reachdeviation_deg,
+    y = aimdeviation_deg,
     rotation = rotation
   )
 
@@ -52,18 +52,21 @@ plotAimHist <- function(rot_value, y_max) {
   plot(NA,
        main = paste0(rot_value, "° Rotation"),
        xlab = "Trial",
-       ylab = "Reach Deviation (°)",
+       ylab = "Aim Dev (°)",
        xlim = c(-8, 60),
-       ylim = c(-80, 80),
+       ylim = c(-20, 80),
        ax = FALSE,
-       bty = "n")
+       bty = "n",
+       cex.lab = 1.4,
+       cex.axis = 1.5,
+       cex.main = 1.5)
   
   img_info <- hist2d(
     x = df$x,
     y = df$y,
     edges = list(
       seq(-8, 60, 1),
-      seq(-80, 80, 2.5)
+      seq(-20, 80, 2.5)
     )
   )
   
@@ -78,7 +81,7 @@ plotAimHist <- function(rot_value, y_max) {
   )
   
   axis(1, at = c(-8, 0, 8,16,24,32,40,48,56,60), cex.axis = 1)
-  axis(2, at = seq(-80, 80, 20), cex.axis = 1)
+  axis(2, at = seq(-20, 80, 20), cex.axis = 1)
   
   # reference box (rotation size)
   lines(
@@ -94,18 +97,6 @@ plotAimHist <- function(rot_value, y_max) {
    lines(avg$x, avg$y, col = "hotpink", lwd = 2)
 }
 
-
-
-par(mfrow = c(3,1))
-
-plotAimHist(20, 20)
-plotAimHist(30, 30)
-plotAimHist(40, 40)
-
-
-
-plotAimHist(50, 50)
-plotAimHist(60, 60)
 
 
 ##
@@ -129,9 +120,9 @@ plotReachHist <- function(rot_value, y_max) {
   plot(NA,
        main = paste0(rot_value, "° Rotation"),
        xlab = "Trial",
-       ylab = "Reach Deviation (°)",
+       ylab = "Reach Dev (°)",
        xlim = c(-8, 60),
-       ylim = c(-20, 60),
+       ylim = c(-20, 80),
        ax = FALSE,
        bty = "n",
        cex.lab = 1.4,
@@ -143,7 +134,7 @@ plotReachHist <- function(rot_value, y_max) {
     y = df$y,
     edges = list(
       seq(-8, 60, 1),
-      seq(-60, 60, 1)
+      seq(-20, 80, 2.5)
     )
   )
   
@@ -153,21 +144,23 @@ plotReachHist <- function(rot_value, y_max) {
     x = img_info$x.edges,
     y = img_info$y.edges,
     z = img,
-    col = colorRampPalette(c("white", "#ADD1F1", "#2073BC", "#12436D"))(100),
+    col = colorRampPalette(c("white", "#4895ef", "#2835af", "#12086f"))(100),
     add = TRUE
   )
   
-  axis(1, at = c(-8, 0, 8,16,24,32,40,48,56), cex.axis = 1.5)
-  axis(2, at = seq(-60, 60, 10), cex.axis = 1.5)
+  axis(1, at = c(-8, 0, 8,16,24,32,40,48,56,60), cex.axis = 1)
+  axis(2, at = seq(-20, 80, 20), cex.axis = 1)
   
   # reference box (rotation size)
   lines(
     x = c(-8, 0, 0, 60),
     y = c(-0.5, -0.5, y_max - 0.5, y_max - 0.5),
-    col = "navy",
+    col = "black",
     lty = 3,
     lwd = 2
   )
+  
+  # OPTIONAL: mean trajectory
   avg <- aggregate(y ~ x, data = df, FUN = mean)
   lines(avg$x, avg$y, col = "hotpink", lwd = 2)
   
@@ -180,13 +173,44 @@ plotReachHist <- function(rot_value, y_max) {
 
 par(mfrow = c(5,1))
 
+# ==============================================================================
+# DEFINE THE LAYOUT: 5 Rows (Rotations), 2 Columns (Metrics)
+# ==============================================================================
+# Column 1 will be Reach, Column 2 will be Aim.
+# Alternating them below ensures they pair up perfectly by row.
+# Open the file device with an increased height (840 pixels)
+png("crisp_highres_histograms.png", 
+    width = 2100,      # Slightly wider to compensate for the margin change
+    height = 3600, 
+    res = 300)
+
+# mar: keeps tight margins so the extra canvas height goes directly into the plots
+par(mfrow = c(5, 2), 
+    mar = c(2.8, 4.8, 1.8, 0.6), 
+    oma = c(1.0, 1.0, 0.5, 0.5))
+
+# Row 1
 plotReachHist(20, 20)
+plotAimHist(20, 20)
+
+# Row 2
 plotReachHist(30, 30)
+plotAimHist(30, 30)
+
+# Row 3
 plotReachHist(40, 40)
+plotAimHist(40, 40)
+
+# Row 4
 plotReachHist(50, 50)
+plotAimHist(50, 50)
+
+# Row 5
 plotReachHist(60, 60)
+plotAimHist(60, 60)
 
-
+# Save and close
+dev.off()
 
 ##phenotype
 
