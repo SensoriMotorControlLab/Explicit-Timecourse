@@ -56,6 +56,8 @@ dendogram <- function () {
     dend,
     main = "",
     ylab = "Height",
+    cex.lab = 1.3,
+    cex.axis = 1.1,
     leaflab = "none"
   )
   abline(h = 10, col = "grey", lty = 2)
@@ -108,7 +110,7 @@ ggplot(pca_df, aes(PC1, PC2, color = cluster_label, fill = cluster_label)) +
     # "Light-Exploratory" = "#ffcff1",
     # "High-Exploratory" = "#c54bbc"
   )) +
-
+  coord_cartesian(ylim=c(-5,5)) +
   guides(
     fill = "none", 
     color = guide_legend(override.aes = list(
@@ -117,14 +119,21 @@ ggplot(pca_df, aes(PC1, PC2, color = cluster_label, fill = cluster_label)) +
       linetype = 0 
     ))
   ) +
-  
-  labs(color = "Phenotype", title = "") +
+  coord_fixed(ratio = 1, ylim = c(-5, 5)) +
+  labs(color = "Cluster", title = "") +
   
   theme(
     legend.key = element_blank(),
     panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA)
-  )
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid.major = element_line(color = "grey90"),
+      axis.line = element_line(color = "black"),
+      axis.title = element_text(size = 14),  
+      axis.text = element_text(size = 14, color = "black"),
+    legend.title = element_text(size = 14), 
+    legend.text = element_text(size = 14)    
+    )
+
 }
 #   
 # p <- ggplot(pca_df, aes(
@@ -305,7 +314,7 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     stroke = 2,
     inherit.aes = FALSE
   ) +
-  
+  coord_cartesian(ylim=c(-5,5)) +
 
   geom_text(
     data = rotation_summary,
@@ -326,7 +335,12 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     name = "Rotation"
   ) +
   theme_classic() +
-  labs(x = "PC1", y = "PC2")
+  labs(x = "PC1", y = "PC2") +
+  theme(axis.line = element_line(color = "black"),
+axis.title = element_text(size = 14),  
+axis.text = element_text(size = 14, color = "black"),
+legend.title = element_text(size = 14), 
+legend.text = element_text(size = 14))   
 }
 
 
@@ -337,8 +351,8 @@ lmRot <- function () {
     summarise(
       mean_PC1 = mean(PC1, na.rm = TRUE),
       sd_PC1   = sd(PC1, na.rm = TRUE),
-      mean_PC2 = mean(PC2, na.rm = TRUE),
-      sd_PC2   = sd(PC2, na.rm = TRUE),
+      mean_PC3 = mean(PC3, na.rm = TRUE),
+      sd_PC3   = sd(PC3, na.rm = TRUE),
       .groups = "drop"
     )
   
@@ -375,7 +389,12 @@ ggplot(pca_df, aes(x = rotation, y = PC1)) +
   ) +
   
   theme_classic() +
-  labs(x = "Rotation", y = "PC1")
+  labs(x = "Rotation", y = "PC1") +
+  theme(axis.line = element_line(color = "black"),
+        axis.title = element_text(size = 14),  
+        axis.text = element_text(size = 14, color = "black"),
+        legend.title = element_text(size = 14), 
+        legend.text = element_text(size = 14))   
 
 
 
@@ -428,3 +447,35 @@ gap_stat <- clusGap(
 )
 
 plot(gap_stat)
+
+
+ggplot(pca_df, aes(x = PC1, y = PC2, colour = "salmon")) +
+  # geom_polygon(data = hulls,
+  #              alpha = 0.15,      
+  #              linetype = "dashed",
+  #              linewidth = 0.5,
+  #              show.legend = FALSE) +
+  
+  geom_point(size = 2.0) + 
+  theme_classic() + 
+  
+  coord_equal(xlim = c(-5, 5), ylim = c(-5, 5)) + 
+  
+  guides(
+    fill = "none", 
+    color = guide_legend(override.aes = list(
+      alpha = 1, 
+      size = 4, 
+      linetype = 0 
+    ))
+  ) +
+  
+  theme(
+    legend.key = element_blank(),
+    legend.position = "None",
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background = element_rect(fill = "white", color = NA),
+    axis.line = element_line(color = "black"),
+    axis.title = element_text(size = 14),  
+    axis.text = element_text(size = 14, color = "black"),   
+  )
