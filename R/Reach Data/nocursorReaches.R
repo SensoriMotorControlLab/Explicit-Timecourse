@@ -183,7 +183,7 @@ p_cluster <- ggplot(cluster_plot_df, aes(x = rel_trial, y = mean_curve, color = 
 print(p_cluster)
 
 cluster_anova_df <- cluster_data %>%
-  filter(trial_type == "nocursor", cutrial_no %in% 234:241) %>%
+  filter(trial_type == "nocursor", cutrial_no %in% 233:240) %>%
   group_by(participant_id, cluster_label) %>%
   summarise(aftereffect = mean(reach_norm, na.rm = TRUE), .groups = "drop")
 
@@ -270,7 +270,7 @@ p_strategy <- ggplot(strategy_plot_df, aes(x = rel_trial, y = mean_curve, color 
 print(p_strategy)
 
 strategy_anova_df <- strategy_data_clean %>%
-  filter(trial_type == "nocursor", cutrial_no %in% 234:241) %>%
+  filter(trial_type == "nocursor", cutrial_no %in% 233:240) %>%
   group_by(participant_id, group) %>%
   summarise(aftereffect = mean(reach_norm, na.rm = TRUE), .groups = "drop") 
 
@@ -354,7 +354,7 @@ p_rotation <- ggplot(rotation_plot_df, aes(x = rel_trial, y = mean_curve, color 
 print(p_rotation)
 
 rotation_anova_df <- rotation_data_clean %>%
-  filter(trial_type == "nocursor", cutrial_no %in% 234:241) %>%
+  filter(trial_type == "nocursor", cutrial_no %in% 233:240) %>%
   group_by(participant_id, rotation) %>%
   summarise(aftereffect = mean(reach_norm, na.rm = TRUE), .groups = "drop") 
 
