@@ -145,7 +145,7 @@ getRotationData <- function() {
 }
 
 
-
+clusterAfterPlot <- function () {
 cluster_data <- getClusterData()
 
 cluster_plot_df <- cluster_data %>%
@@ -181,15 +181,22 @@ p_cluster <- ggplot(cluster_plot_df, aes(x = rel_trial, y = mean_curve, color = 
   )
 
 print(p_cluster)
+}
 
-cluster_anova_df <- cluster_data %>%
+
+clusterAfterStats <- function () {
+  cluster_data <- getClusterData()
+  cluster_anova_df <- cluster_data %>%
   filter(trial_type == "nocursor", cutrial_no %in% 233:240) %>%
   group_by(participant_id, cluster_label) %>%
   summarise(aftereffect = mean(reach_norm, na.rm = TRUE), .groups = "drop")
 
-print("--- Phenotype Cluster ANOVA ---")
-print(summary(aov(aftereffect ~ cluster_label, data = cluster_anova_df)))
+  print("--- Phenotype Cluster ANOVA ---")
+  print(summary(aov(aftereffect ~ cluster_label, data = cluster_anova_df)))
+}
 
+clusterAfterBox <- function () {
+cluster_anova_df <- clusterAfterStats()
 cluster_summary <- cluster_anova_df %>%
   group_by(cluster_label) %>%
   summarise(
@@ -225,11 +232,12 @@ p_cluster_box <- ggplot() +
   )
 
 print(p_cluster_box)
-
+}
 # ==============================================================================
 # 3. STRATEGY VS NON-STRATEGY: ANALYSIS & FIGURES
 # ==============================================================================
 
+stratAfterPlot <- function () {
 strategy_data_clean <- getStrategyData()
 
 strategy_plot_df <- strategy_data_clean %>%
@@ -268,17 +276,24 @@ p_strategy <- ggplot(strategy_plot_df, aes(x = rel_trial, y = mean_curve, color 
   )
 
 print(p_strategy)
+}
 
-strategy_anova_df <- strategy_data_clean %>%
+stratAfterStats <- function () {
+  strategy_data_clean <- getStrategyData()
+  strategy_anova_df <- strategy_data_clean %>%
   filter(trial_type == "nocursor", cutrial_no %in% 233:240) %>%
   group_by(participant_id, group) %>%
   summarise(aftereffect = mean(reach_norm, na.rm = TRUE), .groups = "drop") 
 
-print("--- Strategy t-tests ---")
-print(t.test(aftereffect ~ group, data = strategy_anova_df))
-print(t.test(strategy_anova_df$aftereffect[strategy_anova_df$group == "Non-strategy learners" | strategy_anova_df$group == "Group 2"], mu = 0))
+  print("--- Strategy t-tests ---")
+  print(t.test(aftereffect ~ group, data = strategy_anova_df))
+  print(t.test(strategy_anova_df$aftereffect[strategy_anova_df$group == "Non-strategy learners" | strategy_anova_df$group == "Group 2"], mu = 0))
+}
 
-strategy_summary <- strategy_anova_df %>%
+
+stratAfterBox <- function () {
+  strategy_anova_df <- stratAfterStats()
+  strategy_summary <- strategy_anova_df %>%
   group_by(group) %>%
   summarise(
     mean_reach = mean(aftereffect, na.rm = TRUE),
@@ -308,12 +323,13 @@ p_strategy_box <- ggplot() +
     axis.text = element_text(size = 12, color = "black")
   )
 
-print(p_strategy_box)
-
+  print(p_strategy_box)
+}
 # ==============================================================================
 # 4. ROTATION GROUPS: ANALYSIS & FIGURES
 # ==============================================================================
 
+plotRotAfter <- function () {
 rotation_data_clean <- getRotationData()
 rotation_data_clean$rotation <- as.factor(rotation_data_clean$rotation)
 
@@ -352,29 +368,41 @@ p_rotation <- ggplot(rotation_plot_df, aes(x = rel_trial, y = mean_curve, color 
   )
 
 print(p_rotation)
+}
 
-rotation_anova_df <- rotation_data_clean %>%
+
+rotAfterStats <- function () {
+  rotation_data_clean <- getRotationData()
+  rotation_data_clean$rotation <- as.factor(rotation_data_clean$rotation)
+  
+  rotation_anova_df <- rotation_data_clean %>%
   filter(trial_type == "nocursor", cutrial_no %in% 233:240) %>%
   group_by(participant_id, rotation) %>%
   summarise(aftereffect = mean(reach_norm, na.rm = TRUE), .groups = "drop") 
 
-print("--- Rotation ANOVA ---")
-print(summary(aov(aftereffect ~ rotation, data = rotation_anova_df)))
+  print("--- Rotation ANOVA ---")
+  print(summary(aov(aftereffect ~ rotation, data = rotation_anova_df)))
 
-rotation_summary <- rotation_anova_df %>%
-  group_by(rotation) %>%
-  summarise(
-    mean_reach = mean(aftereffect, na.rm = TRUE),
-    n = n(),
-    sd_reach = sd(aftereffect, na.rm = TRUE),
-    se_reach = sd_reach / sqrt(n),
-    ci_margin = qt(0.975, df = n - 1) * se_reach,
-    ci_lower = mean_reach - ci_margin,
-    ci_upper = mean_reach + ci_margin,
-    .groups = "drop"
-  )
+ 
+}
 
-p_rotation_box <- ggplot() +
+
+rotAfterBox <- function () {
+  rotation_anova_df <- rotAfterStats()
+  
+  rotation_summary <- rotation_anova_df %>%
+    group_by(rotation) %>%
+    summarise(
+      mean_reach = mean(aftereffect, na.rm = TRUE),
+      n = n(),
+      sd_reach = sd(aftereffect, na.rm = TRUE),
+      se_reach = sd_reach / sqrt(n),
+      ci_margin = qt(0.975, df = n - 1) * se_reach,
+      ci_lower = mean_reach - ci_margin,
+      ci_upper = mean_reach + ci_margin,
+      .groups = "drop"
+    )
+  p_rotation_box <- ggplot() +
   geom_crossbar(data = rotation_summary, aes(x = rotation, y = mean_reach, ymin = ci_lower, ymax = ci_upper, fill = rotation), alpha = 0.6, width = 0.4, color = NA) +
   geom_errorbar(data = rotation_summary, aes(x = rotation, ymin = mean_reach, ymax = mean_reach, color = rotation), linewidth = 1, width = 0.4) +
   scale_fill_manual(values = c("20" = "#4cc9f0", "30" = "#4895ef", "40" = "#4261ee", "50" = "#2835af", "60" = "#12086f")) +
@@ -390,6 +418,6 @@ p_rotation_box <- ggplot() +
     axis.text = element_text(size = 12, color = "black")
   )
 
-print(p_rotation_box)
-
+  print(p_rotation_box)
+}
 
