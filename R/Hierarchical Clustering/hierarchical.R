@@ -136,23 +136,23 @@ ggplot(pca_df, aes(PC1, PC2, color = cluster_label, fill = cluster_label)) +
 
 }
 #   
-p <- ggplot(pca_df, aes(
-  PC1, PC2,
-  color = cluster_label,
-  text = participant_id
-)) +
-
-  geom_point(size = 2.0) +
-  theme_classic() +
-
-  guides(
-    fill = "none",
-    color = guide_legend(override.aes = list(size = 4))
-  ) +
-
-  labs(color = "Phenotype", title = "")
-
-ggplotly(p, tooltip = "text")
+# p <- ggplot(pca_df, aes(
+#   PC1, PC2,
+#   color = cluster_label,
+#   text = participant_id
+# )) +
+# 
+#   geom_point(size = 2.0) +
+#   theme_classic() +
+# 
+#   guides(
+#     fill = "none",
+#     color = guide_legend(override.aes = list(size = 4))
+#   ) +
+# 
+#   labs(color = "Phenotype", title = "")
+# 
+# ggplotly(p, tooltip = "text")
 
 stackedPlot <- function () {
   strategy_data <- read.csv("data/strategy_only_participants.csv")
@@ -343,24 +343,40 @@ legend.title = element_text(size = 14),
 legend.text = element_text(size = 14))   
 }
 
-
-lmRot <- function () {
+lmRot <- function() {
   pca_df <- runHClust() 
+  
+  print("=== GROUP DESCRIPTIVE STATISTICS ===")
   rotation_summary <- pca_df %>%
     group_by(rotation) %>%
     summarise(
       mean_PC1 = mean(PC1, na.rm = TRUE),
       sd_PC1   = sd(PC1, na.rm = TRUE),
+      mean_PC2 = mean(PC2, na.rm = TRUE),
+      sd_PC2   = sd(PC2, na.rm = TRUE),
       mean_PC3 = mean(PC3, na.rm = TRUE),
       sd_PC3   = sd(PC3, na.rm = TRUE),
       .groups = "drop"
     )
+  print(rotation_summary)
+  cat("\n") 
   
-  model <- lm(mean_PC3 ~ rotation, data = rotation_summary)
-  summary(lm(mean_PC3 ~ rotation, data = rotation_summary))
-
+  print("=== LINEAR MODEL: PC1 vs ROTATION ===")
+  model1 <- lm(PC1 ~ rotation, data = pca_df)
+  print(summary(model1))
+  cat("\n--------------------------------------------------\n\n")
+  
+  print("=== LINEAR MODEL: PC2 vs ROTATION ===")
+  model2 <- lm(PC2 ~ rotation, data = pca_df)
+  print(summary(model2))
+  cat("\n--------------------------------------------------\n\n")
+  
+  print("=== LINEAR MODEL: PC3 vs ROTATION ===")
+  model3 <- lm(PC3 ~ rotation, data = pca_df)
+  print(summary(model3))
 }
 
+lmPlot <- function () {
 ggplot(pca_df, aes(x = rotation, y = PC1)) +
   
   geom_point(
@@ -395,34 +411,8 @@ ggplot(pca_df, aes(x = rotation, y = PC1)) +
         axis.text = element_text(size = 14, color = "black"),
         legend.title = element_text(size = 14), 
         legend.text = element_text(size = 14))   
+}
 
-
-
-ggplot(pca_df, aes(x = rotation, y = -PC1, color = factor(rotation))) +
-  
-  geom_point(size = 2, alpha = 0.8) +
-  
-  geom_smooth(
-    method = "lm",
-    se = TRUE,
-    color = "#f94449",
-    fill = "grey70",
-    alpha = 0.2
-  ) +
-  
-  scale_color_manual(
-    values = c(
-      "20" = "#4cc9f0",
-      "30" = "#4895ef",
-      "40" = "#4261ee",
-      "50" = "#2835af",
-      "60" = "#12086f"
-    ),
-    name = "Rotation"
-  ) +
-  
-  theme_classic() +
-  labs(x = "Rotation", y = "PC1")
 
 
 
@@ -449,33 +439,32 @@ gap_stat <- clusGap(
 plot(gap_stat)
 
 
-ggplot(pca_df, aes(x = PC1, y = PC2, colour = "salmon")) +
-  # geom_polygon(data = hulls,
-  #              alpha = 0.15,      
-  #              linetype = "dashed",
-  #              linewidth = 0.5,
-  #              show.legend = FALSE) +
+
+plot_pca_triplot <- function() {
+  strategy_data <- read.csv("data/strategy_only_participants.csv")
+  pca_df <- runHClust() 
+
+  make_pca_plot <- function(x_var, y_var) {
+    ggplot(pca_df, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+      geom_point(size = 2.0, color = "salmon") + 
+      theme_classic() + 
+      coord_equal(xlim = c(-5, 5), ylim = c(-5, 5)) + 
+      theme(
+        legend.position = "None",
+        panel.background = element_rect(fill = "white", color = NA),
+        plot.background = element_rect(fill = "white", color = NA),
+        axis.line = element_line(color = "black"),
+        axis.title = element_text(size = 14),  
+        axis.text = element_text(size = 14, color = "black")   
+      )
+  }
   
-  geom_point(size = 2.0) + 
-  theme_classic() + 
+
+  p1 <- make_pca_plot("PC1", "PC2")
+  p2 <- make_pca_plot("PC1", "PC3")
+  p3 <- make_pca_plot("PC2", "PC3")
+
+  combined_plot <- p1 + p2 + p3 + plot_layout(ncol = 3)
   
-  coord_equal(xlim = c(-5, 5), ylim = c(-5, 5)) + 
-  
-  guides(
-    fill = "none", 
-    color = guide_legend(override.aes = list(
-      alpha = 1, 
-      size = 4, 
-      linetype = 0 
-    ))
-  ) +
-  
-  theme(
-    legend.key = element_blank(),
-    legend.position = "None",
-    panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA),
-    axis.line = element_line(color = "black"),
-    axis.title = element_text(size = 14),  
-    axis.text = element_text(size = 14, color = "black"),   
-  )
+  return(combined_plot)
+}
