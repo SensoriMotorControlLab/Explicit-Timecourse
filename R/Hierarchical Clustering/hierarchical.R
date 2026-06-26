@@ -136,23 +136,23 @@ ggplot(pca_df, aes(PC1, PC2, color = cluster_label, fill = cluster_label)) +
 
 }
 #   
-# p <- ggplot(pca_df, aes(
-#   PC1, PC2,
-#   color = cluster_label,
-#   text = participant_id   
-# )) +
-#   
-#   geom_point(size = 2.0) +
-#   theme_classic() +
-#   
-#   guides(
-#     fill = "none",
-#     color = guide_legend(override.aes = list(size = 4))
-#   ) +
-#   
-#   labs(color = "Phenotype", title = "")
-# 
-# ggplotly(p, tooltip = "text") 
+p <- ggplot(pca_df, aes(
+  PC1, PC2,
+  color = cluster_label,
+  text = participant_id
+)) +
+
+  geom_point(size = 2.0) +
+  theme_classic() +
+
+  guides(
+    fill = "none",
+    color = guide_legend(override.aes = list(size = 4))
+  ) +
+
+  labs(color = "Phenotype", title = "")
+
+ggplotly(p, tooltip = "text")
 
 stackedPlot <- function () {
   strategy_data <- read.csv("data/strategy_only_participants.csv")
