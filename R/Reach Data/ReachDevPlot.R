@@ -29,7 +29,7 @@ setupREACH <- function() {
   
   summary_data <- clean_data %>%
     group_by(rotation, norm_trial) %>%
-    summarise(
+    reframe(
       mean_reach = mean(reachdeviation_deg, na.rm = TRUE),
       ci = Reach::getConfidenceInterval(reachdeviation_deg),
       ci_lower = ci[1],
