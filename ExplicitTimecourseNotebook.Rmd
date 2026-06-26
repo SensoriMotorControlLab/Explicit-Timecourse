@@ -65,15 +65,19 @@ Source project code:
 ```{r}
 # load sources for this project
 source("R/data.R") 
-source("R/newcode.R") 
-source("R/AimDevPlot.R") 
-source("R/Clustering/learningAlg.R") 
-source("R/Clustering/distributions.R") 
-source("R/Clustering/KmeansXG.R") 
-source("R/Clustering/clusterBehaviours.R")
+source("R/learnerCount.R") 
+source("R/strategyCount.R") 
+source("R/aiming/AimDevPlot.R") 
+source("R/aiming/AimHistograms.R") 
+
+source("R/Hierarchical Clustering/FeatureSetup.R") 
+source("R/Hierarchical Clustering/hierarchical.R")
+source("R/Hierarchical Clustering/exparticipants.R") 
+source("R/Hierarchical Clustering/glm.R")
+
 source("R/Reach Data/ReachDevPlot.R")
 source("R/Reach Data/nocursorReaches.R")
-source("R/newstats.R") 
+source("R/statistics.R") 
 ```
 
 Download Files
@@ -131,15 +135,8 @@ strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 #### Statistics
 
-[Aiming stats script](newstats.R)
 
-**Is likelihood of strategy development predicted by rotation size?**
-- Logistic regression analysis to predict probability of developing a strategy.
-```{r}
-logAnalysis()
-```
 
-The odds of using a strategy are above 0 in the 20 degree group, however the odds of using a strategy is higher in all other rotations as compared to the 20 degree group.
 
 **Does aim magnitude vary across rotation sizes?**
 
@@ -147,33 +144,23 @@ The odds of using a strategy are above 0 in the 20 degree group, however the odd
 aimAOV()
 ```
 
-Taking the mean from the last 16 trials, One way anova shows an effect
-of rotation size (p<0.0001). Post-hoc tukey shows that the 60 degree group produces
-a higher aim strategy than all other groups. 50 degree is higher than 30 and 20 group. 40 degree is higher than the 20 group. 
 
-**Does aim variance vary across rotation sizes?**
-<br> - One way ANOVA (IV: Rotation, DV: final SD of aim) with Tukey test
+**Does reach magnitude vary across rotation sizes and strategy user?**
+<br> - Two way ANOVA comparing rotation and strategy
 
 ```{r}
-aimvarAOV()
+twoAnova()
 ```
-
-Taking the sd from the last 16 trials, one way anova shows an effect of
-rotation size (p=0.0005). Post-hoc tukey shows that participants in the 60°
-rotation group show significantly greater variability in their final
-performance than participants in the 20°, 30°, and 40° groups.
-
-**Is there an effect of rotation size for the timepoint of strategy-onset?**
-<br> - One-way ANOVA (IV: rotation, DV: trial)
 ```{r}
-startTrialAOV()
+postHoc()
 ```
+
 
 #### Visualization
 
 **Aiming Behaviour**
 ```{r}
-plotAIM2()
+plotAIM()
 ```
 
 
@@ -186,144 +173,132 @@ Tsay et al. 2024 initially suggested distinct classifications of
 strategies. We can therefore conduct a kMeans cluster analysis to identify patterns
 in our own data to determine if phenotypes other than gradual and stepwise exist.
 
-**1) Predicting individual participant learning phases**
-
-- First, we need to define a 'learning phase' finding the point of strategy onset to  when a strategy becomes stable, using a rolling window  analysis approach, 
-- Trial start: when a participants aim deviation exceeds the motor noise threshold of 5 degrees.
-- Trial end: when the SD of a participants aim deviation closely matches the SD of the final 16 aiming trials and 
-  remains within an SD of 1.9.
+**1) Using scaled Features derived from proposed patterns**
+Features capture standard deviation (baseline normalized), trial-trial changes, linearity (R^2), smoothness, directional sign flips (learning length normalized), jump_ratio, jump dominance.
 
 ```{r}
-xgRun()
+getFeatures()
 ```
 
-**We can also visually assign these timepoints and compare these classifcations to the XgBoost model's predictions:**
-
+Determine which features vary with rotation
 ```{r}
-plotStart()
+kruskalFeatures()
 ```
 ```{r}
-plotEnd()
+plotBox()
 ```
 
 
-
-**2) Run a PCA on participant NORMALIZED features to capture aim heterogeneity**
-
-FEATURES:
-<br> 1) SD of learning phase
-<br> 2) Length of learning phase
-<br> 3) Absolute trial to trial changes
-<br> 4) Number of clockwise (negative) aims
-<br> 5) largest_jump_frac: Measures distribution of changes - Low → changes are more distributed (gradual or multiple smaller steps)
-<br> 6) jump_ratio: Highest aim jump / mean of jump magnitudes - How extreme the largest jump is compared to typical jumps. Measures contrast between big vs small steps
-<br> 7) Smoothness in aiming - normalized sum of absolute trial-to-trial changes, providing a measure of local variability in the learning trajectory
-<br> 8) linearity - using the R² of a linear regression of aim over trials, capturing the extent to which behavior followed a consistent linear trend
-
-We do not include features that:
-
-1) Take loadings of features onto PC and multiplied them with percentage of explained variance and     summed Σ ( |pcLoading| x pcVariance ). Remove lowest importance scores.
-2) cannot be transformed to a normal distribution
-
-
-
-
-Run PCA to determine most highest feature loadings:
+**2) Run a PCA on participant z-score features to capture aim heterogeneity**
 ```{r}
-extract <- getFeaturesFromModel() 
-  
-model_df <- xgRun()
-strategy_data <- read.csv("data/strategy_only_participants.csv")
-
-features_df <- extract$features_df        
-k_input     <- extract$kmeans_input     
-k_scaled <- scale(k_input)
-
-# -------------------------------
-# PCA 
-pca <- prcomp(k_scaled, center = TRUE, scale. = FALSE)
+loadingTable()
 ```
-HIGHEST FEATURE LOADINGS within PC1 AND PC2:
-<br> - PC1 – Learning Duration and Trajectory Smoothness (num_sign_flips, jump ratio (which is negative) smoothness)
-<br> - PC2 - Learning variance (sd and trial-trial changes are negative so smaller =higher)
-
-For plotting we can pca$x*-1 to visualize patterns easier
-We can see which centres closely match participants' behavioural features by plotting the informative components in a 2D figure. <br> 
-
-```{r}
-plotComponents()
-```
-Thus, we have found three clusters or 'learning phenotypes that describe strategy heterogeneity. 
 
 
 **2) Determine which components are most informative**
-We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 2 components make the largest contribution to the total variance (~99%) with steeper slopes.
+We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 3 components make the largest contribution to the total variance (~80%) with steeper slopes.
 ```{r}
 plotScree()
 ```
 
+**3) Visualize the PCA space**
+```{r}
+plot_pca_triplot()
+```
 
-**3) Run an unsupervised kMeans clustering analysis on three most informative components**
+
+
+**4) How does the PCA space vary with rotation**
+```{r}
+plotRot()
+```
+
+60-degree group is far right on PC1 axis, 20 degree group is far left. We can run a linear regression to determine if differences are meaningful
+```{r}
+lmRot()
+```
+Since PC1 is only significant, plot linear relation:
+```{r}
+lmPlot()
+```
+
+
+**5) Run an HCA on most informative components**
 
 Compare clusters to visually predicted clusters
 ```{r}
-plotComponents1()
+library(dendextend)
+dendogram()
 ```
-
-Open circles represent participants that were clustered differently than pre-labeled.
-**Is cluster predicted by rotation size?**
-<br> - We can run a fisher's exact test with a monte carlo simulation to account for small cell count and large table frequency.
 
 ```{r}
-rotationEffect() 
+pcaPlot()
 ```
 
+Note we identify these clusters as partions along a continuum. Because the PCA space is not very separated, this supports the idea that strategy learnin exists along a spectrum. Identified clusters may represent main regions along this spectrum, but we acknowledge the existence of intermediate strategy patterns.
 
-
-#### What do group averages per cluster look like? Do we still find an inverted exponential decay function?
+**5) Do identified cluster dsitributions differ across rotation groups?**
 ```{r}
-normalizeClusters()
+stackedPlot()
 ```
 
-To determine whether asymptotic magnitude trial of reached asymptotic, variability of slope differ across cluster groups:
+*Run GLMs*
+Alternative model = likelihood of strategy * rotation
+Null Model = likelihood of strategy
+AICnull - AIcalt = >+, then alternative model is the better fit
+
+likelihood of strategy development (multinomial GLM) 
 ```{r}
-clusterMetrics()
+NonAIC()
 ```
 
+likelihood of cluster distribution (multinomial GLM)
+```{r}
+make_MUmodel()
+```
+
+since deltaAIC is over 2, we can see which exact cluster differs using binmial GLM for each cluster
+```{r}
+clusters_to_test <- setdiff(unique(proportions_combined$cluster_label), "Non-strategy")
+results <- do.call(rbind, lapply(clusters_to_test, make_model))
+results
+```
 
 
 ### No cursor reaches
 
-After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. We can use these trials to assess aftereffects and whether it changes across strategy/non-strategy-users and strategy phenotype.
+After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. We can use these trials to assess aftereffects and whether it changes across strategy/non-strategy-users and strategy phenotype. 
 
-####1) Do aftereffects differ across strategy levels including non learners?
+Here, we take the first 8 no cursor trials post rotation to account for all targets. We also baseline normalize from the final nocursor reach trials before the rotation. We should not expect differences in aftereffects (Modchalingam et al., 2019)
 
-
-First lets visualize washout in non learners :
-
+####1) Do aftereffects differ across rotation groups?
 ```{r}
-nonCSV()
+plotRotAfter()
+```
+```{r}
+rotAfterStats()
 ```
 
 
-Visualize washout in non strategy learners : 
-
-Visualize washout in the exploratory strategy group :
-
-Visualize washout in the stepwise strategy group :
-
-Visualize washout in the gradual strategy group :
-
-Run 4x5 mixed anova (rotation as within subs, strategy group as between) - exclude non Learners 
+####2) Do aftereffects differ across strategy vs non strategy?
 ```{r}
-fiveANOVA()
-```
-Run baysian 4x5 anova too:
-```{r}
-bfAnova()
+stratAfterPlot()
 ```
 
-<br> 
-This finding also aligns with a recent study assessing whether engaging in a cached vs parametric (mental rotation) strategy affects implicit learning captured by strategy exclusion trials. Wang & Taylor (2026) found that strategy type does not change how much implicit learning happens, but it affects the generalization across space with algorithmic strategy users (more variability in aiming) showing more implicit generalization.y 
+```{r}
+stratAfterStats()
+```
+
+
+####3) Do aftereffects differ across clusters?
+```{r}
+clusterAfterPlot()
+```
+
+```{r}
+clusterAfterStats()
+```
+
+
 
 
