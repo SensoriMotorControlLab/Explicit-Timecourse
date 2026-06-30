@@ -88,45 +88,6 @@ idealT <- function() {
 
 
 
-###2 way anovas comparing rotation & strategy use
-twoAnova <-function () {
-  strategy_df <- getStrategies()
-
-  # We select just participant_id, rotation, and strategy from strategy_df
-  strategy_data <- total_learners_data %>%
-    left_join(
-      strategy_df %>% select(participant_id, rotation, strategy), 
-      by = c("participant_id", "rotation")
-    )
-  
-  # 2. Filter for rotated trials and grab the last 8 trials
-  final_trials_data <- strategy_data %>%
-    filter(trial_type == "rotated") %>%
-    group_by(participant_id, rotation, strategy) %>%   
-    slice_tail(n = 8) %>%
-    ungroup()
-  
-  anova_ready_data <- final_trials_data %>%
-    group_by(participant_id, rotation, strategy) %>%
-    summarise(mean_reach_dev = mean(reachdeviation_deg, na.rm = TRUE),
-              .groups = 'drop')
-  
-
-  anova_ready_data$rotation <- factor(anova_ready_data$rotation)
-  anova_ready_data$strategy <- factor(anova_ready_data$strategy)
-  
-
-  print(table(anova_ready_data$rotation, anova_ready_data$strategy))
-  cat("\n")
-  
-
-  res_aov <- aov(mean_reach_dev ~ rotation * strategy, data = anova_ready_data)
-  
-  print("--- ANOVA RESULTS ---")
-  print(summary(res_aov))
-  return(res_aov)
-}
-
 
 postHoc <- function () {
  library(emmeans)
