@@ -211,7 +211,6 @@ run_tsne <- function() {
       legend.position = "right"
     )
   
-  print(p_tsne)
   
   list(
     tsne_fits = tsne_fits,
@@ -331,7 +330,6 @@ compare_rotation <- function() {
       fill = "Strategy"
     )
   
-  print(p_rotation)
   
   list(
     all_participants = all_participants,
