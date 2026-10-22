@@ -136,6 +136,15 @@ curveStats <- function() {
 
 magnitudeCorr <- function () {
 #get reach asymptote from fit
+  reach_rot <- total %>%
+    left_join(
+      strategy_df %>% select(participant_id, rotation, strategy),
+      by = c("participant_id", "rotation")
+    ) %>%
+    filter(trial_type == "rotated") %>%
+    group_by(participant_id, rotation, strategy) %>%
+    arrange(trial_idx, .by_group = TRUE)
+  
   reach_asymptote <- exp_fits %>%
   filter(strategy == "Yes") %>%
   mutate(
@@ -234,7 +243,7 @@ axis_max <- max(asymptote_df$aim_norm,
 speedCor <- function () {
   feature_results <- getFeatures()
   features <- feature_results$features
-
+  reach_asymptote <- magnitudeCorr()
 
 
   rate_df <- reach_asymptote %>%
