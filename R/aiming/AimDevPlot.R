@@ -7,6 +7,8 @@ library(Reach)
 
 setupAIM <- function() {
   strat_data <- read.csv("data/strategy_only_participants.csv")
+  strat_data <- strat_data[which(strat_data$cutrial_no > 100),]
+  strat_data <- strat_data[which(strat_data$cutrial_no < 232),]
   
   clean_data <- strat_data %>%
     filter(trial_type %in% c("aligned", "rotated")) %>%
@@ -182,11 +184,11 @@ plotAIM <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 34)",
-        "50° (n = 28)",
-        "40° (n = 24)",
-        "30° (n = 23)",
-        "20° (n = 10)"
+        "60° (n = 35/42)",
+        "50° (n = 29/42)",
+        "40° (n = 25/42)",
+        "30° (n = 23/42)",
+        "20° (n = 10/42)"
       ) 
     ) +
     scale_fill_manual(
@@ -196,11 +198,11 @@ plotAIM <- function() {
       ),
       breaks = c("60","50","40","30","20"),
       labels = c(
-        "60° (n = 34)",
-        "50° (n = 28)",
-        "40° (n = 24)",
-        "30° (n = 23)",
-        "20° (n = 10)"
+        "60° (n = 35/42)",
+        "50° (n = 29/42)",
+        "40° (n = 25/42)",
+        "30° (n = 23/42)",
+        "20° (n = 10/42)"
       )
       
     )+
@@ -363,6 +365,12 @@ ggplot(overall_ci, aes(x = cutrial_no, y = mean_aim)) +
 
 
 
+
+
+
+svglite(filename = "aim_plot.svg", width = 6, height = 3)
+plotAIM()
+dev.off()
 
 
 
