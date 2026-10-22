@@ -16,10 +16,10 @@ getData <- function() {
     repository = '6g3h7',
     filelist = list(
       'data/' = c(
-        'demographics.zip',
-       'Group_two_summary.zip',
-       'LearningClassifier.zip',
-       'StandardizedFeatures.zip'
+        'Full.zip',
+        'Demographics.csv',
+       'Summaries.zip',
+       'LearningClassifier.zip'
         )),
     folder = 'data/',
     overwrite = TRUE,
