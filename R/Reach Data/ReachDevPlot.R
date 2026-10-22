@@ -5,7 +5,9 @@ library(Reach)
 
 setupREACH <- function() {
   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  total_learners_data <- total_learners_data[which(total_learners_data$cutrial_no > 100),]
   
+
   clean_data <- total_learners_data %>%
     filter(trial_type %in% c("aligned", "rotated","nocursor")) %>%
     group_by(participant_id, rotation) %>%
@@ -136,7 +138,7 @@ plotREACH <- function() {
       axis.line = element_line(color = "black"),
       axis.title = element_text(size = 14),  
       axis.text = element_text(size = 14, color = "black"),
-      legend.position = "none"
+      # legend.position = "none"
       # axis.text.x  = element_text(size = 24),
       # axis.text.y  = element_text(size = 24),
       # axis.title.x = element_text(size = 17),
@@ -148,4 +150,9 @@ plotREACH <- function() {
 
 
 
+
+
+svglite(filename = "reach_plot.svg", width = 6, height = 3)
+plotREACH()
+dev.off()
 
