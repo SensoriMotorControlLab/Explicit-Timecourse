@@ -1,7 +1,7 @@
 library(readr)
 library(dplyr)
 
-load_total_group_data <- function(dir = "data/Group_two_summary/") {
+load_total_group_data <- function(dir = "data/summaries/") {
   
   rotations <- c(20, 30, 40, 50, 60)
   all_data <- list()
@@ -81,67 +81,67 @@ load_total_group_data <- function(dir = "data/Group_two_summary/") {
 
 ####LEARNERS
 getLearners <- function() {
-  total_group_data <- load_total_group_data("data/Group_two_summary/")
- # total_group_data <- total_group_data %>%
-   # filter(group != "Group 1")
+  total_group_data <- load_total_group_data("data/summaries/")
+  # total_group_data <- total_group_data %>%
+  # filter(group != "Group 1")
   
   total_group_data %>%
     group_by(participant_id) %>%
     summarise(n_rot = n_distinct(rotation)) %>%
     filter(n_rot > 1)
   
-learner_df <- total_group_data %>%
-  group_by(participant_id, group) %>%
-  group_modify(~{
-
-    df <- .x
-    group_name <- .y$group
-
-    # ----- DEFINE TASK STRUCTURE -----
-    if(group_name == "Group 1"){
-      rot_task <- 8
-      baseline_trials <- df %>%
-        filter(task_idx == 7)   # final baseline before rotation
-    } else {
-      rot_task <- 12
-      baseline_trials <- df %>%
-        filter(
-          (task_idx == 2 & trial_idx > 16) |
-          (task_idx == 4 & trial_idx > 4) |
-          task_idx %in% c(6, 8, 10)
-        )
-    }
-
-
-    baseline <- median(baseline_trials$reachdeviation_deg, na.rm = TRUE)
-
-    rotated <- df %>%
-      filter(task_idx == rot_task, trial_idx > 104)
-
-    rotated_median <- median(rotated$reachdeviation_deg, na.rm = TRUE)
-    rotation <- unique(rotated$rotation_deg)[1]
-
-    # ----- BASELINE CORRECTION -----
-    meandev <- rotated_median - baseline
-
-    # ----- DIRECTION NORMALIZE -----
-    meandev <- -sign(rotation) * meandev
-
-
-    is_learner <- meandev > (abs(rotation) / 2)
-
-    tibble(
-      rotation = rotation,
-      baseline = baseline,
-      rotated_median = rotated_median,
-      adjusted_dev = meandev,
-      is_learner = is_learner
-    )
-  }) %>%
-  ungroup()
-
+  learner_df <- total_group_data %>%
+    group_by(participant_id, group) %>%
+    group_modify(~{
+      
+      df <- .x
+      group_name <- .y$group
+      
+      # ----- DEFINE TASK STRUCTURE -----
+      if(group_name == "Group 1"){
+        rot_task <- 8
+        baseline_trials <- df %>%
+          filter(task_idx == 7)   # final baseline before rotation
+      } else {
+        rot_task <- 12
+        baseline_trials <- df %>%
+          filter(
+            (task_idx == 2 & trial_idx > 16) |
+              (task_idx == 4 & trial_idx > 4) |
+              task_idx %in% c(6, 8, 10)
+          )
+      }
+      
+      
+      baseline <- median(baseline_trials$reachdeviation_deg, na.rm = TRUE)
+      
+      rotated <- df %>%
+        filter(task_idx == rot_task, trial_idx > 104)
+      
+      rotated_median <- median(rotated$reachdeviation_deg, na.rm = TRUE)
+      rotation <- unique(rotated$rotation_deg)[1]
+      
+      # ----- BASELINE CORRECTION -----
+      meandev <- rotated_median - baseline
+      
+      # ----- DIRECTION NORMALIZE -----
+      meandev <- -sign(rotation) * meandev
+      
+      
+      is_learner <- meandev > (abs(rotation) / 2)
+      
+      tibble(
+        rotation = rotation,
+        baseline = baseline,
+        rotated_median = rotated_median,
+        adjusted_dev = meandev,
+        is_learner = is_learner
+      )
+    }) %>%
+    ungroup()
   
-
+  
+  
   learner_summary <- learner_df %>%
     group_by(rotation) %>%
     summarise(
@@ -157,9 +157,9 @@ learner_df <- total_group_data %>%
 }
 
 LearnerCSV <- function() {
-  total_group_data <- load_total_group_data("data/Group_two_summary/")
- 
-   learner_id <- getLearners() %>%
+  total_group_data <- load_total_group_data("data/summaries/")
+  
+  learner_id <- getLearners() %>%
     distinct(participant_id, rotation, group, .keep_all = TRUE)
   learner_id <- learner_id %>%
     mutate(rotation = abs(rotation))
