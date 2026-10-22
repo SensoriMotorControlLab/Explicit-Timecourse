@@ -50,7 +50,7 @@ renv::restore(prompt = FALSE)
 library('remotes')
 ip <- installed.packages()
 if ('Reach' %in% ip[,'Package']) {
-  if (ip[which(ip[,'Package'] == 'Reach'),'Version'] < "2025.02.16") {
+  if (ip[which(ip[,'Package'] == 'Reach'),'Version'] < "2026.09.21") {
     remotes::install_github('thartbm/Reach')
   }
 } else {
@@ -64,20 +64,23 @@ Source project code:
 
 ```{r}
 # load sources for this project
-source("R/data.R") 
-source("R/learnerCount.R") 
-source("R/strategyCount.R") 
-source("R/aiming/AimDevPlot.R") 
-source("R/aiming/AimHistograms.R") 
+files <- c(
+  "R/data.R",
+  "R/learnerCount.R",
+  "R/strategyCount.R",
+  "R/aiming/AimDevPlot.R",
+  "R/aiming/AimHistograms.R",
+  "R/Hierarchical Clustering/FeatureSetup.R",
+  "R/Hierarchical Clustering/hierarchical.R",
+  "R/Hierarchical Clustering/glm.R",
+  "R/Reach Data/ReachDevPlot.R",
+  "R/Reach Data/nocursorReaches.R",
+  "R/statistics.R",
+  "R/DTW.R",
+  "R/behaviouralCorrelations.R"
+)
 
-source("R/Hierarchical Clustering/FeatureSetup.R") 
-source("R/Hierarchical Clustering/hierarchical.R")
-source("R/Hierarchical Clustering/exparticipants.R") 
-source("R/Hierarchical Clustering/glm.R")
-
-source("R/Reach Data/ReachDevPlot.R")
-source("R/Reach Data/nocursorReaches.R")
-source("R/statistics.R") 
+invisible(lapply(files, source, local = .GlobalEnv))
 ```
 
 Download Files
@@ -85,7 +88,7 @@ Download Files
 getData()
 ```
 
-## Analysis
+## Behavioural Analysis
 
 ### Learning
 
@@ -98,9 +101,7 @@ LearnerCSV()
 
 This is determined by ensuring the baseline-corrected reachadeviation_deg median of the
 final 16 rotated trials is greater than 50% of the rotation magnitude
-received.
-
-Then we can filter out non-learners
+received.Then we can filter out non-learners.
 
 
 We can plot participant reach deviations to show the magnitude of
@@ -108,12 +109,9 @@ learning per rotation group
 
 ```{r}
 plotREACH()
-
 ```
 
 ### Aiming
-
-[Aiming analysis script](newcode.R)
 
 Did all learners have a strategy (ie, deviate their aim)?
 
@@ -121,10 +119,22 @@ Did all learners have a strategy (ie, deviate their aim)?
 strategySummary()
 ```
 
-We can use a 95% CI approach to determine strategy-users. A strategy
-will be defined to: 1) Within the last 8 trials of the rotation phase,
-each CI bound must be above 0 degrees 2) The lower bound must be above 5
-degrees to account for motor noise
+We can use a mean approach to determine strategy-users. First we can plot a kernal density plot of final strategy to determine a minimum threshold value for strategy-use. We can use density peaks to establish the minimal threshold for strategy use.
+```{r}
+density()
+```
+
+
+A strategy-user
+will be defined to have: 
+1) a mean above the threshold value within the last 8 trials of the rotation phase,
+2) no sign flips or negative aims within the final 8 trials.
+
+**Aiming Behaviour**
+```{r}
+plotAIM()
+```
+
 
 For further analysis, we can create a csv file for only strategy users.
 
@@ -134,8 +144,6 @@ strategy_data <- read.csv("data/strategy_only_participants.csv")
 ```
 
 #### Statistics
-
-
 
 
 **Does aim magnitude vary across rotation sizes?**
@@ -155,12 +163,48 @@ twoAnova()
 postHoc()
 ```
 
-
-#### Visualization
-
-**Aiming Behaviour**
+**How does strategy use affect total adaptation?
+1) Does magnitude of aim correlate with magitude of reach asymptote (N0)?
 ```{r}
-plotAIM()
+magnitudeCorr()
+```
+
+2) Does speed of strategy stabilization correlate to speed of reach learning rate (lambda) 
+```{r}
+speedCor()
+```
+
+### No cursor reaches
+After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. We can use these trials to assess aftereffects and whether it changes across strategy/non-strategy-users and strategy phenotype. 
+
+Here, we take the first 8 no cursor trials post rotation to account for all targets. We also baseline normalize from the final nocursor reach trials before the rotation. We should not expect differences in aftereffects (Modchalingam et al., 2019)
+
+####1) Do aftereffects differ across rotation groups?
+```{r}
+plotRotAfter()
+```
+```{r}
+rotAfterStats()
+```
+
+
+####2) Do aftereffects differ across strategy vs non strategy?
+```{r}
+stratAfterPlot()
+```
+
+```{r}
+stratAfterStats()
+```
+
+
+####3) Do aftereffects differ across clusters?
+```{r}
+clusterAfterPlot()
+```
+
+```{r}
+clusterAfterStats()
 ```
 
 
@@ -170,19 +214,15 @@ Inspired by D'Amario et al 2024 which first showed aiming patterns different fro
 an inverted exponential decay function, we noticed that not all participants develop
 strategies solely as a step or as an exponential process. We note different patterns as well.
 Tsay et al. 2024 initially suggested distinct classifications of
-strategies. We can therefore conduct a kMeans cluster analysis to identify patterns
-in our own data to determine if phenotypes other than gradual and stepwise exist.
+strategies. We can therefore conduct a hierarchical cluster analysis to identify patterns
+in our own data to determine if these proposed phenotypes exist.
 
 **1) Using scaled Features derived from proposed patterns**
-Features capture standard deviation (baseline normalized), trial-trial changes, linearity (R^2), smoothness, directional sign flips (learning length normalized), jump_ratio, jump dominance.
-
-```{r}
-getFeatures()
-```
+Features capture standard deviation (baseline normalized), trial-trial changes, linearity (R^2), smoothness, directional sign flips (learning length normalized), jump_ratio, jump dominance. NOTE: we standardize these features by z-scoring.
 
 Determine which features vary with rotation
 ```{r}
-kruskalFeatures()
+kruskalFeatures()$stats
 ```
 ```{r}
 plotBox()
@@ -196,7 +236,7 @@ loadingTable()
 
 
 **2) Determine which components are most informative**
-We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 3 components make the largest contribution to the total variance (~80%) with steeper slopes.
+We can create a plot that assesses cumulative variance explained across PC components. Here, we can calculate the variance of each component and divide by the variance sum. Looks like the first 3 components make the largest contribution to the total variance (~95%) with steeper slopes.
 ```{r}
 plotScree()
 ```
@@ -225,12 +265,6 @@ lmPlot()
 
 **5) Run an HCA on most informative components**
 
-Compare clusters to visually predicted clusters
-```{r}
-library(dendextend)
-dendogram()
-```
-
 ```{r}
 pcaPlot()
 ```
@@ -257,45 +291,25 @@ likelihood of cluster distribution (multinomial GLM)
 make_MUmodel()
 ```
 
-since deltaAIC is over 2, we can see which exact cluster differs using binmial GLM for each cluster
+since deltaAIC is under 2, we can also see if any exact cluster differs using binmial GLM for each cluster
 ```{r}
 clusters_to_test <- setdiff(unique(proportions_combined$cluster_label), "Non-strategy")
 results <- do.call(rbind, lapply(clusters_to_test, make_model))
 results
 ```
+Binomial GLMs revealed significant differences between exploratory and incremental strategies across rotation groups, with the rotation model providing a better fit.
 
+*Other Methods
 
-### No cursor reaches
-
-After 120 rotated trials, participants undergo 24 trials of no-cursor reaches. We can use these trials to assess aftereffects and whether it changes across strategy/non-strategy-users and strategy phenotype. 
-
-Here, we take the first 8 no cursor trials post rotation to account for all targets. We also baseline normalize from the final nocursor reach trials before the rotation. We should not expect differences in aftereffects (Modchalingam et al., 2019)
-
-####1) Do aftereffects differ across rotation groups?
+In Tsay (2024) and Ding (2026) they implement a soft-DTW. Let's create a soft-DTW matrix, and run an HCA on participant dissimilarities! We find comparable qualitative timecourses to the feature-based clusters! 
 ```{r}
-plotRotAfter()
+run_tsne()$p_tsne
 ```
 ```{r}
-rotAfterStats()
+compare_rotation()$p_rotation
 ```
 
 
-####2) Do aftereffects differ across strategy vs non strategy?
-```{r}
-stratAfterPlot()
-```
-```{r}
-stratAfterStats()
-```
-
-
-####3) Do aftereffects differ across clusters?
-```{r}
-clusterAfterPlot()
-```
-```{r}
-clusterAfterStats()
-```
 
 
 
