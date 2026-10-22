@@ -1,56 +1,88 @@
-
 runHClust <- function () {
-  model_df <- read.csv("data/LearningClassifier.csv") #for pre-xG boost labels
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   extract <- getFeatures() 
   features_z <- extract$features_z
-
-  k_input <- extract$kmeans_input
+  
+  k_input <- extract$input
   
   pca <- prcomp(k_input, center = FALSE, scale. = FALSE)
-  pca$x <- pca$x*-1
-  pca$rotation <- pca$rotation*-1
 
-
+  
   pca_df <- as.data.frame(pca$x[,1:3])
   colnames(pca_df) <- c("PC1","PC2","PC3")
   pca_df$participant_id <- features_z$participant_id
-
+  
   rotation_df <- strategy_data %>%
-  group_by(participant_id) %>%
-  summarise(
-    rotation = first(rotation),
-    .groups = "drop"
-  )
-
+    group_by(participant_id) %>%
+    summarise(
+      rotation = first(rotation),
+      .groups = "drop"
+    )
+  
   pca_df <- pca_df %>%
-  left_join(rotation_df, by = "participant_id")
-
-
+    left_join(rotation_df, by = "participant_id")
+  
+  
   distance_matrix <- dist(pca_df[, 1:3], method = "euclidean")
   hc <- hclust(distance_matrix, method = "ward.D2")
   pca_df$cluster_label <- as.factor(cutree(hc, k = 3))
-
-return(pca_df)
+  
+  return(pca_df)
 }
 
-dendogram <- function () {
- pca_df <- runHClust()
- 
- distance_matrix <- dist(pca_df[, 1:3], method = "euclidean")
- hc <- hclust(distance_matrix, method = "ward.D2")
-   library(dendextend)
+silAnalys <- function () {
+  pca_df <- runHClust()
   
-  dend <- as.dendrogram(hc)
+  distance_matrix <- dist(pca_df[, 1:3], method = "euclidean")
+  hc <- hclust(distance_matrix, method = "ward.D2")
   
-  dend <- color_branches(
-    dend,
-    h = 10,
-    col = c("#EAA178", "cyan", "orchid")
+  k_values <- 2:10
+  
+  sil_width <- sapply(k_values, function(k) {
+    
+    clusters_k <- cutree(hc, k = k)
+    
+    sil <- silhouette(
+      clusters_k,
+      distance_matrix
+    )
+    
+    mean(sil[, "sil_width"])
+  })
+  
+  sil_results <- data.frame(
+    k = k_values,
+    silhouette = sil_width
   )
   
-  # remove participant_id labels
-  labels(dend) <- rep("", length(labels(dend)))
+  print(sil_results)
+  
+}
+dendrogram_plot <- function() {
+  # 1. Get data and build hierarchical tree
+  pca_df <- runHClust()
+  distance_matrix <- dist(pca_df[, 1:3], method = "euclidean")
+  hc <- hclust(distance_matrix, method = "ward.D2")
+  
+  library(dendextend)
+  dend <- as.dendrogram(hc)
+  
+
+  cluster_colors <- c(
+    "1" = "orchid",
+    "2" = "cyan",
+    "3" = "#EAA178"
+  )
+  
+
+  clusters_ordered <- cutree(hc, k = 3)[order.dendrogram(dend)]
+  
+
+  dend <- color_branches(
+    dend, 
+    clusters = clusters_ordered, 
+    col = cluster_colors[as.character(unique(clusters_ordered))]
+  )
   
   plot(
     dend,
@@ -60,81 +92,65 @@ dendogram <- function () {
     cex.axis = 1.1,
     leaflab = "none"
   )
-  abline(h = 10, col = "grey", lty = 2)
   
+  abline(h = 10, col = "grey", lty = 2)
 }
 
 pcaPlot <- function () {
   pca_df <- runHClust() 
   
   pca_df <- pca_df %>%
-  mutate(cluster_label = case_when(
-    cluster_label == "3" ~ "One-Step",
-    cluster_label == "2" ~ "Multi-Step",
-    cluster_label == "1" ~ "Exploratory"
-    # cluster_label == "3" ~ "Delayed-Exploratory",
-    # cluster_label == "1" ~ "Light-Exploratory",
-    # cluster_label == "6" ~ "High-Exploratory"
-  ))
-
-
-# hulls <- pca_df %>%
-#   group_by(cluster_label) %>%
-#   slice(chull(PC1, PC2))
-
-ggplot(pca_df, aes(PC1, PC2, color = cluster_label, fill = cluster_label)) +
-  # 1. Hulls: Ensure alpha is low and show.legend is FALSE
-  # geom_polygon(data = hulls,
-  #              alpha = 0.15,      # Lower alpha helps if colors overlap
-  #              linetype = "dashed",
-  #              linewidth = 0.5,
-  #              show.legend = FALSE) +
-  
-
-  geom_point(size = 2.0) + 
-  theme_classic() + 
- 
-  scale_color_manual(values = c(
-    "One-Step"  = "orchid",
-    "Multi-Step"     = "cyan",
-    "Exploratory"   = "#EAA178"
-    # "Delayed-Exploratory" = "#fba0e3",
-    # "Light-Exploratory" = "#ffcff1",
-    # "High-Exploratory" = "#c54bbc"
-  )) +
-  scale_fill_manual(values = c(
-    "One-Step"  = "orchid",
-    "Multi-Step"     = "cyan",
-    "Exploratory"   = "#EAA178"
-    # "Delayed-Exploratory" = "#fba0e3",
-    # "Light-Exploratory" = "#ffcff1",
-    # "High-Exploratory" = "#c54bbc"
-  )) +
-  coord_cartesian(ylim=c(-5,5)) +
-  guides(
-    fill = "none", 
-    color = guide_legend(override.aes = list(
-      alpha = 1, 
-      size = 4, 
-      linetype = 0 
+    mutate(cluster_label = case_when(
+      cluster_label == "2" ~ "Incremental",
+      cluster_label == "3" ~ "Exploratory",
+      cluster_label == "1" ~ "One-Step"
     ))
-  ) +
-  coord_fixed(ratio = 1, ylim = c(-5, 5)) +
-  labs(color = "Cluster", title = "") +
   
-  theme(
-    legend.key = element_blank(),
-    panel.background = element_rect(fill = "white", color = NA),
-    plot.background = element_rect(fill = "white", color = NA),
-    panel.grid.major = element_line(color = "grey90"),
+  
+  
+  ggplot(pca_df, aes(PC1, PC2, color = cluster_label, fill = cluster_label)) +
+  
+
+    
+    geom_point(size = 2.0) + 
+    theme_classic() + 
+    
+    scale_color_manual(values = c(
+      "One-Step"  = "orchid",
+      "Incremental"     = "cyan",
+      "Exploratory"   = "#EAA178"
+    )) +
+    scale_fill_manual(values = c(
+      "One-Step"  = "orchid",
+      "Incremental"     = "cyan",
+      "Exploratory"   = "#EAA178"
+    )) +
+    coord_cartesian(ylim=c(-5,5)) +
+    guides(
+      fill = "none", 
+      color = guide_legend(override.aes = list(
+        alpha = 1, 
+        size = 4, 
+        linetype = 0 
+      ))
+    ) +
+    coord_fixed(ratio = 1, ylim = c(-5, 5)) +
+    labs(color = "Cluster", title = "") +
+    
+    theme(
+      legend.key = element_blank(),
+      panel.background = element_rect(fill = "white", color = NA),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.grid.major = element_line(color = "grey90"),
       axis.line = element_line(color = "black"),
       axis.title = element_text(size = 14),  
       axis.text = element_text(size = 14, color = "black"),
-    legend.title = element_text(size = 14), 
-    legend.text = element_text(size = 14)    
+      legend.title = element_text(size = 14), 
+      legend.text = element_text(size = 14)    
     )
-
+  
 }
+
 #   
 # p <- ggplot(pca_df, aes(
 #   PC1, PC2,
@@ -159,9 +175,9 @@ stackedPlot <- function () {
   pca_df <- runHClust() 
   pca_df <- pca_df %>%
     mutate(cluster_label = case_when(
-      cluster_label == "3" ~ "One-Step",
-      cluster_label == "2" ~ "Multi-Step",
-      cluster_label == "1" ~ "Exploratory"
+      cluster_label == "2" ~ "Incremental",
+      cluster_label == "3" ~ "Exploratory",
+      cluster_label == "1" ~ "One-Step"
     ))
   
   unique_participants <- strategy_data %>%
@@ -210,7 +226,7 @@ stackedPlot <- function () {
   levels = c(
     "Non-strategy",
     "One-Step",
-    "Multi-Step",
+    "Incremental",
     "Exploratory"
   
   )
@@ -231,14 +247,15 @@ ggplot(
     width = 0.7
   ) +
   scale_y_continuous(
-    limits = c(0, 100),
+    breaks = seq(0, 100, 25),
     labels = function(x) paste0(x, "%")
   ) +
+  coord_cartesian(ylim = c(0, 100)) +
   scale_fill_manual(
     values = c(
       "Non-strategy" = "white",
       "One-Step"  = "orchid",
-      "Multi-Step"     = "cyan",
+      "Incremental"     = "cyan",
       "Exploratory"   = "#EAA178"
      
       
@@ -291,7 +308,7 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     inherit.aes = FALSE
   ) +
   
-
+  coord_fixed(ratio = 1) +
   geom_segment(
     data = rotation_summary,
     aes(
@@ -305,7 +322,6 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     inherit.aes = FALSE
   ) +
   
-
   geom_point(
     data = rotation_summary,
     aes(x = mean_PC1, y = mean_PC2, color = factor(rotation)),
@@ -314,7 +330,10 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     stroke = 2,
     inherit.aes = FALSE
   ) +
-  coord_cartesian(ylim=c(-5,5)) +
+  coord_cartesian(
+    xlim = c(-5, 5),
+    ylim = c(-5, 5)
+  ) +
 
   geom_text(
     data = rotation_summary,
@@ -322,7 +341,7 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     nudge_y = 0.15,
     inherit.aes = FALSE
   ) +
-  
+
   # 5 distinct colors for rotation
   scale_color_manual(
     values = c(
@@ -335,7 +354,9 @@ ggplot(pca_df, aes(x = PC1, y = PC2)) +
     name = "Rotation"
   ) +
   theme_classic() +
-  labs(x = "PC1", y = "PC2") +
+  labs(
+    x = "PC1",
+    y = "PC2") +
   theme(axis.line = element_line(color = "black"),
 axis.title = element_text(size = 14),  
 axis.text = element_text(size = 14, color = "black"),
@@ -344,7 +365,7 @@ legend.text = element_text(size = 14))
 }
 
 lmRot <- function() {
-  pca_df <- runHClust() 
+  pca_df <- runHClust()
   
   print("=== GROUP DESCRIPTIVE STATISTICS ===")
   rotation_summary <- pca_df %>%
@@ -374,10 +395,20 @@ lmRot <- function() {
   print("=== LINEAR MODEL: PC3 vs ROTATION ===")
   model3 <- lm(PC3 ~ rotation, data = pca_df)
   print(summary(model3))
+  
+  r1 <- cor(pca_df$rotation, pca_df$PC1, use = "complete.obs")
+  r2 <- cor(pca_df$rotation, pca_df$PC2, use = "complete.obs")
+  r3 <- cor(pca_df$rotation, pca_df$PC3, use = "complete.obs")
+  
+  cat("r (PC1 ~ rotation):", round(r1, 3), "\n")
+  cat("r (PC2 ~ rotation):", round(r2, 3), "\n")
+  cat("r (PC3 ~ rotation):", round(r3, 3), "\n\n")
 }
 
+
 lmPlot <- function () {
-ggplot(pca_df, aes(x = rotation, y = PC1)) +
+  pca_df <- runHClust()
+  ggplot(pca_df, aes(x = rotation, y = PC3)) +
   
   geom_point(
     aes(color = factor(rotation)),
@@ -405,7 +436,7 @@ ggplot(pca_df, aes(x = rotation, y = PC1)) +
   ) +
   
   theme_classic() +
-  labs(x = "Rotation", y = "PC1") +
+  labs(x = "Rotation", y = "PC3") +
   theme(axis.line = element_line(color = "black"),
         axis.title = element_text(size = 14),  
         axis.text = element_text(size = 14, color = "black"),
@@ -416,27 +447,41 @@ ggplot(pca_df, aes(x = rotation, y = PC1)) +
 
 
 
-##gap statistic
+##determine k number
 
-library(cluster)
+library(NbClust)
 
-hc_fun <- function(x, k) {
-  distance_matrix <- dist(x, method = "euclidean")
-  hc <- hclust(distance_matrix, method = "ward.D2")
-  
-  list(cluster = cutree(hc, k))
+clusterNum <- function () {
+  pca_df <- runHClust()
+  nb_result <- NbClust(
+  data = pca_df[, c("PC1", "PC2", "PC3")], 
+  distance = "euclidean", 
+  min.nc = 2, 
+  max.nc = 10, 
+  method = "ward.D2", 
+  index = "all" # Evaluates ~30 indices (or specify a single one like "gap" or "silhouette")
+  )
+
+
+  print(nb_result$Best.nc)
+  votes <- as.data.frame(
+  table(nb_result$Best.nc["Number_clusters", ])
+  )
+
+  colnames(votes) <- c("k", "votes")
+
+  votes$k <- as.numeric(as.character(votes$k))
+  votes <- votes[votes$k > 0, ]
+  votes <- votes[order(-votes$votes), ]
+
+  print(votes)
+
+
+  best_k <- votes$k[which.max(votes$votes)]
+
+  cat("Most recommended number of clusters:", best_k, "\n")
+  cat("Number of votes:", max(votes$votes), "\n")
 }
-
-set.seed(123)
-
-gap_stat <- clusGap(
-  pca_df[, c("PC1", "PC2", "PC3")],
-  FUNcluster = hc_fun,
-  K.max = 10,
-  B = 500
-)
-
-plot(gap_stat)
 
 
 
@@ -446,7 +491,7 @@ plot_pca_triplot <- function() {
 
   make_pca_plot <- function(x_var, y_var) {
     ggplot(pca_df, aes(x = .data[[x_var]], y = .data[[y_var]])) +
-      geom_point(size = 2.0, color = "salmon") + 
+      geom_point(size = 2.0, color = "#B8B0E8") + 
       theme_classic() + 
       coord_equal(xlim = c(-5, 5), ylim = c(-5, 5)) + 
       theme(
@@ -468,3 +513,4 @@ plot_pca_triplot <- function() {
   
   return(combined_plot)
 }
+
