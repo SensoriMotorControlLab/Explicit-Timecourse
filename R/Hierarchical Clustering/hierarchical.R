@@ -509,7 +509,7 @@ plot_pca_triplot <- function() {
   p2 <- make_pca_plot("PC1", "PC3")
   p3 <- make_pca_plot("PC2", "PC3")
 
-  combined_plot <- p1 + p2 + p3 + plot_layout(ncol = 3)
+  combined_plot <- patchwork::wrap_plots(p1, p2, p3, ncol = 3)
   
   return(combined_plot)
 }
