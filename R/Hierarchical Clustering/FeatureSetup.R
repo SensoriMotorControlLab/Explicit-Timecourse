@@ -1,7 +1,9 @@
 getFeatures <- function() {
   
-  model_df <- read.csv("data/LearningClassifier.csv") #pre xG driven timepoints are here too!
-  strategy_data <- read.csv("data/strategy_only_participants.csv")
+  strategy_data <- read.csv(
+    "data/strategy_only_participants.csv",
+    stringsAsFactors = FALSE
+  )
   
   numeric_cols <- c(
     "learning_sd",
@@ -16,6 +18,8 @@ getFeatures <- function() {
   
   features <- data.frame(
     participant_id = character(),
+    onset_trial = numeric(),
+    stable_trial = numeric(),
     learning_sd = numeric(),
     learning_length = numeric(),
     learning_abs_diff = numeric(),
@@ -24,128 +28,308 @@ getFeatures <- function() {
     largest_jump_frac = numeric(),
     lin_r2 = numeric(),
     smoothness = numeric(),
-    # onset_trial = numeric(),
-    # stable_trial = numeric(),
     stringsAsFactors = FALSE
   )
   
-  for (i in seq_len(nrow(model_df))) {
+  
+  
+  ids <- unique(strategy_data$participant_id)
+  
+  for (i in seq_along(ids)) {
     
-    id <- model_df$participant_id[i]
-    onset <- model_df$trial.start[i]
-    stable <- model_df$trial.end[i]
+    id <- ids[i]
     
-    ##some participants have immediate step, but I cannot find sd from less than 3 values 
-    if ((stable - onset) < 3) {
-      stable <- onset + 3
-    }
+    d_all <- strategy_data %>%
+      filter(participant_id == id) %>%
+      arrange(cutrial_no)
     
-    if (is.na(onset) || is.na(stable)) next
+    d_rot <- strategy_data %>%
+      filter(
+        participant_id == id,
+        trial_type == "rotated"
+      ) %>%
+      arrange(cutrial_no)
     
-    d_all <- subset(strategy_data, participant_id == id)
-    d_rot <- subset(strategy_data,
-                    participant_id == id &
-                      trial_type == "rotated")
     
-    if (nrow(d_rot) < 2 || nrow(d_all) < 2) next
+    # need enough rotated trials for stabilization calculation
+    if (nrow(d_rot) < 10 || nrow(d_all) < 2) next
+    
     
     aim <- d_rot$aimdeviation_deg
+    
+    # rotation-relative trial number
     trials <- d_rot$trial_idx
     
-    # baseline (fixed trial window)
-    baseline_aim <- (
-      d_all$aimdeviation_deg[
-        d_all$cutrial_no >= 105 &
-          d_all$cutrial_no <= 112
-      ]
-    ) 
-    # / rotation
+    
+    # ----------------------------------------------------------
+    # STRATEGY ONSET
+    # First rotated trial where aim > 5 degrees
+    # ----------------------------------------------------------
+    
+    onset_idx <- which(aim > 5.75)[1]
+    
+    if (is.na(onset_idx)) next
+    
+    onset <- trials[onset_idx]
+    
+
+# ----------------------------------------------------------
+# 85% of final strategy + mean absolute change < 5°
+# Eight-trial moving window
+# ----------------------------------------------------------
+
+  window <- 8
+  strategy_threshold <- 0.85
+  change_threshold <- 5
+
+  n <- length(aim)
+
+  if (n < window) next
+
+  # final strategy: median of final 8 rotated trials
+  final_strategy <- median(tail(aim, 8), na.rm = TRUE)
+
+  # Candidate windows beginning at onset
+  if (onset_idx > n - window + 1) next
+
+  starts <- seq.int(onset_idx, n - window + 1)
+
+  # Calculate median aim and mean absolute change
+  medians <- sapply(starts, function(i) {
+   median(aim[i:(i + window - 1)])
+  })
+
+  changes <- sapply(starts, function(i) {
+   mean(abs(diff(aim[i:(i + window - 1)])))
+  })
+
+
+# ----------------------------------------------------------
+# Find stabilization
+# ----------------------------------------------------------
+
+qualifies <- medians >=
+  strategy_threshold * final_strategy &
+  changes < change_threshold &
+  starts > onset_idx
+
+if (any(qualifies)) {
+
+  # First window satisfying both conditions
+  stable_idx <- starts[which(qualifies)[1]]
+
+} else {
+
+  # Find window closest to satisfying both conditions
+  eligible <- which(starts > onset_idx)
+
+  if (length(eligible) == 0) next
+
+  score <- pmax(
+    0,
+    strategy_threshold * final_strategy - medians
+  ) + pmax(
+    0,
+    changes - change_threshold
+  )
+
+  best <- eligible[which.min(score[eligible])]
+
+  stable_idx <- starts[best]
+}
+
+
+stable <- trials[stable_idx]
+
+# Stabilization must occur after onset
+if (stable <= onset) next
+
+    # baseline aim
+    
+    baseline_aim <- d_all$aimdeviation_deg[
+      d_all$cutrial_no >= 105 &
+        d_all$cutrial_no <= 112
+    ]
+    
+    baseline_aim <- baseline_aim[!is.na(baseline_aim)]
     
     if (length(baseline_aim) < 2) next
     
-    baseline_mean <- mean(baseline_aim, na.rm = TRUE)
+    baseline_mean <- mean(baseline_aim)
     
-    # learning window
-    learning_idx <- which(trials >= onset & trials <= stable)
+    
+    # LEARNING WINDOW
+    # onset -> stabilization
+    
+    learning_idx <- which(
+      trials >= onset &
+        trials <= stable
+    )
+    
     learning_aim <- aim[learning_idx]
+    
+
+    learning_aim <- learning_aim[!is.na(learning_aim)]
     
     if (length(learning_aim) < 2) next
     
-    # align metadata
-    onset_trial <- onset
-    stable_trial <- stable
     
-    # ===== FEATURES =====
-    
+
+    #normalize by baseline
     learning_centered <- learning_aim - baseline_mean
     
+    
+    # ==========================================================
+    # FEATURES
+    # ==========================================================
+    
+    # variability during learning
     learning_sd <- sd(learning_centered)
+    
+    
+    # duration of learning period
     learning_length <- length(learning_aim)
     
+    
+    # trial-to-trial changes
     diffs <- diff(learning_aim)
     
+    
+    # average absolute trial-to-trial change
     learning_abs_diff <- mean(abs(diffs))
     
-    num_sign_flips <- sum(diff(sign(diffs)) != 0)
-    num_sign_flips_prop <- num_sign_flips / learning_length
+    
+    
+    # SIGN FLIPS
+    # changes in direction of trial-to-trial aiming changes
+    
+    num_sign_flips <- sum(
+      diff(sign(diffs)) != 0
+    )
+    
+    num_sign_flips_prop <- 
+      num_sign_flips / learning_length
+    
+    
     
     # jump features
+    
     max_jump <- max(abs(diffs))
     mean_jump <- mean(abs(diffs))
     
-    jump_ratio <- max_jump / (mean_jump + 1e-6)
+    jump_ratio <- 
+      max_jump / (mean_jump + 1e-6)
     
-    largest_jump_frac <- max(abs(diffs)) /
+    largest_jump_frac <- 
+      max_jump /
       (sum(abs(diffs)) + 1e-6)
     
-    smoothness <- sum(abs(diffs)) /
-      (max(abs(diffs)) * length(diffs) + 1e-6)
+    
+    
+    # smoothness
+    
+    smoothness <- 
+      sum(abs(diffs)) /
+      (
+        max_jump * length(diffs) +
+          1e-6
+      )
+    
     
     # linear trend
+    
     t <- seq_along(learning_aim)
-    lin_r2 <- summary(lm(learning_aim ~ t))$r.squared
     
-    # NA safety
-    learning_sd <- ifelse(is.na(learning_sd), 0, learning_sd)
-    learning_abs_diff <- ifelse(is.na(learning_abs_diff), 0, learning_abs_diff)
-    num_sign_flips <- ifelse(is.na(num_sign_flips), 0, num_sign_flips)
+    lin_r2 <- summary(
+      lm(learning_aim ~ t)
+    )$r.squared
     
-    ## add amount (magnitude) of stabilization at end how much does it stabilize is key 
     
+    
+    # NA / Inf SAFETY
+    learning_sd <- ifelse(
+      is.finite(learning_sd),
+      learning_sd,
+      0
+    )
+    
+    learning_abs_diff <- ifelse(
+      is.finite(learning_abs_diff),
+      learning_abs_diff,
+      0
+    )
+    
+    num_sign_flips_prop <- ifelse(
+      is.finite(num_sign_flips_prop),
+      num_sign_flips_prop,
+      0
+    )
+    
+    jump_ratio <- ifelse(
+      is.finite(jump_ratio),
+      jump_ratio,
+      0
+    )
+    
+    largest_jump_frac <- ifelse(
+      is.finite(largest_jump_frac),
+      largest_jump_frac,
+      0
+    )
+    
+    smoothness <- ifelse(
+      is.finite(smoothness),
+      smoothness,
+      0
+    )
+    
+    lin_r2 <- ifelse(
+      is.finite(lin_r2),
+      lin_r2,
+      0
+    )
     
     
     features <- rbind(
       features,
       data.frame(
         participant_id = id,
+        onset_trial = onset,
+        stable_trial = stable,
         learning_sd = learning_sd,
-        learning_abs_diff = learning_abs_diff,
         learning_length = learning_length,
+        learning_abs_diff = learning_abs_diff,
         num_sign_flips_prop = num_sign_flips_prop,
         jump_ratio = jump_ratio,
         largest_jump_frac = largest_jump_frac,
         lin_r2 = lin_r2,
         smoothness = smoothness,
-        # onset_trial = onset_trial,
-        # stable_trial = stable_trial,
         stringsAsFactors = FALSE
       )
     )
   }
   
+  
+  
+  # STANDARDIZE FEATURES
   features_z <- features %>%
-    mutate(across(all_of(numeric_cols), ~ as.numeric(scale(.)))) %>%
+    mutate(
+      across(
+        all_of(numeric_cols),
+        ~ as.numeric(scale(.))
+      )
+    ) %>%
     ungroup()
   
-  return(list(
-    features_z = features_z,
-    kmeans_input = features_z[, numeric_cols]
-  ))
   
- 
+  return(
+    list(
+      features = features,
+      features_z = features_z,
+      input = features_z[, numeric_cols]
+    )
+  )
 }
-
-
 
 testFeatures <- function () {
   pca <- prcomp(k_input, center = TRUE, scale. = FALSE)
@@ -164,61 +348,26 @@ testFeatures <- function () {
   
 }
 
-feature_table <- data.frame(
-  Feature = c(
-    "Aiming Variability",
-    "Aiming Phase Length",
-    "Absolute Trial Differences",
-    "Directional Sign Flips",
-    "Abruptness index",
-    "Largest Step Index",
-    "Linearity of Adaptation",
-    "Smoothness Index"
-  ),
-  Description = c(
-    "Baseline-corrected SD of aiming deviation",
-    "Number of learning trials",
-    "Mean absolute trial-to-trial change",
-    "Proportion of directional sign changes",
-    "Max jump / mean jump magnitude",
-    "Largest jump contribution",
-    "Linear trend R²",
-    "Trajectory smoothness index"
-  ),
-  Interpretation = c(
-    "Variability of aiming behavior",
-    "Time required to reach a stable strategy",
-    "Magnitude of behavioral adjustments",
-    "Instability in movement direction",
-    "Presence of abrupt strategy transitions",
-    "Dominance of a single large adjustment",
-    "Degree of linearity in adaptation trajectory",
-    "Smoothness versus abruptness of trajectory"
+testFeatures <- function () {
+  pca <- prcomp(k_input, center = TRUE, scale. = FALSE)
+  var_explained <- (pca$sdev^2) / sum(pca$sdev^2)
+  abs_loadings <- abs(pca$rotation)
+  
+  # weighted contribution per feature per PC
+  weighted <- abs_loadings %*% var_explained
+  
+  feature_importance <- data.frame(
+    feature = rownames(pca$rotation),
+    importance = as.numeric(weighted)
   )
-)
+  
+  feature_importance <- feature_importance[order(-feature_importance$importance), ]
+  
+}
 
-
-library(gt)
-feature_table |> 
-  gt() |> 
-  tab_header(
-    title = md("**Feature Summary**"),
-    subtitle = ""
-  ) |> 
-  cols_label(
-    Feature = md("**Feature Name**"),
-    Description = md("**Description / Calculation**"),
-    Interpretation = md("**Behavioral Interpretation**")
-  ) |> 
-  tab_options(
-    table.width = pct(100),
-    column_labels.background.color = "#f4f4f4",
-    table.font.size = "14px"
-  )
 
 
 plotScree <- function () {
-  model_df <- read.csv("data/LearningClassifier.csv") #for pre-xG boost labels
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   extract <- getFeatures() 
   features_z <- extract$features_z
@@ -259,7 +408,7 @@ plotScree <- function () {
 ##now determine whether features differ with rotation
 
 kruskalFeatures <- function () {
-featuresFile <- read.csv("data/StandardizedFeatures.csv")
+featuresFile <- getFeatures()$features_z
 strategy_data <- read.csv("data/strategy_only_participants.csv")
 
 strategy_unique <- strategy_data %>%
@@ -311,11 +460,16 @@ return(list(
 
 ## plot box plots per rotation ##
 plotBox <- function() {
+  # Load required packages inside the function
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
   
+  # Fetch data
   out <- kruskalFeatures()
   df_merged <- out$data
   
-  
+  # Define custom colors per rotation
   rot_cols <- c(
     "20" = "#4cc9f0",
     "30" = "#4895ef",
@@ -324,44 +478,90 @@ plotBox <- function() {
     "60" = "#12086f"
   )
   
-  ggplot(df_merged,
-         aes(x = factor(rotation),
-             y = smoothness,
-             fill = factor(rotation))) +
-    
+  # Order of all 8 features
+  features <- c(
+    "learning_sd", "learning_length", "learning_abs_diff", 
+    "num_sign_flips_prop", "jump_ratio", "largest_jump_frac", 
+    "lin_r2", "smoothness"
+  )
+  
+  # 1. Reshape data from wide to long format for faceting
+  df_long <- df_merged %>%
+    pivot_longer(cols = all_of(features), names_to = "feature", values_to = "value") %>%
+    mutate(feature = factor(feature, levels = features)) 
+  
+  # 2. Position asterisks LOWER (with fixed y limits, we can place them right at y = 4.5)
+  anno_df <- data.frame(
+    feature = factor(features, levels = features),
+    label = case_when(
+      features == "learning_sd"       ~ "***",  # p = 0.000101
+      features == "learning_abs_diff" ~ "**",  # p = 0.000763
+      TRUE                           ~ ""      
+    ),
+    x = 3,   # Centered over the "40" rotation
+    y = 4.5  # Fixed height below the upper limit of 5
+  ) %>%
+    filter(label != "") 
+  
+  # 3. Clean display labels for your 8 features
+  feature_labels <- c(
+    "learning_sd"         = "Aiming Variability",
+    "learning_length"     = "Strategy Development Duration",
+    "learning_abs_diff"   = "Absolute Trial Differences",
+    "num_sign_flips_prop" = "Directional Sign Flips",
+    "jump_ratio"          = "Abruptness index",
+    "largest_jump_frac"   = "Largest Step Index",
+    "lin_r2"              = "Linearity of Adaptation",
+    "smoothness"          = "Smoothness Index"
+  )
+  
+  # 4. Generate the plot
+  ggplot(df_long, aes(x = factor(rotation), y = value, fill = factor(rotation))) +
     geom_boxplot(
       alpha = 0.75,
       outlier.shape = NA,
       width = 0.6,
       color = "grey25"
     ) +
-    
     geom_jitter(
       width = 0.12,
       alpha = 0.35,
       size = 1,
       color = "black"
     ) +
-    coord_cartesian(ylim = c(-2, 5)) +
-    scale_y_continuous(breaks = c(-2, 0, 2, 4)) +
+    
+    # 4 columns and 2 rows. Removed scales="free_y" so all subplots match.
+    facet_wrap(~ feature, ncol = 4, labeller = as_labeller(feature_labels)) +
+    
+    # Enforce uniform y-axis boundaries and tick marks (-3 to 5)
+    coord_cartesian(ylim = c(-3, 5)) +
+    scale_y_continuous(breaks = -3:5) +
     scale_fill_manual(values = rot_cols) +
+    
+    # Layer the significance asterisks uniformly
+    geom_text(
+      data = anno_df, 
+      aes(x = x, y = y, label = label), 
+      inherit.aes = FALSE, 
+      size = 6, 
+      fontface = "bold",
+      vjust = 0.5
+    ) +
     
     labs(
       x = "Rotation magnitude (°)",
-      y = "Smoothness Index"
+      y = "Feature Value"
     ) +
     
     theme_classic(base_size = 12) +
-    
     theme(
       legend.position = "none",
-      axis.title = element_text(face = "bold"),
-      axis.text = element_text(color = "black")
-    ) +
-    annotate("text",
-             x = 3, y = 5,
-             label = "",
-             size = 8)
+      axis.line = element_line(color = "black"),
+      axis.title = element_text(size = 14),  
+      axis.text = element_text(size = 11, color = "black"), 
+      strip.text = element_text(size = 11, face = "bold"), 
+      strip.background = element_blank()                  
+    ) 
 }
 
 
@@ -381,7 +581,7 @@ loadingTable <- function () {
   
   features <- c(
     "Aiming Variability",
-    "Aiming Phase Length",
+    "Strategy Development Duration",
     "Absolute Trial Differences",
     "Directional Sign Flips",
     "Abruptness Index",
@@ -421,5 +621,4 @@ loadingTable <- function () {
   
   
 }
-
 
