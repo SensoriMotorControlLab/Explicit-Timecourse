@@ -193,7 +193,7 @@ clusterAfterStats <- function () {
 
   print("--- Phenotype Cluster ANOVA ---")
   print(summary(aov(aftereffect ~ cluster_label, data = cluster_anova_df)))
-  return(cluster_anova_df)
+  return(invisible(cluster_anova_df))
 }
 
 clusterAfterBox <- function () {
