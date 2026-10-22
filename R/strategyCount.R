@@ -13,9 +13,9 @@ density <- function() {
       .groups = "drop"
     )
   
-  density_data <- density(
+  density_data <- stats::density(
     last_16_participant_means$mean_aim,
-    bw = 1
+    bw = 2
   )
   
   plot(
@@ -54,7 +54,7 @@ density <- function() {
   text(
     x = 0,
     y = max(density_data$y) * 1.05,
-    labels = "Non-strategy users",
+    labels = "Non-strategy",
     col = "grey30",
     cex = 0.8,
     pos = 3,
@@ -64,7 +64,7 @@ density <- function() {
   text(
     x = 14.8,
     y = max(density_data$y) * 1.05,
-    labels = "Strategy users",
+    labels = "Strategy Users",
     col = "grey30",
     cex = 0.8,
     pos = 3,
