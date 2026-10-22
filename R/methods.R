@@ -166,7 +166,6 @@ ggplot() +
 ####
 plotSchedule <- function() {
   
-  
   schedule <- data.frame(
     phase = c(
       "Aligned", "No-cursor", "Aligned", "Error-clamp",
@@ -183,16 +182,19 @@ plotSchedule <- function() {
   schedule <- schedule %>%
     mutate(
       condition = phase,
-      row = 1
-    ) %>%
-    mutate(
+      row = 1,
       end = cumsum(trials),
       start = lag(end, default = 0),
       mid = (start + end) / 2,
-      # Make text white on dark blue blocks, black on others for readability
-      text_color = ifelse(phase == "No-cursor", "white", "black")
+      text_color = ifelse(
+        phase == "No-cursor",
+        "white",
+        "black"
+      )
     )
   
+  
+  # Colours
   my_colors <- c(
     "Aligned" = "#c9dce6",
     "No-cursor" = "#243762",
@@ -200,75 +202,139 @@ plotSchedule <- function() {
     "Rotation" = "#d8a1c4"
   )
   
-  aligned_end <- 104
-  aligned_mid <- aligned_end / 2
-  rotation_mid <- 175.5
+  
+  # Instructions occur before every Aligned and No-cursor block
+  instruction_positions <- schedule %>%
+    filter(phase %in% c("Aligned", "No-cursor")) %>%
+    pull(start)
+  
+  # Remove trial 0
+  instruction_positions <- instruction_positions[
+    instruction_positions > 0
+  ]
+  
   
   ggplot(schedule) +
-    # The Boxes (Y spans from 0.7 to 1.3)
-    geom_rect(
-      aes(
-        xmin = start, xmax = end,
-        ymin = 0.7, ymax = 1.3,
-        fill = condition
-      ),
-      color = "black"
-    ) +
     
-    # Centered Trial Numbers
+    # --------------------------------------------------
+  # TASK BLOCKS
+  # --------------------------------------------------
+  
+  geom_rect(
+    aes(
+      xmin = start,
+      xmax = end,
+      ymin = 0.7,
+      ymax = 1.3,
+      fill = condition
+    ),
+    color = "black"
+  ) +
+    
+    
+    # Number of trials in each block
     geom_text(
       aes(
-        x = mid, 
-        y = 1.0,             # Dead center vertically between 0.7 and 1.3
+        x = mid,
+        y = 1.0,
         label = trials,
-        color = text_color   # Dynamic color mapping for contrast
+        color = text_color
       ),
-      vjust = 0.5,           # Hard vertical center anchor
-      hjust = 0.5,           # Hard horizontal center anchor
+      vjust = 0.5,
+      hjust = 0.5,
       size = 3.5,
-      show.legend = FALSE    # Hide text color from the legend
+      show.legend = FALSE
     ) +
     
-    # Arrow reminder marker
-    geom_vline(
-      xintercept = aligned_end,
-      linetype = "dashed",
-      linewidth = 0.6
+    
+    # --------------------------------------------------
+  # INSTRUCTION INDICATORS
+  # --------------------------------------------------
+  
+  # Dashed lines spanning only the blocks
+  geom_segment(
+    data = data.frame(x = instruction_positions),
+    aes(
+      x = x,
+      xend = x,
+      y = 0.7,
+      yend = 1.3
+    ),
+    inherit.aes = FALSE,
+    linetype = "dashed",
+    linewidth = 0.8
+  ) +
+    
+    
+    # "I" underneath each instruction
+    geom_text(
+      data = data.frame(x = instruction_positions),
+      aes(
+        x = x,
+        y = 0.58,
+        label = "I"
+      ),
+      inherit.aes = FALSE,
+      fontface = "bold",
+      size = 3.5
     ) +
     
+    
+    # Instruction key
     annotate(
       "text",
-      x = 125,
-      y = 1.55,
-      label = "Aim Reminder",
-      size = 3.2
+      x = 2,
+      y = 0.40,
+      label = "I = Instruction",
+      hjust = 0,
+      size = 4
     ) +
     
     
-    # annotate(
-    #   "text",
-    #   x = aligned_mid,
-    #   y = 0.45,
-    #   label = "Aligned Phase",
-    #   size = 4
-    # ) +
+    # --------------------------------------------------
+  # AIM REMINDER
+  # --------------------------------------------------
+  
+  # "A" begins exactly at the instruction line (trial 104)
+  annotate(
+    "text",
+    x = 104,
+    y = 0.5,
+    label = "Aim Reminder",
+    hjust = 0,
+    size = 3
+  ) +
     
-    annotate(
-      "text",
-      x = 134,
-      y = 1.37,
-      label = "Rotation Onset",
-      size = 3,
-      col="#909090"
+    
+    # --------------------------------------------------
+  # ROTATION ONSET
+  # --------------------------------------------------
+  
+  # "R" begins exactly at the start of Rotation (trial 112)
+  annotate(
+    "text",
+    x = 112,
+    y = 1.4,
+    label = "Rotation Onset",
+    hjust = 0,
+    size = 3,
+    col = "#909090"
+  ) +
+    
+    
+    # --------------------------------------------------
+  # FORMATTING
+  # --------------------------------------------------
+  
+  scale_fill_manual(values = my_colors) +
+    scale_color_identity() +
+    
+    coord_cartesian(
+      ylim = c(0.30, 1.55)
     ) +
-    
-    
-    scale_fill_manual(values = my_colors) +
-    scale_color_identity() +  
-    
-    coord_cartesian(ylim = c(0.35, 1.7)) +
     
     theme_minimal() +
+    
     theme(
       panel.grid = element_blank(),
       axis.text = element_blank(),
@@ -276,8 +342,6 @@ plotSchedule <- function() {
       axis.ticks = element_blank()
     )
 }
-
-
 
 timecourseCartoon <- function() {
   
@@ -339,10 +403,15 @@ df1 <- data.frame(trial = trials, stepwise = stepwise_y)
 fig1 <- ggplot(df1, aes(x = trial, y = stepwise)) +
   geom_step(color = "#C39BD3", linewidth = 1.2) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  labs(title = "", x = "Trial", y = "Aim") +
+  labs(title = "Stepwise", x = "Trial", y = "Aim") +
   scale_y_continuous(limits = c(-20, 60), breaks = seq(-20, 60, 20)) +
   theme_minimal() +
   theme(panel.grid = element_blank(),
+        plot.title = element_text(
+          size = 15,
+          face = "bold",
+          hjust = 0.5
+        ),
         axis.title = element_text(size = 14),  
         axis.text = element_text(size = 14, color = "black")) # Removes all background grids
 
@@ -350,21 +419,32 @@ print(fig1)
 
 
 
+x <- seq(0, 50, 0.1)
+y <- plogis(x, 15, 2) * 40
 
-trials <- 0:50
-gradual_y <- 40 * (1 - exp(-0.20 * trials))
-df2 <- data.frame(trial = trials, gradual = gradual_y)
+df2 <- data.frame(
+  trial = x,
+  aim = y
+)
 
-# Plot Figure 2
-fig2 <- ggplot(df2, aes(x = trial, y = gradual)) +
+fig2 <- ggplot(df2, aes(x = trial, y = aim)) +
   geom_line(color = "#A2D9CE", linewidth = 1.2) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
-  labs(title = "", x = "Trial", y = "Aim") +
-  scale_y_continuous(limits = c(-20, 60), breaks = seq(-20, 60, 20)) +
+  labs(title = "Incremental",
+        x = "Trial", y = "Aim") +
+  scale_y_continuous(limits = c(-20, 60),
+                     breaks = seq(-20, 60, 20)) +
   theme_minimal() +
-  theme(panel.grid = element_blank(),
-        axis.title = element_text(size = 14),  
-        axis.text = element_text(size = 14, color = "black")) # Removes all background grids
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(
+      size = 15,
+      face = "bold",
+      hjust = 0.5
+    ),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14, color = "black")
+  )
 
 print(fig2)
 
@@ -381,10 +461,15 @@ df3 <- data.frame(trial = trials, erratic = erratic_y)
 fig3 <- ggplot(df3, aes(x = trial, y = erratic)) +
   geom_line(color = "salmon", linewidth = 1) +             
   geom_hline(yintercept = 00, linetype = "dashed", color = "gray50") +
-  labs(title = "", x = "Trial", y = "Aim") +
+  labs(title = "Exploratory", x = "Trial", y = "Aim") +
   scale_y_continuous(limits = c(-20, 60), breaks = seq(-20, 60, 20)) +
   theme_minimal() +
   theme(panel.grid = element_blank(),
+        plot.title = element_text(
+          size = 15,
+          face = "bold",
+          hjust = 0.5
+        ),
         axis.title = element_text(size = 14),  
         axis.text = element_text(size = 14, color = "black")) # Removes all background grids
 
