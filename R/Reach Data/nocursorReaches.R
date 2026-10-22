@@ -167,8 +167,8 @@ p_cluster <- ggplot(cluster_plot_df, aes(x = rel_trial, y = mean_curve, color = 
   geom_vline(xintercept = 0, linetype = "dashed", colour = "grey") +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey") +
   coord_cartesian(ylim = c(-10, 60)) +
-  scale_color_manual(values = c("1" = "#EAA178", "2" = "cyan", "3" = "orchid"), labels = c("1" = "Exploratory", "2" = "Multi-Step", "3" = "One-Step")) +
-  scale_fill_manual(values = c("1" = "#EAA178", "2" = "cyan", "3" = "orchid"), labels = c("1" = "Exploratory", "2" = "Multi-Step", "3" = "One-Step")) +
+  scale_color_manual(values = c("1" = "#EAA178", "2" = "cyan", "3" = "orchid"), labels = c("1" = "Exploratory", "2" = "Incremental", "3" = "One-Step")) +
+  scale_fill_manual(values = c("1" = "#EAA178", "2" = "cyan", "3" = "orchid"), labels = c("1" = "Exploratory", "2" = "Incremental", "3" = "One-Step")) +
   labs(x = "Trial", y = "Baseline-Normalized Reach Deviation (°)", color = "Phenotype", fill = "Phenotype") +
   theme_minimal() +
   theme(
@@ -193,6 +193,7 @@ clusterAfterStats <- function () {
 
   print("--- Phenotype Cluster ANOVA ---")
   print(summary(aov(aftereffect ~ cluster_label, data = cluster_anova_df)))
+  return(cluster_anova_df)
 }
 
 clusterAfterBox <- function () {
@@ -219,7 +220,7 @@ p_cluster_box <- ggplot() +
   # annotate("text", x = 1.5, y = 28.5, label = "*", size = 6, color = "black", vjust = 0.4) +
   scale_fill_manual(values = c("1" = "#EAA178", "2" = "cyan", "3" = "orchid")) +
   scale_color_manual(values = c("1" = "#B3653B", "2" = "#008294", "3" = "#8E3E8C")) +
-  scale_x_discrete(breaks = c("1", "2", "3"), labels = c("Exploratory", "Multi-Step", "One-Step")) +
+  scale_x_discrete(breaks = c("1", "2", "3"), labels = c("Exploratory", "Incremental", "One-Step")) +
   coord_cartesian(ylim = c(-5, 30)) + 
   labs(x = "", y = "Baseline-Normalized Reach Deviation (°)") +
   theme_classic(base_size = 12) +
