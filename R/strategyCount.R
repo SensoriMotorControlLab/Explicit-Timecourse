@@ -1,3 +1,80 @@
+density <- function() {
+  
+  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
+  
+  last_16_participant_means <- total_learners_data %>%
+    filter(
+      cutrial_no %in% 224:232,
+      group == "Group 2"
+    ) %>%
+    group_by(participant_id) %>%
+    summarise(
+      mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  density_data <- density(
+    last_16_participant_means$mean_aim,
+    bw = 1
+  )
+  
+  plot(
+    density_data,
+    main = "",
+    xlab = "Final 8 mean Aiming Deviation (degrees)",
+    ylab = "Density",
+    xlim = c(-20, 70),
+    col = "blue",
+    lwd = 2
+  )
+
+  polygon(density_data, col = "lightblue", border = "cadetblue")
+  # Find the minimum density between 1 and 10 degrees
+  range_idx <- which(
+    density_data$x >= 1 &
+      density_data$x <= 10
+  )
+  
+  min_idx <- range_idx[which.min(density_data$y[range_idx])]
+  
+  min_x <- density_data$x[min_idx]
+  min_y <- density_data$y[min_idx]
+  
+  # Mark the minimum
+  points(min_x, min_y, col = "red", pch = 19, cex = 1.2)
+
+  cat("Minimum at:", round(min_x, 2), "degrees\n")
+  cat("Density:", round(min_y, 5), "\n")
+  abline(v = min_x, col = "red", lty = "dashed")
+  
+  
+  abline(v = 0, col = "grey30", lwd = 2, lty = "dotted")
+  abline(v = 14.8, col = "grey30", lwd = 2, lty = "dotted")
+  
+  text(
+    x = 0,
+    y = max(density_data$y) * 1.05,
+    labels = "Non-strategy users",
+    col = "grey30",
+    cex = 0.8,
+    pos = 3,
+    xpd = TRUE
+  )
+  
+  text(
+    x = 14.8,
+    y = max(density_data$y) * 1.05,
+    labels = "Strategy users",
+    col = "grey30",
+    cex = 0.8,
+    pos = 3,
+    xpd = TRUE
+  )
+  
+  
+}
+
+
 
 #use last 16 rotated trials which represents where strategies are most consistent
 
@@ -6,7 +83,6 @@ getCI <- function () {
   total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
   last_16_rotated_learners <- total_learners_data[
-    (total_learners_data$cutrial_no %in% 193:208 & total_learners_data$group == 'Group 1') |
       (total_learners_data$cutrial_no %in% 217:232 & total_learners_data$group == 'Group 2'),
   ]
   
@@ -18,63 +94,140 @@ getCI <- function () {
   )
   return(list(CI = CI, data = last_16_rotated_learners))
 }
+# 
+# #using CI function, we can now use a 95% interval approach to figure out strategy-users
+# getStrategies <- function() {
+#   
+#   ci_result <- getCI()
+#   
+#   CI_df <- ci_result$CI
+#   raw_df <- ci_result$data
+#   
+#   sign_df <- raw_df %>%
+#     group_by(participant_id, rotation) %>%
+#     summarise(
+#       negative_trials = sum(aimdeviation_deg < 0, na.rm = TRUE),
+#       .groups = "drop"
+#     )
+#   
+#   # Flag participants with more than 1 negative-aim trial
+#   sign_df <- sign_df %>%
+#     mutate(
+#       flip_flag = negative_trials > 1
+#     )
+#   
+#   
+#   # final <- raw_df %>%
+#   #   group_by(participant_id, rotation) %>%
+#   #   summarise(
+#   #      final = tail(aimdeviation_deg, 8),
+#   #     .groups = "drop"
+#   #   )
+#   # 
+#   
+#   # 3. apply CI only to stable participants
+#   strategy_df <- CI_df %>%
+#     rowwise() %>%
+#     mutate(
+#       lower = aimdeviation_deg[1],
+#       upper = aimdeviation_deg[2]
+#     ) %>%
+#     ungroup() %>%
+#     left_join(sign_df, by = c("participant_id", "rotation")) %>%
+#     mutate(
+#       strategy = case_when(
+#         participant_id == "657fba" ~ "No", #this was the weird one
+#         flip_flag ~ "No",
+#         lower > 5 ~ "Yes",
+#         
+#         TRUE ~ "No"
+#       )
+#     ) %>%
+#     dplyr::select(participant_id, rotation, lower, upper, negative_trials, strategy)
+#   
+#   return(strategy_df)
+# }
 
-#using CI function, we can now use a 95% interval approach to figure out strategy-users
+
 getStrategies <- function() {
   
-  ci_result <- getCI()
+  total_learners_data <- read.csv(
+    "data/total_learners_data.csv",
+    stringsAsFactors = FALSE
+  )
   
-  CI_df <- ci_result$CI
-  raw_df <- ci_result$data
+  # final 8 trials
+  raw_df <- total_learners_data %>%
+    filter(
+      cutrial_no %in% 224:232,
+      group == "Group 2"
+    )
   
-  # 1. compute sign flip metric from RAW data
-  sign_df <- raw_df %>%
+  # each participant's mean aiming deviation
+  participant_means <- raw_df %>%
     group_by(participant_id, rotation) %>%
     summarise(
-      neg_prop = mean(aimdeviation_deg < 0),
-      sign_flips = sum(diff(sign(aimdeviation_deg)) != 0),
+      mean_aim = mean(aimdeviation_deg, na.rm = TRUE),
       .groups = "drop"
     )
   
-  # 2.flag unstable participants (NO strategy automatically)
-  sign_df <- sign_df %>%
-    mutate(
-      flip_flag = sign_flips > 2   
-    )
+  # density-based threshold
+  density_data <- stats::density(
+    participant_means$mean_aim,
+    bw = 2
+  )
   
+  range_idx <- which(
+    density_data$x >= 1 &
+      density_data$x <= 10
+  )
   
-  # 3. apply CI only to stable participants
-  strategy_df <- CI_df %>%
-    rowwise() %>%
-    mutate(
-      lower = aimdeviation_deg[1],
-      upper = aimdeviation_deg[2]
+  min_idx <- range_idx[which.min(density_data$y[range_idx])]
+  threshold <- density_data$x[min_idx]
+  
+  #cat("Density-based threshold:", round(threshold, 2), "degrees\n")
+  
+
+  sign_df <- raw_df %>%
+    group_by(participant_id, rotation) %>%
+    summarise(
+      negative_trials = sum(aimdeviation_deg < 0, na.rm = TRUE),
+      .groups = "drop"
     ) %>%
-    ungroup() %>%
+    mutate(flip_flag = negative_trials > 1)
+  
+  # classify strategy users 
+  strategy_df <- participant_means %>%
     left_join(sign_df, by = c("participant_id", "rotation")) %>%
     mutate(
+      threshold = threshold,
       strategy = case_when(
-        participant_id == "657fba" ~ "No", #this was the weird one
+        participant_id == "657fba" ~ "No",
         flip_flag ~ "No",
-        lower < 0 ~ "No",
-        lower > 5 ~ "Yes",
+        mean_aim > threshold ~ "Yes",
         TRUE ~ "No"
       )
     ) %>%
-    dplyr::select(participant_id, rotation, lower, upper, neg_prop, sign_flips, strategy)
+    dplyr::select(
+      participant_id, rotation, mean_aim,
+      threshold, negative_trials, flip_flag, strategy
+    )
   
   return(strategy_df)
 }
 
 
 countStrategies <- function() {
-  strategy_df <- getStrategies()
-  total_learners_data <- read.csv("data/total_learners_data.csv", stringsAsFactors =FALSE)
   
-  strategy_users <- sum(  strategy_df$strategy == "Yes", na.rm = TRUE)
-  print(strategy_users)
+  strategy_df <- getStrategies()
+  
+  strategy_users <- strategy_df %>%
+    filter(strategy == "Yes") %>%
+    summarise(n = n_distinct(participant_id)) %>%
+    pull(n)
+  
+  cat("Number of strategy users:", strategy_users, "\n")
 }
-
 
 strategySummary <- function() {
   
@@ -125,7 +278,7 @@ Strategyfile <- function() {
 }
 
 
-#add sanity check
+#add sanity check -- those with erratic timecourses might just be aiming where target was at previous trial!
 getTargets <- function () {
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   
