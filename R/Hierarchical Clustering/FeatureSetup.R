@@ -372,7 +372,7 @@ plotScree <- function () {
   extract <- getFeatures() 
   features_z <- extract$features_z
   
-  k_input <- extract$kmeans_input
+  k_input <- extract$input
   
   pca <- prcomp(k_input, center = FALSE, scale. = FALSE)
   
@@ -566,13 +566,13 @@ plotBox <- function() {
 
 
 loadingTable <- function () {
-  
+  library(gt)
   model_df <- read.csv("data/LearningClassifier.csv") #for pre-xG boost labels
   strategy_data <- read.csv("data/strategy_only_participants.csv")
   extract <- getFeatures() 
   features_z <- extract$features_z
   
-  k_input <- extract$kmeans_input
+  k_input <- extract$input
   
   pca <- prcomp(k_input, center = FALSE, scale. = FALSE)
   pca$rotation <- pca$rotation*-1
