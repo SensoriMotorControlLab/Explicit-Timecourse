@@ -37,15 +37,20 @@ rsconnect/
 *.DS_Store
 # Ignore everything inside the data directory
 data/*
+!data/.gitkeep
+!data/*
+.RData*
 # Ignore all CSV files anywhere in the repo
 *.csv
 group_line.gif
 participant_2.gif
 data/Instructed_summary*
 participant_42cb35.gif
+*SUMMARY_aiming20_*.csv
 OPENFIRST.docx
 OPENFIRST_files
 OPENFIRST.nb.html
 SebDataPoster.R
 posterfigs.R
 R/Modeling*
+stabilization.R
